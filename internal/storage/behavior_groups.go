@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"gomate/internal/anomaly"
 
@@ -131,7 +132,17 @@ func (s *Store) behaviorGroups(ctx context.Context, q TrafficGroupQuery) ([]beha
 		return nil, err
 	}
 	defer rollback(tx)
-	if _, err = tx.Exec(ctx, "SET LOCAL statement_timeout = '10s'"); err != nil {
+	// PostgreSQL's limit must follow the remaining request budget, not a
+	// second hard-coded ceiling. Never pass 0, which disables the DB limit.
+	budget := 10 * time.Second
+	if deadline, ok := ctx.Deadline(); ok {
+		budget = time.Until(deadline)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	timeoutMS := max(int64(1), budget.Milliseconds())
+	if _, err = tx.Exec(ctx, "SELECT set_config('statement_timeout', $1, true)", fmt.Sprintf("%dms", timeoutMS)); err != nil {
 		return nil, err
 	}
 	rows, err := tx.Query(ctx, `SELECT s.id,s.service,s.protocol,s.start_ms,

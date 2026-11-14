@@ -66,11 +66,13 @@ func TestDynamicCapturePreparationFailureRetentionAndShutdown(t *testing.T) {
 		t.Fatal("existing source stopped on failed preparation")
 	}
 	v = m.Settings()
+	started := m.Status().StartedAt
+	v.AnomalyTimeoutSeconds = 60
 	v.PacketRetentionSeconds = 60
 	if e := m.Apply(ctx, v, persist); e != nil {
 		t.Fatal(e)
 	}
-	if len(sources) != 1 {
+	if len(sources) != 1 || !m.Status().StartedAt.Equal(started) || m.Settings().AnomalyTimeoutSeconds != 60 {
 		t.Fatal("retention change restarted capture")
 	}
 	v = m.Settings()

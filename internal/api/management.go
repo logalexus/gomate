@@ -45,6 +45,10 @@ func (s *Server) management(w http.ResponseWriter, r *http.Request, p []string) 
 		if e := decode(w, r, &v); e != nil {
 			return true, e
 		}
+		// Preserve the setting when an older client saves an unrelated field.
+		if v.AnomalyTimeoutSeconds == 0 {
+			v.AnomalyTimeoutSeconds = s.anomalyTimeoutSeconds()
+		}
 		if e := control.Validate(v); e != nil {
 			return true, bad(e.Error())
 		}

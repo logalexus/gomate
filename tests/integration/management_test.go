@@ -25,6 +25,7 @@ func TestSettingsRevisionRetentionAndManualCleanup(t *testing.T) {
 		t.Fatal(e)
 	}
 	stale := v
+	v.AnomalyTimeoutSeconds = 60
 	v.PacketRetentionSeconds = 60
 	v.SessionRetentionSeconds = 120
 	if e = s.PutSettings(ctx, &v); e != nil {
@@ -34,7 +35,7 @@ func TestSettingsRevisionRetentionAndManualCleanup(t *testing.T) {
 		t.Fatal(e)
 	}
 	saved, e := s.InitSettings(ctx, model.RuntimeSettings{Interface: "should-not-override"})
-	if e != nil || saved.Revision != 2 || saved.PacketRetentionSeconds != 60 {
+	if e != nil || saved.Revision != 2 || saved.PacketRetentionSeconds != 60 || saved.AnomalyTimeoutSeconds != 60 {
 		t.Fatal(saved, e)
 	}
 	now := time.Now()

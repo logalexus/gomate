@@ -13,7 +13,9 @@
     "retention during inspection",
     "alerts to all sessions with response exceeding five seconds",
     "slow group members remain selectable",
-    "failed refresh clears obsolete rows and retry recovers"
+    "failed refresh clears obsolete rows and retry recovers",
+    "timeout validation and save without reload",
+    "configured timeout allows response beyond old fifteen-second limit"
   ],
   "layouts": [
     {

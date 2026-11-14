@@ -105,14 +105,18 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	// Read from memory so a busy database cannot prevent timeout discovery.
+	if r.URL.Path == "/api/v2/anomalies/config" && r.Method == "GET" {
+		w.Header().Set("Cache-Control", "no-store")
+		respond(w, 200, map[string]int64{"timeoutSeconds": s.anomalyTimeoutSeconds()})
+		return
+	}
 	// Behavior reads scan the retained descriptor corpus. Keep their budget
 	// separate from short metadata/write operations, including under host load.
 	timeout := s.Config.DBTimeout
 	if (r.URL.Path == "/api/v2/anomalies/groups" && r.URL.Query().Get("grouping") == "behavior") ||
 		(r.URL.Path == "/api/v2/anomalies/sessions" && r.URL.Query().Get("fingerprint") != "") {
-		if timeout < 10*time.Second {
-			timeout = 10 * time.Second
-		}
+		timeout = time.Duration(s.anomalyTimeoutSeconds()) * time.Second
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), timeout)
 	defer cancel()
@@ -572,4 +576,11 @@ func (s *Server) static(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.ServeFile(w, r, filepath.Join(s.Config.WebDir, "index.html"))
+}
+
+func (s *Server) anomalyTimeoutSeconds() int64 {
+	if s.Control != nil {
+		return s.Control.Settings().AnomalyTimeout()
+	}
+	return (model.RuntimeSettings{}).AnomalyTimeout()
 }

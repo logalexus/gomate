@@ -31,6 +31,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
   await page.routeWebSocket('**/api/v2/events',()=>{});
   await page.route('**/api/**',async route => {
    const req=route.request(), u=new URL(req.url()); let data=[];
+   if (u.pathname==='/api/v2/anomalies/config') data={timeoutSeconds:10};
    if (u.pathname==='/api/v2/snapshot') data={services:[{port:8080,name:'HTTP mock'},{port:9000,name:'TCP mock'}], patterns:[], metrics:{},captureRunning:true};
    if (u.pathname==='/api/v2/anomalies/groups') data={groups:[],totalGroups:0,totalSessions:0,totalAnomalies:0};
    if (u.pathname==='/api/v2/anomalies/stats') data={services:[{port:8080,messages:3000,reported:800,warm:true},{port:9000,messages:80,reported:0,warm:false}],drops:0,flagPattern:false,warmAfter:100};
