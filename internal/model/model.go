@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"fmt"
+	"strconv"
+	"time"
+)
 
 type Service struct {
 	Port       int    `json:"port"`
@@ -49,22 +53,25 @@ type Packet struct {
 }
 
 type Stream struct {
-	PayloadPurged bool    `json:"payloadPurged"`
-	ID            int64   `json:"id"`
-	Key           string  `json:"-"`
-	Service       int     `json:"service"`
-	Protocol      string  `json:"protocol"`
-	Start         int64   `json:"startTimestamp"`
-	End           int64   `json:"endTimestamp"`
-	Patterns      []int   `json:"foundPatternsIds"`
-	Favorite      bool    `json:"favorite"`
-	TTL           int     `json:"ttl"`
-	UserAgentHash *string `json:"userAgentHash"`
-	Size          int64   `json:"sizeBytes"`
-	PacketsCount  int     `json:"packetsCount"`
-	Incomplete    bool    `json:"incomplete"`
-	Client        string  `json:"client"`
-	Server        string  `json:"server"`
+	FirstRequestPath      string  `json:"firstRequestPath"`
+	FirstRequestMethod    string  `json:"firstRequestMethod,omitempty"`
+	FirstRequestTruncated bool    `json:"firstRequestTruncated,omitempty"`
+	PayloadPurged         bool    `json:"payloadPurged"`
+	ID                    int64   `json:"id"`
+	Key                   string  `json:"-"`
+	Service               int     `json:"service"`
+	Protocol              string  `json:"protocol"`
+	Start                 int64   `json:"startTimestamp"`
+	End                   int64   `json:"endTimestamp"`
+	Patterns              []int   `json:"foundPatternsIds"`
+	Favorite              bool    `json:"favorite"`
+	TTL                   int     `json:"ttl"`
+	UserAgentHash         *string `json:"userAgentHash"`
+	Size                  int64   `json:"sizeBytes"`
+	PacketsCount          int     `json:"packetsCount"`
+	Incomplete            bool    `json:"incomplete"`
+	Client                string  `json:"client"`
+	Server                string  `json:"server"`
 }
 
 // Chunk is a bounded, immutable piece of a connection. Token makes retrying a
@@ -82,6 +89,7 @@ type Chunk struct {
 }
 
 type Page struct {
+	PatternIDs     []int  `json:"patternIds"`
 	Representation string `json:"representation"`
 	StartingFrom   *int64 `json:"startingFrom"`
 	PageSize       int    `json:"pageSize"`
@@ -89,4 +97,47 @@ type Page struct {
 	Pattern        *struct {
 		ID any `json:"id"`
 	} `json:"pattern"`
+}
+
+const MaxPatternFilters = 100
+
+// SelectedPatternIDs combines the multi-select API with its legacy single
+// pattern form. Every returned ID is required (AND), and duplicates are inert.
+func (p Page) SelectedPatternIDs() ([]int, error) {
+	if len(p.PatternIDs) > MaxPatternFilters {
+		return nil, fmt.Errorf("at most %d patternIds are allowed", MaxPatternFilters)
+	}
+	ids := make([]int, 0, len(p.PatternIDs)+1)
+	seen := make(map[int]bool, len(p.PatternIDs)+1)
+	add := func(id int) error {
+		if id < 1 || int64(id) > 2147483647 {
+			return fmt.Errorf("patternIds must contain positive 32-bit integers")
+		}
+		if !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+		return nil
+	}
+	for _, id := range p.PatternIDs {
+		if err := add(id); err != nil {
+			return nil, err
+		}
+	}
+	if p.Pattern != nil {
+		id, err := strconv.ParseInt(fmt.Sprint(p.Pattern.ID), 10, 32)
+		if err != nil || id < 0 {
+			return nil, fmt.Errorf("invalid pattern id")
+		}
+		// Legacy id=0 meant "no single-pattern filter".
+		if id != 0 {
+			if err = add(int(id)); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if len(ids) > MaxPatternFilters {
+		return nil, fmt.Errorf("at most %d distinct patterns are allowed", MaxPatternFilters)
+	}
+	return ids, nil
 }

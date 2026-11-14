@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {serviceScope,streamLocation,filterLocation} from '../../web/src/trafficFilters.mjs';
+import {serviceScope,streamLocation,filterLocation,patternSelection} from '../../web/src/trafficFilters.mjs';
 test('opening a session keeps all-service scope and pattern filter',()=>{
  const route={params:{},query:{pattern:'42'}};
  assert.deepEqual(streamLocation(route,{id:7,service:8080}),{name:'stream',params:{servicePort:'all',streamId:7},query:{pattern:'42'}});
@@ -13,4 +13,16 @@ test('changing a filter drops stale selected session but preserves independent c
  assert.deepEqual(filterLocation(route,{pattern:''}),{name:'stream',params:{servicePort:'8080'},query:{other:'kept'}});
  assert.deepEqual(filterLocation(route,{service:'',pattern:''}),{name:'stream',params:{},query:{other:'kept'}});
  assert.deepEqual(route,{params:{servicePort:'8080',streamId:7},query:{pattern:'42',other:'kept'}});
+});
+
+test('multiple pattern labels survive navigation, legacy links and independent service changes',()=>{
+ assert.deepEqual(patternSelection({pattern:'42'}),[42]);
+ assert.deepEqual(patternSelection({patterns:['12,42','12','bad','0','-2','2147483648']}),[12,42]);
+ const route={params:{servicePort:'8080',streamId:7},query:{pattern:'42',other:'kept'}};
+ const target=filterLocation(route,{patterns:[42,12]});
+ assert.deepEqual(target,{name:'stream',params:{servicePort:'8080'},query:{patterns:'42,12',other:'kept'}});
+ assert.equal(streamLocation(target,{id:8}).query.patterns,'42,12');
+ assert.equal(filterLocation(target,{service:'9090'}).query.patterns,'42,12');
+ assert.deepEqual(filterLocation(target,{patterns:[]}).query,{other:'kept'});
+ assert.deepEqual(filterLocation(target,{pattern:'2'}).query,{pattern:'2',other:'kept'});
 });

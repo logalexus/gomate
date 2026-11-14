@@ -6,7 +6,6 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/jackc/pgx/v5/pgconn"
 	"io"
 	"log/slog"
@@ -520,10 +519,8 @@ func validatePage(p *model.Page) error {
 	if p.StartingFrom != nil && *p.StartingFrom < 0 {
 		return bad("invalid cursor")
 	}
-	if p.Pattern != nil {
-		if _, e := strconv.Atoi(fmt.Sprint(p.Pattern.ID)); e != nil {
-			return bad("invalid pattern id")
-		}
+	if _, e := p.SelectedPatternIDs(); e != nil {
+		return bad(e.Error())
 	}
 	return nil
 }

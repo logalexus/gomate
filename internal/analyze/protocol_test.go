@@ -40,6 +40,9 @@ func TestHTTPLargeBodyChunkedAndURL(t *testing.T) {
 	if len(out) != 2 || !bytes.Contains(out[0].Content, []byte("POST /a b")) || !bytes.HasSuffix(out[0].Content, []byte(body)) {
 		t.Fatalf("bad pipelined body: %d", len(out))
 	}
+	if out[0].Metadata["path"] != "/a%20b" || out[0].Metadata["method"] != "POST" || out[1].Metadata["path"] != "/next" {
+		t.Fatalf("request metadata lost raw URI or method: %+v", out)
+	}
 	var c Decoder
 	out = c.Feed(model.Packet{Content: []byte("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nFLAG\r\n0\r\n\r\n")}, model.Service{HTTP: true}, false)
 	if len(out) != 1 || !bytes.HasSuffix(out[0].Content, []byte("FLAG")) {
@@ -112,6 +115,11 @@ func TestH2MultiplexedGRPCSplitCompressionAndTrailers(t *testing.T) {
 		for _, q := range out {
 			if q.Kind == "decode-error" {
 				t.Fatalf("%d: %s", step, q.Content)
+			}
+			if q.Kind == "grpc" || q.Kind == "http2-headers" {
+				if q.Metadata["method"] != "POST" || q.Metadata["path"] != "/Echo/"+q.Metadata["streamId"] {
+					t.Fatalf("missing H2 request metadata: %+v", q.Metadata)
+				}
 			}
 			if q.Kind == "grpc" {
 				seen[q.Metadata["streamId"]] = string(q.Content)

@@ -1,0 +1,17 @@
+{
+  "ready": {
+    "ready": true
+  },
+  "capture": {
+    "running": true,
+    "interface": "eth1",
+    "localIPs": [
+      "192.168.56.103"
+    ],
+    "startedAt": "2026-11-14T20:30:48.093283372Z"
+  },
+  "localImage": "sha256:e5bc1c11800b52ab25146470e425326ee7852df5e752d490e3dbdc8e02d8c69c",
+  "remoteImage": "sha256:2cc34106b70e60d200e0311cbaf1b604fe2d2e5d3dbf7b879dc88f955076e8ba",
+  "rootFSLayersMatch": true,
+  "rollbackImage": "gomate-app:before-compact-ui-20261114"
+}

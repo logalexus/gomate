@@ -22,13 +22,14 @@
    </tbody></table></div>
    <div v-else class="pattern-manager-empty"><h6>{{ patterns.length?'Подходящих шаблонов нет':'Начните с первого правила' }}</h6><p>{{ patterns.length?'Измените условия поиска или сбросьте фильтры.':'Добавьте флаг, фрагмент текста или последовательность байтов.' }}</p><b-button variant="outline-primary" @click="patterns.length?clearManagerFilters():edit(null)">{{ patterns.length?'Сбросить фильтры':'Создать шаблон' }}</b-button></div>
    <b-pagination v-if="filtered.length>20" v-model="page" :total-rows="filtered.length" :per-page="20" align="center" aria-label="Страницы шаблонов"/>
-   <div class="pattern-manager-footer"><span>Новые правила работают сразу. «В прошлом» проверяет сохранённый трафик.</span><b-button v-if="$route.query.pattern" size="sm" variant="link" @click="resetFilter">Показать все сессии</b-button><b-button variant="outline-secondary" size="sm" @click="$bvModal.hide('patternsManager')">Закрыть</b-button></div>
+   <div class="pattern-manager-footer"><span>Новые правила работают сразу. «В прошлом» проверяет сохранённый трафик.</span><b-button v-if="$route.query.pattern||$route.query.patterns" size="sm" variant="link" @click="resetFilter">Показать все сессии</b-button><b-button variant="outline-secondary" size="sm" @click="$bvModal.hide('patternsManager')">Закрыть</b-button></div>
   </b-modal>
   <PatternModal :creating="creating" :initial-pattern="editing" @patternAddComplete="refresh"/>
   <LookBack :pattern-id="lookbackID"/>
  </div>
 </template>
 <script>
+import {filterLocation} from '../trafficFilters.mjs';
 import PatternModal from '@/views/PatternModal';import LookBack from '@/views/LookBack';
 const message=e=>e.response?.data?.error||e.message;
 export default {
@@ -44,7 +45,7 @@ export default {
   async toggle(p,enabled){const previous=p.enabled;this.busy=true;this.error='';this.$store.commit('setPatterns',this.$store.state.patterns.map(x=>x.id===p.id?{...x,enabled}:x));try{await this.$http.post(`/pattern/${p.id}/enable`,null,{params:{enabled}});await this.refresh()}catch(e){this.$store.commit('setPatterns',this.$store.state.patterns.map(x=>x.id===p.id?{...x,enabled:previous}:x));this.error=message(e)}finally{this.busy=false}},
   async bulk(action){if(action==='delete'&&!await this.$bvModal.msgBoxConfirm(`Удалить выбранные шаблоны (${this.selected.length})? Трафик останется в истории.`,{title:'Удалить шаблоны?',okTitle:'Удалить',cancelTitle:'Отмена',okVariant:'danger'}))return;this.busy=true;this.error='';try{await this.$http.post('/v2/patterns-bulk',{ids:this.selected,action});this.selected=[];await this.refresh()}catch(e){this.error=message(e)}finally{this.busy=false}},
   async remove(p){if(!await this.$bvModal.msgBoxConfirm(`Удалить шаблон «${p.name}»?`,{title:'Удаление шаблона',okTitle:'Удалить',cancelTitle:'Отмена',okVariant:'danger'}))return;this.busy=true;try{await this.$http.delete(`/pattern/${p.id}`);await this.refresh()}catch(e){this.error=message(e)}finally{this.busy=false}},
-  lookback(p){this.lookbackID=p.id;this.$bvModal.show('lookBackModal')},filter(p){this.$router.push({name:'stream',params:this.$route.params,query:{pattern:p.id}},()=>{});this.$bvModal.hide('patternsManager')},resetFilter(){this.$router.push({name:'stream',params:this.$route.params},()=>{});this.$bvModal.hide('patternsManager')},
+  lookback(p){this.lookbackID=p.id;this.$bvModal.show('lookBackModal')},filter(p){this.$router.push(filterLocation(this.$route,{patterns:[p.id]}),()=>{});this.$bvModal.hide('patternsManager')},resetFilter(){this.$router.push(filterLocation(this.$route,{patterns:[]}),()=>{});this.$bvModal.hide('patternsManager')},
  }
 }
 </script>

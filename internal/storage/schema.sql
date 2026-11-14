@@ -115,3 +115,9 @@ CREATE TABLE IF NOT EXISTS gomate_anomalies (
 );
 CREATE INDEX IF NOT EXISTS gomate_anomalies_score ON gomate_anomalies(service, score DESC);
 INSERT INTO gomate_schema_versions(version) VALUES (7) ON CONFLICT DO NOTHING;
+-- Nullable, metadata-only additions avoid rewriting existing traffic history.
+-- Populated in the existing chunk UPSERT; payload retention never clears them.
+ALTER TABLE gomate_streams ADD COLUMN IF NOT EXISTS first_request_path text;
+ALTER TABLE gomate_streams ADD COLUMN IF NOT EXISTS first_request_method text;
+ALTER TABLE gomate_streams ADD COLUMN IF NOT EXISTS first_request_truncated boolean;
+INSERT INTO gomate_schema_versions(version) VALUES (8) ON CONFLICT DO NOTHING;

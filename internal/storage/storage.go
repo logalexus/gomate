@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -178,6 +177,18 @@ func (s *Store) SaveChunks(ctx context.Context, chunks []*model.Chunk) error {
 		if c.Stream.UserAgentHash != nil {
 			a.stream.UserAgentHash = c.Stream.UserAgentHash
 		}
+		if a.stream.FirstRequestPath == "" {
+			for _, packet := range c.Packets {
+				if !packet.Incoming || (packet.Kind != "http" && packet.Kind != "http2-headers" && packet.Kind != "grpc") || packet.Metadata["path"] == "" {
+					continue
+				}
+				var methodTruncated bool
+				a.stream.FirstRequestPath, a.stream.FirstRequestTruncated = boundedRequestField(packet.Metadata["path"], 2048)
+				a.stream.FirstRequestMethod, methodTruncated = boundedRequestField(packet.Metadata["method"], 32)
+				a.stream.FirstRequestTruncated = a.stream.FirstRequestTruncated || methodTruncated
+				break
+			}
+		}
 		a.bytes += c.Bytes
 		a.packets += len(c.Packets)
 		a.ignore = a.ignore || c.Ignore
@@ -200,18 +211,21 @@ func (s *Store) SaveChunks(ctx context.Context, chunks []*model.Chunk) error {
 		for id := range a.patterns {
 			ids = append(ids, id)
 		}
-		metadata = append(metadata, map[string]any{"flow_key": key, "service": v.Service, "protocol": v.Protocol, "start_ms": v.Start, "end_ms": v.End, "pattern_ids": ids, "incomplete": v.Incomplete, "ignored": a.ignore, "ttl": v.TTL, "size_bytes": a.bytes, "packets_count": a.packets, "client": v.Client, "server": v.Server, "user_agent_hash": v.UserAgentHash})
+		metadata = append(metadata, map[string]any{"flow_key": key, "service": v.Service, "protocol": v.Protocol, "start_ms": v.Start, "end_ms": v.End, "pattern_ids": ids, "incomplete": v.Incomplete, "ignored": a.ignore, "ttl": v.TTL, "size_bytes": a.bytes, "packets_count": a.packets, "client": v.Client, "server": v.Server, "user_agent_hash": v.UserAgentHash, "first_request_path": v.FirstRequestPath, "first_request_method": v.FirstRequestMethod, "first_request_truncated": v.FirstRequestTruncated})
 	}
 	payload, err := json.Marshal(metadata)
 	if err != nil {
 		return err
 	}
-	records, err := tx.Query(ctx, `INSERT INTO gomate_streams(flow_key,service,protocol,start_ms,end_ms,pattern_ids,incomplete,ignored,ttl,size_bytes,packets_count,client,server,user_agent_hash)
-    SELECT flow_key,service,protocol,start_ms,end_ms,pattern_ids,incomplete,ignored,ttl,size_bytes,packets_count,client,server,user_agent_hash
-    FROM jsonb_to_recordset($1::jsonb) AS x(flow_key text,service integer,protocol text,start_ms bigint,end_ms bigint,pattern_ids integer[],incomplete boolean,ignored boolean,ttl integer,size_bytes bigint,packets_count integer,client text,server text,user_agent_hash text)
+	records, err := tx.Query(ctx, `INSERT INTO gomate_streams(flow_key,service,protocol,start_ms,end_ms,pattern_ids,incomplete,ignored,ttl,size_bytes,packets_count,client,server,user_agent_hash,first_request_path,first_request_method,first_request_truncated)
+    SELECT flow_key,service,protocol,start_ms,end_ms,pattern_ids,incomplete,ignored,ttl,size_bytes,packets_count,client,server,user_agent_hash,NULLIF(first_request_path,''),NULLIF(first_request_method,''),first_request_truncated
+    FROM jsonb_to_recordset($1::jsonb) AS x(flow_key text,service integer,protocol text,start_ms bigint,end_ms bigint,pattern_ids integer[],incomplete boolean,ignored boolean,ttl integer,size_bytes bigint,packets_count integer,client text,server text,user_agent_hash text,first_request_path text,first_request_method text,first_request_truncated boolean)
     ON CONFLICT(flow_key) DO UPDATE SET end_ms=GREATEST(gomate_streams.end_ms,excluded.end_ms),
     pattern_ids=ARRAY(SELECT DISTINCT unnest(gomate_streams.pattern_ids||excluded.pattern_ids)),
     user_agent_hash=COALESCE(excluded.user_agent_hash,gomate_streams.user_agent_hash),
+    first_request_path=COALESCE(gomate_streams.first_request_path,excluded.first_request_path),
+    first_request_method=CASE WHEN gomate_streams.first_request_path IS NULL THEN excluded.first_request_method ELSE gomate_streams.first_request_method END,
+    first_request_truncated=CASE WHEN gomate_streams.first_request_path IS NULL THEN excluded.first_request_truncated ELSE gomate_streams.first_request_truncated END,
  incomplete=gomate_streams.incomplete OR excluded.incomplete,ignored=gomate_streams.ignored OR excluded.ignored,
     size_bytes=gomate_streams.size_bytes+excluded.size_bytes,packets_count=gomate_streams.packets_count+excluded.packets_count
     RETURNING flow_key,id,ignored`, payload)
@@ -272,19 +286,13 @@ func (s *Store) SaveChunks(ctx context.Context, chunks []*model.Chunk) error {
 }
 
 func (s *Store) Streams(ctx context.Context, port int, page model.Page) ([]model.Stream, error) {
-	pattern := 0
-	if page.Pattern != nil {
-		switch v := page.Pattern.ID.(type) {
-		case string:
-			fmt.Sscan(v, &pattern)
-		case float64:
-			pattern = int(v)
-		case json.Number:
-			fmt.Sscan(string(v), &pattern)
-		}
+	patterns, e := page.SelectedPatternIDs()
+	if e != nil {
+		return nil, e
 	}
-	rows, e := s.Pool.Query(ctx, `SELECT id,service,protocol,start_ms,end_ms,pattern_ids,favorite,ttl,size_bytes,packets_count,incomplete,client,server,user_agent_hash,payload_purged
- FROM gomate_streams WHERE NOT ignored AND ($1=0 OR service=$1) AND ($2::bigint IS NULL OR id<$2) AND (NOT $3 OR favorite) AND ($4=0 OR pattern_ids @> ARRAY[$4]::integer[]) ORDER BY id DESC LIMIT $5`, port, page.StartingFrom, page.Favorites, pattern, page.PageSize)
+	rows, e := s.Pool.Query(ctx, `SELECT id,service,protocol,start_ms,end_ms,pattern_ids,favorite,ttl,size_bytes,packets_count,incomplete,client,server,user_agent_hash,payload_purged,
+ COALESCE(first_request_path,''),COALESCE(first_request_method,''),COALESCE(first_request_truncated,false)
+ FROM gomate_streams WHERE NOT ignored AND ($1=0 OR service=$1) AND ($2::bigint IS NULL OR id<$2) AND (NOT $3 OR favorite) AND pattern_ids @> $4::integer[] ORDER BY id DESC LIMIT $5`, port, page.StartingFrom, page.Favorites, patterns, page.PageSize)
 	if e != nil {
 		return nil, e
 	}
@@ -292,7 +300,7 @@ func (s *Store) Streams(ctx context.Context, port int, page model.Page) ([]model
 	out := []model.Stream{}
 	for rows.Next() {
 		var v model.Stream
-		if e = rows.Scan(&v.ID, &v.Service, &v.Protocol, &v.Start, &v.End, &v.Patterns, &v.Favorite, &v.TTL, &v.Size, &v.PacketsCount, &v.Incomplete, &v.Client, &v.Server, &v.UserAgentHash, &v.PayloadPurged); e != nil {
+		if e = rows.Scan(&v.ID, &v.Service, &v.Protocol, &v.Start, &v.End, &v.Patterns, &v.Favorite, &v.TTL, &v.Size, &v.PacketsCount, &v.Incomplete, &v.Client, &v.Server, &v.UserAgentHash, &v.PayloadPurged, &v.FirstRequestPath, &v.FirstRequestMethod, &v.FirstRequestTruncated); e != nil {
 			return nil, e
 		}
 		out = append(out, v)

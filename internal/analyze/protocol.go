@@ -39,6 +39,7 @@ type rpcStream struct {
 	contentType     [2]string
 	contentEncoding [2]string
 	path            string
+	method          string
 	grpc            [2]bool
 	encoding        [2]string
 	buf             [2][]byte
@@ -61,7 +62,7 @@ func (d *Decoder) Size() int {
 		}
 	}
 	for _, s := range d.streams {
-		n += cap(s.buf[0]) + cap(s.buf[1]) + len(s.path) + 256
+		n += cap(s.buf[0]) + cap(s.buf[1]) + len(s.path) + len(s.method) + 256
 	}
 	return n
 }
@@ -151,6 +152,7 @@ func (d *Decoder) Feed(p model.Packet, svc model.Service, eof bool) []model.Pack
 			var length int64
 			var chunked bool
 			var method string
+			var requestPath string
 			var upgrade bool
 			if p.Incoming {
 				req, err := http.ReadRequest(br)
@@ -162,6 +164,7 @@ func (d *Decoder) Feed(p model.Packet, svc model.Service, eof bool) []model.Pack
 				length = req.ContentLength
 				chunked = len(req.TransferEncoding) > 0
 				method = req.Method
+				requestPath = req.RequestURI
 				target := req.RequestURI
 				if svc.URLDecode {
 					if v, e := url.PathUnescape(target); e == nil {
@@ -239,7 +242,12 @@ func (d *Decoder) Feed(p model.Packet, svc model.Service, eof bool) []model.Pack
 			headers.Write(&b)
 			b.WriteString("\r\n")
 			b.Write(data)
-			emit("http", b.Bytes(), map[string]string{"contentType": headers.Get("Content-Type")}, gz, false, len(data) > 0)
+			meta := map[string]string{"contentType": headers.Get("Content-Type")}
+			if p.Incoming {
+				meta["path"] = requestPath
+				meta["method"] = method
+			}
+			emit("http", b.Bytes(), meta, gz, false, len(data) > 0)
 			x.buf = append([]byte(nil), x.buf[used:]...)
 			if upgrade && svc.WebSockets {
 				x.mode = "ws"
@@ -392,7 +400,7 @@ func (d *Decoder) Feed(p model.Packet, svc model.Service, eof bool) []model.Pack
 								return append(out, fail(err.Error())...)
 							}
 						}
-						emit("grpc", data, map[string]string{"streamId": fmt.Sprint(id), "path": s.path, "encoding": s.encoding[idx]}, compressed, false, true)
+						emit("grpc", data, map[string]string{"streamId": fmt.Sprint(id), "path": s.path, "method": s.method, "encoding": s.encoding[idx]}, compressed, false, true)
 						s.buf[idx] = append([]byte(nil), b[5+sz:]...)
 					}
 					if v.StreamEnded() && len(s.buf[idx]) != 0 {
@@ -452,6 +460,8 @@ func (d *Decoder) Feed(p model.Packet, svc model.Service, eof bool) []model.Pack
 					}
 					hb.WriteString(h.Name + ": " + h.Value + "\r\n")
 					switch h.Name {
+					case ":method":
+						s.method = h.Value
 					case ":path":
 						s.path = h.Value
 					case "content-encoding":
@@ -475,7 +485,7 @@ func (d *Decoder) Feed(p model.Packet, svc model.Service, eof bool) []model.Pack
 				if err != nil || tooLarge {
 					return append(out, fail("invalid or oversized HPACK headers")...)
 				}
-				emit("http2-headers", hb.Bytes(), map[string]string{"streamId": fmt.Sprint(id), "path": s.path}, false, false, false)
+				emit("http2-headers", hb.Bytes(), map[string]string{"streamId": fmt.Sprint(id), "path": s.path, "method": s.method}, false, false, false)
 				if x.headerEnd {
 					s.ended[idx] = true
 					if len(s.buf[idx]) != 0 {
