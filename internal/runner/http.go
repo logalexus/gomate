@@ -1,13 +1,11 @@
 package runner
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
-	"time"
 )
 
 func (m *Manager) Handler() http.Handler {
@@ -31,9 +29,7 @@ func (m *Manager) Handler() http.Handler {
 		status := 200
 		switch {
 		case path == "/runner" && r.Method == "GET":
-			ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-			defer cancel()
-			result = map[string]any{"available": m.Available(ctx), "image": m.image, "maxCodeBytes": MaxCodeBytes, "maxOutputBytes": MaxOutputBytes, "maxConcurrent": MaxConcurrent, "maxTimeoutSeconds": MaxTimeoutSeconds, "defaultTimeoutSeconds": 30, "interactive": false}
+			result = map[string]any{"available": m.Available(r.Context()), "image": m.image, "maxCodeBytes": MaxCodeBytes, "maxOutputBytes": MaxOutputBytes, "maxConcurrent": MaxConcurrent, "maxTimeoutSeconds": MaxTimeoutSeconds, "defaultTimeoutSeconds": 30, "interactive": false}
 		case path == "/runner/jobs" && r.Method == "POST":
 			var req Request
 			decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 2<<20))

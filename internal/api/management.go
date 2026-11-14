@@ -46,12 +46,18 @@ func (s *Server) management(w http.ResponseWriter, r *http.Request, p []string) 
 			return true, e
 		}
 		// Preserve the setting when an older client saves an unrelated field.
-		if v.AnomalyTimeoutSeconds == 0 {
-			v.AnomalyTimeoutSeconds = s.anomalyTimeoutSeconds()
+		if v.RequestTimeoutSeconds == 0 {
+			if v.AnomalyTimeoutSeconds != 0 {
+				v.RequestTimeoutSeconds = v.AnomalyTimeoutSeconds
+			} else {
+				v.RequestTimeoutSeconds = s.requestTimeoutSeconds()
+			}
 		}
 		if e := control.Validate(v); e != nil {
 			return true, bad(e.Error())
 		}
+		// Keep the persisted alias usable when rolling back to an older server.
+		v.AnomalyTimeoutSeconds = v.RequestTimeoutSeconds
 		e := s.Control.Apply(ctx, v, s.Store.PutSettings)
 		if errors.Is(e, storage.ErrRevision) {
 			return true, &httpError{409, e.Error()}

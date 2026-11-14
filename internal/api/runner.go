@@ -2,13 +2,12 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
-	"time"
 )
 
 var runnerJobPath = regexp.MustCompile(`^/api/v2/runner/jobs/[a-f0-9]{32}$`)
@@ -36,15 +35,14 @@ func (s *Server) runner(w http.ResponseWriter, r *http.Request) error {
 			return bad("Слишком большой запрос запуска")
 		}
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-	defer cancel()
-	req, e := http.NewRequestWithContext(ctx, r.Method, strings.TrimRight(s.Config.DiscoveryURL, "/")+strings.TrimPrefix(path, "/api/v2"), bytes.NewReader(body))
+	req, e := http.NewRequestWithContext(r.Context(), r.Method, strings.TrimRight(s.Config.DiscoveryURL, "/")+strings.TrimPrefix(path, "/api/v2"), bytes.NewReader(body))
 	if e != nil {
 		return e
 	}
+	req.Header.Set("X-Gomate-Timeout-Seconds", strconv.FormatInt(s.requestTimeoutSeconds(), 10))
 	req.Header.Set("Authorization", "Bearer "+s.Config.DiscoveryToken)
 	req.Header.Set("Content-Type", "application/json")
-	resp, e := (&http.Client{Timeout: 5 * time.Second}).Do(req)
+	resp, e := http.DefaultClient.Do(req)
 	if e != nil {
 		return &httpError{503, "Шлюз запуска недоступен"}
 	}

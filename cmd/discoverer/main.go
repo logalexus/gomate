@@ -33,9 +33,7 @@ func main() {
 	mux.Handle("/runner", manager.Handler())
 	mux.Handle("/runner/", manager.Handler())
 	mux.HandleFunc("GET /services", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-		defer cancel()
-		v, e := discovery.Docker(ctx, socket)
+		v, e := discovery.Docker(r.Context(), socket)
 		if e != nil {
 			http.Error(w, "cannot list Docker containers", 503)
 			return
@@ -48,6 +46,6 @@ func main() {
 	if listen == "" {
 		listen = "127.0.0.1:65001"
 	}
-	s := &http.Server{Addr: listen, Handler: dockerui.Gateway(dockerui.New(socket), token, mux), ReadHeaderTimeout: 3 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384}
+	s := &http.Server{Addr: listen, Handler: dockerui.Gateway(dockerui.New(socket), token, mux), ReadHeaderTimeout: 3 * time.Second, WriteTimeout: 305 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384}
 	log.Fatal(s.ListenAndServe())
 }

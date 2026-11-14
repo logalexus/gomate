@@ -1,6 +1,6 @@
 import Vue from 'vue';
 import BootstrapVue from 'bootstrap-vue';
-import Axios from 'axios';
+import {createHTTPClient} from './http.mjs';
 import InfiniteLoading from 'vue-infinite-loading';
 import App from './App.vue';
 import router from './router';
@@ -26,17 +26,7 @@ Vue.use(InfiniteLoading, {
 	},
 });
 
-const axiosInstance = Axios.create({
-	baseURL: '/api', // TO!DO: edit for release!
-	// baseURL: 'http://192.168.79.131:65000/api',
-	headers: {
-		'Accept': 'application/json',
-		'Content-Type': 'application/json',
-	},
-	timeout: 5000,
-	withCredentials: true,
-	maxContentLength: 20000,
-});
+const axiosInstance = createHTTPClient();
 // noinspection JSUnusedGlobalSymbols
 Vue.prototype.$http = axiosInstance;
 

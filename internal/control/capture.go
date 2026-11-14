@@ -55,8 +55,8 @@ func Interfaces() ([]Interface, error) {
 	return out, nil
 }
 func Validate(v model.RuntimeSettings) error {
-	if n := v.AnomalyTimeout(); n < 5 || n > 300 {
-		return fmt.Errorf("anomaly timeout must be 5–300 seconds")
+	if n := v.RequestTimeout(); n < 5 || n > 300 {
+		return fmt.Errorf("request timeout must be 5–300 seconds")
 	}
 	if v.CaptureEnabled && v.Interface == "" {
 		return fmt.Errorf("select a capture interface")
@@ -153,7 +153,8 @@ func (m *Manager) Settings() model.RuntimeSettings {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	v := m.settings
-	v.AnomalyTimeoutSeconds = v.AnomalyTimeout()
+	v.RequestTimeoutSeconds = v.RequestTimeout()
+	v.AnomalyTimeoutSeconds = v.RequestTimeoutSeconds // compatibility with cached clients
 	v.LocalIPs = append([]string{}, v.LocalIPs...)
 	return v
 }

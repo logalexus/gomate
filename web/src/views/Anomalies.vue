@@ -121,7 +121,7 @@
 </template>
 
 <script>
-const message = e => e.code === 'ECONNABORTED' ? 'Сервер не успел ответить. Выберите один сервис или увеличьте ожидание в настройках аномалий.' : e.response?.data?.error || e.message;
+const message = e => e.code === 'ECONNABORTED' ? 'Сервер не успел ответить. Выберите один сервис или увеличьте ожидание в настройках приложения.' : e.response?.data?.error || e.message;
 export default {
  data: () => ({
   scope: 'all', grouping: 'behavior', trafficPage: {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}, groupOffset: 0,
@@ -172,13 +172,6 @@ export default {
  mounted() { this.load(); this.timer = setInterval(this.refreshLive, 1000); },
  beforeDestroy() { this.destroyed = true; clearInterval(this.timer); this.listController?.abort(); this.memberController?.abort(); },
  methods: {
-  async readTimeout(signal) {
-   // Resolve before each operation so other tabs and saved settings apply
-   // immediately, including the first request after opening this page.
-   const {data}=await this.$http.get('/v2/anomalies/config', {signal, timeout:15000});
-   if (!Number.isInteger(data.timeoutSeconds) || data.timeoutSeconds<5 || data.timeoutSeconds>300) throw new Error('Не удалось получить время ожидания. Обновите страницу.');
-   return (data.timeoutSeconds+5)*1000;
-  },
   resetFilters() { this.service=0; this.period=3600; this.level=6; this.showDismissed=false; this.sort='score'; },
   reloadFilters() { this.items = []; this.trafficPage = {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}; this.groupOffset=0; return this.load(); },
   changePage(delta) { this.groupOffset=Math.max(0,this.groupOffset+delta); return this.load(); },
@@ -193,11 +186,10 @@ export default {
    const id = ++this.requestId;
    this.loading = true;
    try {
-    const requestTimeout = await this.readTimeout(controller.signal);
     const params = {minScore: this.level, period: this.period, sort: this.sort};
     if (this.service) params.service = this.service;
     if (this.showDismissed) params.dismissed = 1;
-    const [list, stats] = await Promise.all([this.$http.get(this.scope==='all' ? '/v2/anomalies/groups' : '/v2/anomalies', {timeout: requestTimeout, signal: controller.signal, params: this.scope==='all' ? {service: this.service, period: this.period, sort: this.sort, grouping: this.grouping, limit: 100, offset: this.groupOffset} : params}), this.$http.get('/v2/anomalies/stats', {timeout: requestTimeout, signal: controller.signal})]);
+    const [list, stats] = await Promise.all([this.$http.get(this.scope==='all' ? '/v2/anomalies/groups' : '/v2/anomalies', {signal: controller.signal, params: this.scope==='all' ? {service: this.service, period: this.period, sort: this.sort, grouping: this.grouping, limit: 100, offset: this.groupOffset} : params}), this.$http.get('/v2/anomalies/stats', {signal: controller.signal})]);
     if (this.destroyed || id !== this.requestId) return;
     if (this.scope==='all') {
      this.trafficPage = {...list.data, groups: list.data.groups.map(g => ({...g,
@@ -257,8 +249,7 @@ export default {
    this.membersLoading=true; this.membersError='';
    if (!more) { g.items=[]; g.nextBefore=0; this.selectedId=null; }
    try {
-    const requestTimeout = await this.readTimeout(controller.signal);
-    const {data}=await this.$http.get('/v2/anomalies/sessions', {timeout: requestTimeout, signal: controller.signal, params: {fingerprint:g.fingerprint, service:g.service, protocol:g.protocol, method:g.method, path:g.path, period:this.period, limit:50, before:more ? g.nextBefore : 0, alerts:this.memberAlerts ? 1 : 0}});
+    const {data}=await this.$http.get('/v2/anomalies/sessions', {signal: controller.signal, params: {fingerprint:g.fingerprint, service:g.service, protocol:g.protocol, method:g.method, path:g.path, period:this.period, limit:50, before:more ? g.nextBefore : 0, alerts:this.memberAlerts ? 1 : 0}});
     if (this.destroyed || id!==this.memberRequestId || this.expanded!==g.key) return;
     g.items=more ? [...g.items, ...data.items] : data.items; g.nextBefore=data.nextBefore;
     if (!more) this.selectedId=g.items[0]?.streamId;

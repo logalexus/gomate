@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"gomate/internal/dockerui"
@@ -10,7 +9,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func (s *Server) containers(w http.ResponseWriter, r *http.Request, p []string) error {
@@ -18,7 +16,6 @@ func (s *Server) containers(w http.ResponseWriter, r *http.Request, p []string) 
 		return &httpError{503, "Docker-шлюз не настроен"}
 	}
 	path := "/containers"
-	timeout := 4 * time.Second
 	if len(p) == 3 {
 		if r.Method != "GET" {
 			return &httpError{405, "method not allowed"}
@@ -48,19 +45,17 @@ func (s *Server) containers(w http.ResponseWriter, r *http.Request, p []string) 
 			if (p[4] == "stop" || p[4] == "restart" || p[4] == "pause") && !body.Confirm {
 				return bad("Подтвердите действие с контейнером")
 			}
-			timeout = 14 * time.Second
 		} else {
 			return &httpError{405, "Недопустимое действие"}
 		}
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), timeout)
-	defer cancel()
-	req, e := http.NewRequestWithContext(ctx, r.Method, strings.TrimRight(s.Config.DiscoveryURL, "/")+path, nil)
+	req, e := http.NewRequestWithContext(r.Context(), r.Method, strings.TrimRight(s.Config.DiscoveryURL, "/")+path, nil)
 	if e != nil {
 		return e
 	}
+	req.Header.Set("X-Gomate-Timeout-Seconds", strconv.FormatInt(s.requestTimeoutSeconds(), 10))
 	req.Header.Set("Authorization", "Bearer "+s.Config.DiscoveryToken)
-	resp, e := (&http.Client{Timeout: timeout}).Do(req)
+	resp, e := http.DefaultClient.Do(req)
 	if e != nil {
 		return &httpError{503, "Docker-шлюз недоступен или операция ещё не завершена; обновите статус"}
 	}

@@ -20,9 +20,7 @@ func Gateway(engine *Engine, token string, services http.Handler) http.Handler {
 	mux.Handle("/runner", services)
 	mux.Handle("/runner/", services)
 	mux.HandleFunc("GET /containers", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-		defer cancel()
-		v, e := engine.List(ctx)
+		v, e := engine.List(r.Context())
 		write(w, v, e)
 	})
 	mux.HandleFunc("POST /containers/{id}/{action}", func(w http.ResponseWriter, r *http.Request) {
@@ -33,9 +31,7 @@ func Gateway(engine *Engine, token string, services http.Handler) http.Handler {
 			write(w, nil, &Error{429, "Дождитесь завершения текущих действий"})
 			return
 		}
-		ctx, cancel := context.WithTimeout(r.Context(), 12*time.Second)
-		defer cancel()
-		e := engine.Action(ctx, r.PathValue("id"), r.PathValue("action"))
+		e := engine.Action(r.Context(), r.PathValue("id"), r.PathValue("action"))
 		write(w, map[string]bool{"ok": e == nil}, e)
 	})
 	mux.HandleFunc("GET /containers/{id}/logs", func(w http.ResponseWriter, r *http.Request) {
@@ -56,9 +52,7 @@ func Gateway(engine *Engine, token string, services http.Handler) http.Handler {
 			write(w, nil, &Error{429, "Просмотр логов занят; повторите обновление"})
 			return
 		}
-		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-		defer cancel()
-		v, err := engine.Logs(ctx, r.PathValue("id"), tail, since)
+		v, err := engine.Logs(r.Context(), r.PathValue("id"), tail, since)
 		write(w, v, err)
 	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +62,13 @@ func Gateway(engine *Engine, token string, services http.Handler) http.Handler {
 			return
 		}
 		w.Header().Set("Cache-Control", "no-store")
-		mux.ServeHTTP(w, r)
+		seconds, err := strconv.ParseInt(r.Header.Get("X-Gomate-Timeout-Seconds"), 10, 64)
+		if err != nil || seconds < 5 || seconds > 300 {
+			seconds = 15
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(seconds)*time.Second)
+		defer cancel()
+		mux.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 func write(w http.ResponseWriter, v any, err error) {

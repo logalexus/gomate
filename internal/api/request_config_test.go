@@ -12,11 +12,11 @@ import (
 	"testing"
 )
 
-func TestAnomalyTimeoutConfigWithoutDatabase(t *testing.T) {
+func TestRequestTimeoutConfigWithoutDatabase(t *testing.T) {
 	cfg := config.Config{Login: "test", Password: "test"}
 	s := &Server{Config: cfg}
 	call := func(auth bool) *httptest.ResponseRecorder {
-		r := httptest.NewRequest("GET", "/api/v2/anomalies/config", nil)
+		r := httptest.NewRequest("GET", "/api/v2/config", nil)
 		if auth {
 			r.SetBasicAuth("test", "test")
 		}
@@ -39,19 +39,28 @@ func TestAnomalyTimeoutConfigWithoutDatabase(t *testing.T) {
 	}
 	read(10) // PCAP mode and older settings use the same default.
 	s.Control = control.New(context.Background(), cfg, analyze.NewCatalog(), &metrics.Metrics{}, nil, func() {})
-	v := model.RuntimeSettings{CleanupIntervalSeconds: 5, AnomalyTimeoutSeconds: 60}
+	v := model.RuntimeSettings{CleanupIntervalSeconds: 5, RequestTimeoutSeconds: 60}
 	if err := s.Control.Apply(context.Background(), v, nil); err != nil {
 		t.Fatal(err)
 	}
 	read(60)
+	// A saved anomaly-only setting migrates to the common application budget.
+	legacy := model.RuntimeSettings{CleanupIntervalSeconds: 5, AnomalyTimeoutSeconds: 45}
+	if err := s.Control.Apply(context.Background(), legacy, nil); err != nil {
+		t.Fatal(err)
+	}
+	read(45)
+	if err := s.Control.Apply(context.Background(), v, nil); err != nil {
+		t.Fatal(err)
+	}
 	for _, n := range []int64{-1, 4, 301} {
-		v.AnomalyTimeoutSeconds = n
+		v.RequestTimeoutSeconds = n
 		if err := s.Control.Apply(context.Background(), v, nil); err == nil {
 			t.Fatalf("accepted %d", n)
 		}
 		read(60)
 	}
-	v.AnomalyTimeoutSeconds = 5
+	v.RequestTimeoutSeconds = 5
 	if err := s.Control.Apply(context.Background(), v, nil); err != nil {
 		t.Fatal(err)
 	}

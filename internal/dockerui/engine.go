@@ -48,7 +48,7 @@ func New(socket string) *Engine {
 	tr := &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 		return (&net.Dialer{Timeout: 2 * time.Second}).DialContext(ctx, "unix", socket)
 	}, MaxIdleConns: 8, MaxIdleConnsPerHost: 8, IdleConnTimeout: 30 * time.Second}
-	return &Engine{client: &http.Client{Transport: tr, Timeout: 12 * time.Second}}
+	return &Engine{client: &http.Client{Transport: tr}}
 }
 func internal(labels map[string]string) bool {
 	if labels["gomate.internal"] == "true" {

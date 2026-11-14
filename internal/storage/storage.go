@@ -27,6 +27,7 @@ func Open(ctx context.Context, url string) (*Store, error) {
 	c.ConnConfig.RuntimeParams["statement_timeout"] = "3000"
 	c.ConnConfig.RuntimeParams["lock_timeout"] = "1000"
 	c.ConnConfig.RuntimeParams["idle_in_transaction_session_timeout"] = "5000"
+	configureRequestBudgets(c)
 	p, e := pgxpool.NewWithConfig(ctx, c)
 	if e != nil {
 		return nil, e

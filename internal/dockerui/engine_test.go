@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func frame(stream byte, text string) []byte {
@@ -141,5 +142,32 @@ func TestGatewayAllowsOnlyExplicitActionsAndProtectsGomate(t *testing.T) {
 	}
 	if got := call("GET", "/containers/json", "Bearer "+token); got != 404 {
 		t.Fatal(got)
+	}
+}
+
+func TestGatewayRequestBudget(t *testing.T) {
+	token := strings.Repeat("x", 32)
+	var budget time.Duration
+	handler := Gateway(nil, token, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		deadline, ok := r.Context().Deadline()
+		if !ok {
+			t.Fatal("missing deadline")
+		}
+		budget = time.Until(deadline)
+		w.WriteHeader(200)
+	}))
+	for _, tc := range []struct {
+		header  string
+		seconds int
+	}{{"30", 30}, {"5", 5}, {"300", 300}, {"0", 15}, {"301", 15}, {"", 15}} {
+		r := httptest.NewRequest("GET", "/services", nil)
+		r.Header.Set("Authorization", "Bearer "+token)
+		r.Header.Set("X-Gomate-Timeout-Seconds", tc.header)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		want := time.Duration(tc.seconds) * time.Second
+		if w.Code != 200 || budget > want || budget < want-time.Second {
+			t.Fatalf("%q: %d %s", tc.header, w.Code, budget)
+		}
 	}
 }

@@ -11,7 +11,7 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
   for(let i=0;i<60;i++){try{if((await fetch(base)).ok)break}catch{}await delay(200)}
   browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1366,height:768}});
   const errors=[],writes=[],queries=[];let failMembers=false,slow=false,expired=false,groupDelay=0,memberDelay=0,failGroups=false;
-  let settings={revision:1,captureEnabled:false,interface:'',autoIPs:true,localIPs:[],packetRetentionSeconds:0,sessionRetentionSeconds:3600,cleanupIntervalSeconds:5,preserveFavorites:true,anomalyTimeoutSeconds:10};
+  let settings={revision:1,captureEnabled:false,interface:'',autoIPs:true,localIPs:[],packetRetentionSeconds:0,sessionRetentionSeconds:3600,cleanupIntervalSeconds:5,preserveFavorites:true,requestTimeoutSeconds:10};
   page.on('pageerror',e=>errors.push(e.message));
   const groups=Array.from({length:105},(_,i)=>({service:8080,protocol:'TCP',method:'GET',path:'/items/'+i,fingerprint:i.toString(16).padStart(32,'0'),fields:['1:http/json.command = cat /srv/flag; id'],variableFields:['1:http/json.nonce','1:http/cookie.session'],count:i?1:251,anomalyCount:i?0:1,theftCount:i?0:1,dismissedCount:i?0:1,score:i?0:20,startTimestamp:Date.now()}));
   const normal=(id)=>({streamId:id,service:8080,protocol:'TCP',startTimestamp:Date.now(),hasAnomaly:false,score:0,reasons:[],summary:'',request:'GET /items/0?q='+id,payloadPurged:id===250});
@@ -30,7 +30,7 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
     return route.fulfill({status:204});
    }
    if(u.pathname==='/api/v2/settings') data={settings,capture:{running:false}};
-   if (u.pathname==='/api/v2/anomalies/config') data={timeoutSeconds:settings.anomalyTimeoutSeconds};
+   if (u.pathname==='/api/v2/config') data={timeoutSeconds:settings.requestTimeoutSeconds};
    if(u.pathname==='/api/v2/snapshot') data={services:[{port:8080,name:'HTTP mock'}],patterns:[],metrics:{},captureRunning:true};
    if(u.pathname==='/api/v2/anomalies/stats') data={services:[{port:8080,messages:30000,warm:true}],drops:0,flagPattern:false,warmAfter:100};
    if(u.pathname==='/api/v2/anomalies/groups') {
@@ -107,15 +107,15 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
   report.checks.push('failed refresh clears obsolete rows and retry recovers');
   await page.getByRole('button',{name:'Настройки',exact:true}).click();
   await page.locator('#capture-interface').waitFor();
-  await page.getByRole('tab',{name:'Аномалии',exact:true}).click();
-  const timeoutInput=page.getByLabel('Время ожидания группировки, секунд',{exact:true});
+  await page.getByRole('tab',{name:'Приложение',exact:true}).click();
+  const timeoutInput=page.getByLabel('Время ожидания ответа, секунд',{exact:true});
   assert.equal(await timeoutInput.inputValue(),'10');
   await timeoutInput.fill('4');await page.getByRole('button',{name:'Сохранить и применить',exact:true}).click();
-  await page.getByText('Время ожидания группировки: целое число от 5 до 300 секунд.',{exact:true}).waitFor();
+  await page.getByText('Время ожидания ответа: целое число от 5 до 300 секунд.',{exact:true}).waitFor();
   assert.deepEqual(writes,[]);
   await timeoutInput.fill('30');await page.getByRole('button',{name:'Сохранить и применить',exact:true}).click();
   await page.getByText('Настройки сохранены',{exact:true}).waitFor();
-  assert.equal(settings.anomalyTimeoutSeconds,30);
+  assert.equal(settings.requestTimeoutSeconds,30);
   await page.getByRole('button',{name:'Закрыть',exact:true}).click();
   await page.locator('#settingsModal').waitFor({state:'hidden'});
   await page.getByLabel('Показать',{exact:true}).selectOption('alerts');

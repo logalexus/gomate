@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -83,7 +84,7 @@ func Docker(ctx context.Context, socket string) ([]Candidate, error) {
 		return (&net.Dialer{Timeout: 2 * time.Second}).DialContext(ctx, "unix", socket)
 	}}
 	defer tr.CloseIdleConnections()
-	client := &http.Client{Transport: tr, Timeout: 3 * time.Second}
+	client := &http.Client{Transport: tr}
 	r, e := http.NewRequestWithContext(ctx, "GET", "http://docker/containers/json", nil)
 	if e != nil {
 		return nil, e
@@ -118,7 +119,11 @@ func Fetch(ctx context.Context, endpoint, token string) ([]Candidate, error) {
 		return nil, e
 	}
 	r.Header.Set("Authorization", "Bearer "+token)
-	resp, e := (&http.Client{Timeout: 3 * time.Second}).Do(r)
+	if deadline, ok := ctx.Deadline(); ok {
+		seconds := max(int64(5), min(int64(300), int64(time.Until(deadline).Seconds())+1))
+		r.Header.Set("X-Gomate-Timeout-Seconds", strconv.FormatInt(seconds, 10))
+	}
+	resp, e := http.DefaultClient.Do(r)
 	if e != nil {
 		return nil, fmt.Errorf("Docker discovery is unavailable")
 	}

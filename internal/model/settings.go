@@ -1,7 +1,8 @@
 package model
 
 type RuntimeSettings struct {
-	AnomalyTimeoutSeconds   int64    `json:"anomalyTimeoutSeconds"`
+	RequestTimeoutSeconds   int64    `json:"requestTimeoutSeconds"`
+	AnomalyTimeoutSeconds   int64    `json:"anomalyTimeoutSeconds,omitempty"`
 	Revision                int64    `json:"revision"`
 	CaptureEnabled          bool     `json:"captureEnabled"`
 	Interface               string   `json:"interface"`
@@ -13,10 +14,13 @@ type RuntimeSettings struct {
 	PreserveFavorites       bool     `json:"preserveFavorites"`
 }
 
-// Older saved settings omit this field. Keep the original grouping budget.
-func (v RuntimeSettings) AnomalyTimeout() int64 {
-	if v.AnomalyTimeoutSeconds == 0 {
-		return 10
+// Accept the previous anomaly-only setting when upgrading existing installations.
+func (v RuntimeSettings) RequestTimeout() int64 {
+	if v.RequestTimeoutSeconds != 0 {
+		return v.RequestTimeoutSeconds
 	}
-	return v.AnomalyTimeoutSeconds
+	if v.AnomalyTimeoutSeconds != 0 {
+		return v.AnomalyTimeoutSeconds
+	}
+	return 10
 }

@@ -86,14 +86,24 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.static(w, r)
 		return
 	}
-	// Script executions use the Docker gateway and must not depend on DB timeouts.
+	// Discover the common UI/API budget without depending on a database query.
+	if (r.URL.Path == "/api/v2/config" || r.URL.Path == "/api/v2/anomalies/config") && r.Method == "GET" {
+		w.Header().Set("Cache-Control", "no-store")
+		respond(w, 200, map[string]int64{"timeoutSeconds": s.requestTimeoutSeconds()})
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(s.requestTimeoutSeconds())*time.Second)
+	defer cancel()
+	ctx = storage.WithRequestBudget(ctx)
+	r = r.WithContext(ctx)
+	// Script execution limits are separate; their HTTP control requests share the API budget.
 	if r.URL.Path == "/api/v2/runner" || strings.HasPrefix(r.URL.Path, "/api/v2/runner/") {
 		if e := s.runner(w, r); e != nil {
 			s.fail(w, e)
 		}
 		return
 	}
-	// Container operations use their own bounded timeout, independent of DB work.
+	// Container proxy calls inherit the common request budget.
 	if strings.HasPrefix(r.URL.Path, "/api/v2/containers") {
 		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 		if len(parts) < 3 || parts[2] != "containers" {
@@ -105,22 +115,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	// Read from memory so a busy database cannot prevent timeout discovery.
-	if r.URL.Path == "/api/v2/anomalies/config" && r.Method == "GET" {
-		w.Header().Set("Cache-Control", "no-store")
-		respond(w, 200, map[string]int64{"timeoutSeconds": s.anomalyTimeoutSeconds()})
-		return
-	}
-	// Behavior reads scan the retained descriptor corpus. Keep their budget
-	// separate from short metadata/write operations, including under host load.
-	timeout := s.Config.DBTimeout
-	if (r.URL.Path == "/api/v2/anomalies/groups" && r.URL.Query().Get("grouping") == "behavior") ||
-		(r.URL.Path == "/api/v2/anomalies/sessions" && r.URL.Query().Get("fingerprint") != "") {
-		timeout = time.Duration(s.anomalyTimeoutSeconds()) * time.Second
-	}
-	ctx, cancel := context.WithTimeout(r.Context(), timeout)
-	defer cancel()
-	r = r.WithContext(ctx)
 	if r.URL.Path == "/health/ready" {
 		e := s.Store.Pool.Ping(ctx)
 		captureReady := s.Config.Interface == "" || s.Metrics.CaptureRunning.Load()
@@ -578,9 +572,9 @@ func (s *Server) static(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, filepath.Join(s.Config.WebDir, "index.html"))
 }
 
-func (s *Server) anomalyTimeoutSeconds() int64 {
+func (s *Server) requestTimeoutSeconds() int64 {
 	if s.Control != nil {
-		return s.Control.Settings().AnomalyTimeout()
+		return s.Control.Settings().RequestTimeout()
 	}
-	return (model.RuntimeSettings{}).AnomalyTimeout()
+	return (model.RuntimeSettings{}).RequestTimeout()
 }
