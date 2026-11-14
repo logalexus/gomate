@@ -85,6 +85,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.static(w, r)
 		return
 	}
+	// Script executions use the Docker gateway and must not depend on DB timeouts.
+	if r.URL.Path == "/api/v2/runner" || strings.HasPrefix(r.URL.Path, "/api/v2/runner/") {
+		if e := s.runner(w, r); e != nil {
+			s.fail(w, e)
+		}
+		return
+	}
 	// Container operations use their own bounded timeout, independent of DB work.
 	if strings.HasPrefix(r.URL.Path, "/api/v2/containers") {
 		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
@@ -196,6 +203,20 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "stream":
+		if r.Method == "GET" && len(parts) == 3 {
+			id, e := strconv.ParseInt(parts[2], 10, 64)
+			if e != nil || id < 1 {
+				err = bad("invalid stream id")
+				break
+			}
+			var stream model.Stream
+			stream, err = s.Store.Stream(ctx, id)
+			if err == nil {
+				respond(w, 200, stream)
+				return
+			}
+			break
+		}
 		if r.Method == "POST" && len(parts) == 3 {
 			var page model.Page
 			if err = decode(w, r, &page); err != nil {

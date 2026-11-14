@@ -11,9 +11,9 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY cmd/ ./cmd/
 COPY internal/ ./internal/
-RUN CGO_ENABLED=0 go build -trimpath -o /packmate ./cmd/packmate
-RUN CGO_ENABLED=0 go build -trimpath -o /import-legacy ./cmd/import-legacy
-RUN CGO_ENABLED=0 go build -trimpath -o /discoverer ./cmd/discoverer
+RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -trimpath -o /packmate ./cmd/packmate
+RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -trimpath -o /import-legacy ./cmd/import-legacy
+RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 go build -trimpath -o /discoverer ./cmd/discoverer
 
 FROM scratch
 COPY --from=go /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

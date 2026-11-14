@@ -1,5 +1,5 @@
-// Fixed-purpose Docker gateway: discovery, bounded logs and explicit lifecycle actions.
-// No arbitrary engine URL, exec, filesystem or environment endpoint is exposed.
+// Fixed-purpose Docker gateway: discovery, bounded logs, lifecycle actions and
+// disposable script containers. No generic Docker endpoint is exposed.
 package main
 
 import (
@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"gomate/internal/discovery"
 	"gomate/internal/dockerui"
+	"gomate/internal/runner"
 	"log"
 	"net/http"
 	"os"
@@ -23,6 +24,14 @@ func main() {
 		socket = "/var/run/docker.sock"
 	}
 	mux := http.NewServeMux()
+	manager := runner.New(socket, os.Getenv("RUNNER_IMAGE"))
+	startup, cancelStartup := context.WithTimeout(context.Background(), 10*time.Second)
+	if err := manager.Initialize(startup); err != nil {
+		log.Printf("script runner disabled: orphan cleanup failed: %v", err)
+	}
+	cancelStartup()
+	mux.Handle("/runner", manager.Handler())
+	mux.Handle("/runner/", manager.Handler())
 	mux.HandleFunc("GET /services", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()

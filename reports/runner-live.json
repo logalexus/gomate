@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "engine": "local Docker",
+  "checks": [
+    "Python dependencies, nonroot, no socket or application secrets, stdout/stderr",
+    "edited Bash script and nonzero exit",
+    "script larger than Linux single-argument limit",
+    "daemon timeout kills and removes container",
+    "incremental output, container resource policy, cancellation including child process",
+    "bounded output",
+    "two concurrent jobs, third rejected",
+    "no leftover execution containers"
+  ]
+}

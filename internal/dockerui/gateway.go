@@ -11,12 +11,14 @@ import (
 	"time"
 )
 
-// Gateway does not accept arbitrary Docker endpoints, commands or bodies.
+// Gateway authenticates fixed container and script-runner routes; no generic Docker proxy is exposed.
 func Gateway(engine *Engine, token string, services http.Handler) http.Handler {
 	reads, actions := make(chan struct{}, 2), make(chan struct{}, 2)
 	want := sha256.Sum256([]byte("Bearer " + token))
 	mux := http.NewServeMux()
 	mux.Handle("GET /services", services)
+	mux.Handle("/runner", services)
+	mux.Handle("/runner/", services)
 	mux.HandleFunc("GET /containers", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()

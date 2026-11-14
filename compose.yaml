@@ -57,13 +57,28 @@ services:
     environment:
       DOCKER_DISCOVERY_TOKEN: ${DOCKER_DISCOVERY_TOKEN:?set DOCKER_DISCOVERY_TOKEN}
       DISCOVERY_LISTEN: 127.0.0.1:65001
+      RUNNER_IMAGE: gomate-runner:latest
     volumes: ["/var/run/docker.sock:/var/run/docker.sock:ro"]
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     read_only: true
     cpus: 0.25
-    mem_limit: 64m
+    mem_limit: 128m
     restart: unless-stopped
+
+  # Build once with: docker compose --profile tools build runner-image
+  # The gateway creates a fresh, resource-limited container for each execution.
+  runner-image:
+    profiles: [tools]
+    image: gomate-runner:latest
+    build:
+      context: .
+      dockerfile: deploy/runner/Dockerfile
+    network_mode: none
+    labels: {gomate.internal: "true"}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
 
 volumes:
   postgres:
