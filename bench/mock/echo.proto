@@ -1,0 +1,9 @@
+syntax = "proto3";
+package gomate.mock;
+import "google/protobuf/wrappers.proto";
+// The fixture registers this service using grpc.ServiceDesc. No generated source
+// is required; standard StringValue messages carry unique test markers.
+service Echo {
+  rpc Echo(google.protobuf.StringValue) returns (google.protobuf.StringValue);
+  rpc Watch(google.protobuf.StringValue) returns (stream google.protobuf.StringValue);
+}

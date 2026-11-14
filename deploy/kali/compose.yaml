@@ -1,0 +1,108 @@
+name: gomate-lab
+services:
+  db:
+    labels: {gomate.internal: "true"}
+    image: postgres:17.7-alpine
+    environment:
+      POSTGRES_DB: gomate
+      POSTGRES_USER: gomate
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?required}
+    ports: ["127.0.0.1:65432:5432"]
+    volumes: ["postgres:/var/lib/postgresql/data"]
+    cpus: 1
+    mem_limit: 2g
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U gomate -d gomate"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  app:
+    labels: {gomate.internal: "true"}
+    image: gomate-app:kali-test
+    network_mode: host
+    environment:
+      DATABASE_URL: postgres://gomate:${DB_PASSWORD}@127.0.0.1:65432/gomate?sslmode=disable
+      WEB_LOGIN: packmate
+      WEB_PASSWORD: ${WEB_PASSWORD:?required}
+      LISTEN: 192.168.56.103:65000
+      INTERFACE: eth1
+      LOCAL_IPS: 192.168.56.103
+      WEB_DIR: /web
+      DOCKER_DISCOVERY_URL: http://127.0.0.1:65001
+      DOCKER_DISCOVERY_TOKEN: ${DOCKER_DISCOVERY_TOKEN:?set DOCKER_DISCOVERY_TOKEN}
+      GOMEMLIMIT: 1400MiB
+      GOMAXPROCS: 1
+      SHARDS: 2
+      RETENTION: 1h
+    cpus: 1
+    mem_limit: 2g
+    cap_drop: [ALL]
+    cap_add: [NET_RAW]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    stop_grace_period: 20s
+    restart: unless-stopped
+    depends_on:
+      db: {condition: service_healthy}
+      http: {condition: service_started}
+      tcp: {condition: service_started}
+      grpc: {condition: service_started}
+  http:
+    image: gomate-mock:kali-test
+    command: [-protocol, http, -address, ":8080"]
+    ports: ["0.0.0.0:18080:8080"]
+    networks:
+      traffic: {ipv4_address: 172.30.77.10}
+    cpus: 1
+    mem_limit: 128m
+    read_only: true
+    cap_drop: [ALL]
+    restart: unless-stopped
+  tcp:
+    image: gomate-mock:kali-test
+    command: [-protocol, tcp, -address, ":9090"]
+    ports: ["0.0.0.0:19090:9090"]
+    networks:
+      traffic: {ipv4_address: 172.30.77.11}
+    cpus: 1
+    mem_limit: 128m
+    read_only: true
+    cap_drop: [ALL]
+    restart: unless-stopped
+  grpc:
+    image: gomate-mock:kali-test
+    command: [-protocol, grpc, -address, ":50051"]
+    ports: ["0.0.0.0:15051:50051"]
+    networks:
+      traffic: {ipv4_address: 172.30.77.12}
+    cpus: 1
+    mem_limit: 128m
+    read_only: true
+    cap_drop: [ALL]
+    restart: unless-stopped
+  discovery:
+    image: gomate-app:kali-test
+    entrypoint: [/discoverer]
+    network_mode: host
+    labels: {gomate.internal: "true"}
+    environment:
+      DOCKER_DISCOVERY_TOKEN: ${DOCKER_DISCOVERY_TOKEN:?set DOCKER_DISCOVERY_TOKEN}
+      DISCOVERY_LISTEN: 127.0.0.1:65001
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock:ro"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    cpus: 0.25
+    mem_limit: 64m
+    restart: unless-stopped
+
+networks:
+  traffic:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-gomate-lab
+    ipam:
+      config: [{subnet: 172.30.77.0/24}]
+volumes:
+  postgres:

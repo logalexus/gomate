@@ -1,0 +1,69 @@
+name: gomate
+services:
+  db:
+    labels: {gomate.internal: "true"}
+    image: postgres:17.7-alpine
+    environment:
+      POSTGRES_DB: gomate
+      POSTGRES_USER: gomate
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${DB_PORT:-65432}:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    cpus: 1
+    mem_limit: 2g
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U gomate -d gomate"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    restart: unless-stopped
+  app:
+    labels: {gomate.internal: "true"}
+    build: .
+    image: gomate-app:latest
+    network_mode: host
+    environment:
+      DATABASE_URL: postgres://gomate:${DB_PASSWORD}@127.0.0.1:${DB_PORT:-65432}/gomate?sslmode=disable
+      WEB_LOGIN: ${WEB_LOGIN:-packmate}
+      WEB_PASSWORD: ${WEB_PASSWORD:?set WEB_PASSWORD in .env}
+      LISTEN: ${LISTEN:-127.0.0.1:65000}
+      INTERFACE: ${INTERFACE:-}
+      LOCAL_IPS: ${LOCAL_IPS:-}
+      WEB_DIR: /web
+      DOCKER_DISCOVERY_URL: http://127.0.0.1:65001
+      DOCKER_DISCOVERY_TOKEN: ${DOCKER_DISCOVERY_TOKEN:?set DOCKER_DISCOVERY_TOKEN}
+      GOMEMLIMIT: 1400MiB
+      GOMAXPROCS: 1
+      SHARDS: 2
+      RETENTION: ${RETENTION:-1h}
+    cpus: 1
+    mem_limit: 2g
+    cap_drop: [ALL]
+    cap_add: [NET_RAW]
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      db:
+        condition: service_healthy
+    stop_grace_period: 20s
+    restart: unless-stopped
+  discovery:
+    image: gomate-app:latest
+    entrypoint: [/discoverer]
+    network_mode: host
+    labels: {gomate.internal: "true"}
+    environment:
+      DOCKER_DISCOVERY_TOKEN: ${DOCKER_DISCOVERY_TOKEN:?set DOCKER_DISCOVERY_TOKEN}
+      DISCOVERY_LISTEN: 127.0.0.1:65001
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock:ro"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    cpus: 0.25
+    mem_limit: 64m
+    restart: unless-stopped
+
+volumes:
+  postgres:
