@@ -4,7 +4,7 @@
   <Navbar/>
   <div class="gm-workspace" :class="{'gm-traffic-workspace':$route.name==='stream'}">
    <router-view v-if="$route.name==='stream'" name="sidebar" ref="sidebar"/>
-   <main id="workspace-main" ref="main" class="gm-main" tabindex="-1" :class="{'gm-main-traffic':$route.name==='stream','gm-main-chat':$route.name==='chat'}"><router-view name="content" ref="content"/></main>
+   <main id="workspace-main" ref="main" class="gm-main" tabindex="-1" :class="{'gm-main-traffic':$route.name==='stream','gm-main-chat':$route.name==='chat','gm-main-anomalies':$route.name==='anomalies'}"><router-view name="content" ref="content"/></main>
   </div>
   <Settings/>
   <footer class="capture-status gm-statusbar" aria-label="Состояние захвата">

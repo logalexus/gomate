@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "live": true,
+  "preview": false,
+  "url": "http://192.168.56.103:65000/#/anomalies",
+  "at": "2026-11-14T21:51:51.794Z",
+  "viewport": {
+    "width": 1366,
+    "height": 768
+  },
+  "firstRowTop": 278.796875,
+  "rowHeight": 58.5,
+  "visibleRows": 7,
+  "groups": 19,
+  "documentWidth": 1366,
+  "detail": {
+    "sessionLink": "#/18080/131905",
+    "reasons": 6
+  },
+  "pageErrors": [],
+  "apiWrites": [],
+  "captureStartedBefore": "2026-11-14T21:51:27.281055009Z",
+  "captureStartedAfter": "2026-11-14T21:51:27.281055009Z"
+}
