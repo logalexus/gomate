@@ -1,0 +1,353 @@
+{
+  "at": "2026-11-14T22:01:12.442108+00:00",
+  "capture": {
+    "running": true,
+    "interface": "eth1",
+    "localIPs": [
+      "192.168.56.103"
+    ],
+    "startedAt": "2026-11-14T21:51:27.281055009Z"
+  },
+  "metrics": {
+    "accepted_total": 120277,
+    "active_bytes": 1180,
+    "active_flows": 5,
+    "analysis_bytes": 68689,
+    "analysis_evictions_total": 0,
+    "capture_drops_total": 0,
+    "captured_total": 120277,
+    "db_errors_total": 0,
+    "decode_errors_total": 6,
+    "filtered_total": 0,
+    "flow_drops_total": 0,
+    "gaps_total": 6,
+    "last_capture_unix": 1794693675,
+    "last_commit_unix": 1794693675,
+    "last_process_unix": 1794693675,
+    "pending_since_unix": 1794693675,
+    "persisted_bytes_total": 5394467,
+    "persisted_chunks_total": 9195,
+    "queue_bytes": 0,
+    "queue_drops_total": 0,
+    "unsupported_total": 0,
+    "write_bytes": 2129,
+    "write_drops_total": 0
+  },
+  "model": {
+    "services": [
+      {
+        "port": 15051,
+        "messages": 19314,
+        "endpoints": 8,
+        "warm": true,
+        "flagsPut": 0,
+        "flagsChecked": 0,
+        "flagsStolen": 0,
+        "flagsUnknown": 0,
+        "reported": 1
+      },
+      {
+        "port": 18080,
+        "messages": 15612,
+        "endpoints": 22,
+        "warm": true,
+        "flagsPut": 0,
+        "flagsChecked": 0,
+        "flagsStolen": 0,
+        "flagsUnknown": 0,
+        "reported": 330
+      },
+      {
+        "port": 19090,
+        "messages": 1879,
+        "endpoints": 3,
+        "warm": true,
+        "flagsPut": 0,
+        "flagsChecked": 0,
+        "flagsStolen": 0,
+        "flagsUnknown": 0,
+        "reported": 0
+      }
+    ],
+    "drops": 0,
+    "queueBytes": 0,
+    "flagPattern": false,
+    "warmAfter": 100
+  },
+  "retention": {
+    "packetRetentionSeconds": 0,
+    "sessionRetentionSeconds": 300,
+    "cleanupIntervalSeconds": 5,
+    "preserveFavorites": true
+  },
+  "ui_default": {
+    "sessions": 56,
+    "groups": 3,
+    "top_groups": [
+      {
+        "service": 18080,
+        "template": "GET /ws",
+        "count": 27
+      },
+      {
+        "service": 18080,
+        "template": "WS continuous",
+        "count": 26
+      },
+      {
+        "service": 18080,
+        "template": "GET /ws",
+        "count": 3
+      }
+    ]
+  },
+  "cohort": {
+    "from": "2026-11-14T21:58:06.030000+00:00",
+    "to": "2026-11-14T22:01:06.030000+00:00",
+    "attack": {
+      "total": 151,
+      "reported": 0
+    },
+    "normal": {
+      "total": 1326,
+      "reported": 0
+    },
+    "unlabelled": {
+      "total": 863,
+      "reported": 19
+    },
+    "scenarios": [
+      {
+        "name": "binary",
+        "total": 60,
+        "reported": 0
+      },
+      {
+        "name": "broken-json",
+        "total": 59,
+        "reported": 0
+      },
+      {
+        "name": "chunked",
+        "total": 58,
+        "reported": 0
+      },
+      {
+        "name": "command-injection",
+        "total": 12,
+        "reported": 0
+      },
+      {
+        "name": "cookies",
+        "total": 47,
+        "reported": 0
+      },
+      {
+        "name": "crlf",
+        "total": 12,
+        "reported": 0
+      },
+      {
+        "name": "delete",
+        "total": 56,
+        "reported": 0
+      },
+      {
+        "name": "double-encoding",
+        "total": 10,
+        "reported": 0
+      },
+      {
+        "name": "duplicate-query",
+        "total": 75,
+        "reported": 0
+      },
+      {
+        "name": "empty",
+        "total": 64,
+        "reported": 0
+      },
+      {
+        "name": "form",
+        "total": 53,
+        "reported": 0
+      },
+      {
+        "name": "get",
+        "total": 49,
+        "reported": 0
+      },
+      {
+        "name": "gzip",
+        "total": 82,
+        "reported": 0
+      },
+      {
+        "name": "gzip-body",
+        "total": 51,
+        "reported": 0
+      },
+      {
+        "name": "head",
+        "total": 62,
+        "reported": 0
+      },
+      {
+        "name": "headers",
+        "total": 52,
+        "reported": 0
+      },
+      {
+        "name": "invalid-marker",
+        "total": 50,
+        "reported": 0
+      },
+      {
+        "name": "json",
+        "total": 55,
+        "reported": 0
+      },
+      {
+        "name": "jwt-none",
+        "total": 11,
+        "reported": 0
+      },
+      {
+        "name": "keepalive",
+        "total": 58,
+        "reported": 0
+      },
+      {
+        "name": "log4shell",
+        "total": 18,
+        "reported": 0
+      },
+      {
+        "name": "mass-assignment",
+        "total": 9,
+        "reported": 0
+      },
+      {
+        "name": "multipart",
+        "total": 58,
+        "reported": 0
+      },
+      {
+        "name": "nosqli",
+        "total": 14,
+        "reported": 0
+      },
+      {
+        "name": "options",
+        "total": 62,
+        "reported": 0
+      },
+      {
+        "name": "patch",
+        "total": 61,
+        "reported": 0
+      },
+      {
+        "name": "put",
+        "total": 52,
+        "reported": 0
+      },
+      {
+        "name": "query",
+        "total": 52,
+        "reported": 0
+      },
+      {
+        "name": "sqli",
+        "total": 7,
+        "reported": 0
+      },
+      {
+        "name": "ssrf",
+        "total": 14,
+        "reported": 0
+      },
+      {
+        "name": "ssti",
+        "total": 17,
+        "reported": 0
+      },
+      {
+        "name": "traversal",
+        "total": 13,
+        "reported": 0
+      },
+      {
+        "name": "unicode",
+        "total": 51,
+        "reported": 0
+      },
+      {
+        "name": "xml",
+        "total": 59,
+        "reported": 0
+      },
+      {
+        "name": "xss",
+        "total": 6,
+        "reported": 0
+      },
+      {
+        "name": "xxe",
+        "total": 8,
+        "reported": 0
+      }
+    ]
+  },
+  "stored": {
+    "sessions": 3938,
+    "anomalies": 56,
+    "dismissed": 0,
+    "at_least_40": 0
+  },
+  "cleanup_jobs": [
+    {
+      "mode": "sessions",
+      "status": "completed",
+      "created_at": "2026-11-14T17:34:21.612111+00:00",
+      "deleted": 5
+    },
+    {
+      "mode": "packets",
+      "status": "completed",
+      "created_at": "2026-11-14T17:34:19.248759+00:00",
+      "deleted": 4
+    },
+    {
+      "mode": "sessions",
+      "status": "completed",
+      "created_at": "2026-11-14T17:32:56.112361+00:00",
+      "deleted": 5
+    }
+  ],
+  "generator": {
+    "run": "continuous_006ab002d2f7",
+    "state": "running",
+    "updated_at": 1794693667.048347,
+    "elapsed_seconds": 941.2,
+    "base_rps": 12.0,
+    "protocol_rps": 2,
+    "steady": true,
+    "attack_ratio": 0.08,
+    "service_started_at": "2026-11-14T21:45:25Z",
+    "observed_json_sample": {
+      "stream": 141297,
+      "body": {
+        "id": 1,
+        "user": "demo",
+        "text": "hello"
+      }
+    }
+  },
+  "method": {
+    "access": "read-only API and SQL; no restart, cleanup, or settings changes",
+    "cohort": "180 seconds with 10 second ingestion lag; REPEATABLE READ READ ONLY",
+    "labels": "First incoming X-Scenario; count saved transport sessions, not HTTP messages",
+    "limits": "Synthetic attack inputs, not successful exploitation; labels visible to detector; default UI filter minScore=6, period=3600, sort=score; UI and SQL snapshots are sequential"
+  }
+}
