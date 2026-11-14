@@ -1,0 +1,31 @@
+{
+  "name": "packmate-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "test": "node ../tests/browser/smoke.cjs"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "bootstrap": "^4.6.2",
+    "bootstrap-darkmode": "^0.9.1",
+    "bootstrap-vue": "^2.23.1",
+    "core-js": "^3.26.1",
+    "markdown-it": "15.0.3",
+    "vue": "2.7.16",
+    "vue-infinite-loading": "^2.4.5",
+    "vue-router": "^3.6.5",
+    "vuex": "^3.6.2",
+    "vuex-persistedstate": "^3.2.1",
+    "vuex-shared-mutations": "^1.0.2"
+  },
+  "devDependencies": {
+    "@fortawesome/fontawesome-free": "5.15.4",
+    "@vitejs/plugin-vue2": "2.3.4",
+    "playwright": "1.55.0",
+    "sass": "1.77.8",
+    "vite": "6.4.6"
+  }
+}
