@@ -9,6 +9,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -111,8 +112,13 @@ func addJSON(m *message, prefix string, v any, kind fieldKind, l link, depth int
 	}
 	switch x := v.(type) {
 	case map[string]any:
-		for k, child := range x {
-			addJSON(m, prefix+"."+k, child, kind, l, depth+1)
+		keys := make([]string, 0, len(x))
+		for k := range x {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			addJSON(m, prefix+"."+k, x[k], kind, l, depth+1)
 		}
 	case []any:
 		for i, child := range x {

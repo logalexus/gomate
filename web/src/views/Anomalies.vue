@@ -1,7 +1,7 @@
 <template>
  <section class="workspace-page anomalies">
   <header class="anomaly-header">
-   <div><h1>Аномалии</h1><p>Все сохранённые сессии в группах. Раскройте группу → выберите сессию → проверьте трафик.</p></div>
+   <div><h1>Аномалии</h1><p>Фингерпринты поведения во всех сохранённых сессиях. Раскройте группу → выберите сессию → проверьте трафик.</p></div>
    <div class="anomaly-actions">
     <b-button size="sm" variant="outline-secondary" :aria-expanded="String(help)" aria-controls="anomaly-help" @click="help=!help">Как работать</b-button>
     <b-button size="sm" variant="outline-secondary" :aria-pressed="String(paused)" :aria-label="paused ? 'Продолжить автообновление' : 'Пауза'" @click="paused=!paused">{{ paused ? 'Продолжить' : 'Пауза' }}</b-button>
@@ -11,7 +11,7 @@
 
   <div v-if="help" id="anomaly-help" class="gm-panel anomaly-help">
    <ol>
-    <li><b>«Все сессии»</b> показывает и обычный трафик, и срабатывания. Группы: сервис, протокол и метод/путь первого запроса без query-параметров. Тела запросов не сравниваются, переменные части пути не объединяются; без пути группировка только по сервису и протоколу. Очистка сессий уменьшает список, обучение модели его не скрывает.</li>
+    <li><b>«Все сессии»</b> показывает и обычный трафик, и срабатывания. «По поведению» сравнивает структуру и значения первых 8 входящих сообщений: параметры, заголовки и тела запросов. Часто меняющиеся значения отмечаются как переменные; повторяющаяся нагрузка остаётся отдельным фингерпринтом. Это сходство трафика, а не доказательство атаки или принадлежности команде. «По адресу» объединяет только по первому методу и пути. Очистка сессий уменьшает список, обучение модели его не скрывает.</li>
     <li><b>Выберите сервис и период.</b> По умолчанию выше сессии с большей необычностью. Баллы — сумма отличий от изученного трафика, а не вероятность атаки.</li>
     <li><b>Раскройте строку.</b> Посмотрите, какое поле отличается и почему. В группе можно выбрать конкретную сессию. Пока причины открыты, список не обновляется.</li>
     <li><b>Откройте сессию</b> и проверьте запрос и ответ. Высокая оценка сама по себе не подтверждает атаку; повторяющиеся атаки могут стать привычными для модели.</li>
@@ -25,13 +25,14 @@
   <div class="anomaly-toolbar">
    <div class="anomaly-filters">
     <b-form-group label="Показать" label-for="anomaly-scope"><b-form-select id="anomaly-scope" v-model="scope" size="sm" :options="[{value: 'all', text: 'Все сессии'}, {value: 'alerts', text: 'Только аномалии'}]"/></b-form-group>
+    <b-form-group v-if="scope==='all'" label="Объединять" label-for="anomaly-grouping"><b-form-select id="anomaly-grouping" v-model="grouping" size="sm" :options="[{value: 'behavior', text: 'По поведению'}, {value: 'endpoint', text: 'По адресу'}]"/></b-form-group>
     <b-form-group label="Сервис" label-for="anomaly-service"><b-form-select id="anomaly-service" v-model="service" size="sm" :options="serviceOptions"/></b-form-group>
     <b-form-group label="Период" label-for="anomaly-period"><b-form-select id="anomaly-period" v-model="period" size="sm" :options="periods"/></b-form-group>
     <b-form-group v-if="scope==='alerts'" label="Минимум баллов" label-for="anomaly-level"><b-form-select id="anomaly-level" v-model="level" size="sm" :options="levels"/></b-form-group>
-    <b-form-group label="Порядок" label-for="anomaly-sort"><b-form-select id="anomaly-sort" v-model="sort" size="sm" :options="sorts"/></b-form-group>
+    <b-form-group label="Порядок" label-for="anomaly-sort"><b-form-select id="anomaly-sort" v-model="sort" size="sm" :options="scope==='all' && grouping==='behavior' ? [...sorts, {value: 'count', text: 'Сначала массовые'}] : sorts"/></b-form-group>
    </div>
    <div class="anomaly-view-options">
-    <span v-if="scope==='all'">Группы по первому запросу · включая скрытые срабатывания · до очистки сессий</span>
+    <span v-if="scope==='all'">{{ grouping==='behavior' ? 'Структура + повторяющиеся значения · независимо от обучения' : 'Метод и путь первого запроса' }} · до очистки сессий</span>
     <b-form-checkbox v-if="scope==='alerts'" v-model="group">Группировать похожие</b-form-checkbox>
     <b-form-checkbox v-if="scope==='alerts'" v-model="showDismissed">Включая скрытые</b-form-checkbox>
     <b-button v-if="service||period!==3600||level!==6||showDismissed||sort!=='score'" size="sm" variant="link" @click="resetFilters">Сбросить фильтры</b-button>
@@ -60,18 +61,28 @@
     <button type="button" class="anomaly-row" :aria-expanded="String(expanded===g.key)" :aria-controls="'anomaly-detail-'+index" @click="toggle(g)">
      <span class="anomaly-score"><strong>{{ g.top.score ? Math.round(g.top.score) : '—' }}</strong><small>{{ scope==='all' && g.top.score ? 'макс.' : 'баллов' }}</small></span>
      <span class="anomaly-description">
-      <span class="anomaly-title"><b v-if="g.top.kind==='theft'" class="theft-label">Кража флага</b><code :title="g.top.summary">{{ endpoint(g.top) }}</code><span v-if="g.top.dismissed" class="hidden-label">Скрыто</span></span>
-      <span class="anomaly-reason-preview">{{ scope==='all' ? `${g.anomalyCount} со срабатыванием · ${g.count-g.anomalyCount-g.dismissedCount} без срабатывания${g.dismissedCount ? ' · '+g.dismissedCount+' скрытых' : ''}` : reasonPreview(g.top) }}</span>
+      <span class="anomaly-title"><b v-if="g.top.kind==='theft'" class="theft-label">Кража флага</b><code :title="g.top.summary">{{ endpoint(g.top) }}</code><small v-if="g.fingerprint" class="fingerprint-id">{{ g.fingerprint.slice(0,8) }}</small><span v-if="g.top.dismissed" class="hidden-label">Скрыто</span></span>
+      <span class="anomaly-reason-preview" :title="g.fingerprint ? behaviorPreview(g) : ''">{{ g.fingerprint ? behaviorPreview(g) : scope==='all' ? `${g.anomalyCount} со срабатыванием · ${g.count-g.anomalyCount-g.dismissedCount} без срабатывания${g.dismissedCount ? ' · '+g.dismissedCount+' скрытых' : ''}` : reasonPreview(g.top) }}</span>
      </span>
      <span class="anomaly-meta"><span>{{ serviceName(g.top.service) }}</span><span>{{ time(g.top.startTimestamp) }} · {{ scope==='all' ? g.count+' сессий' : g.items.length>1 ? g.items.length+' сессий' : '#'+g.top.streamId }}</span></span>
      <span class="anomaly-chevron" aria-hidden="true">{{ expanded===g.key ? '▴' : '▾' }}</span>
     </button>
     <div v-if="expanded===g.key" :id="'anomaly-detail-'+index" class="anomaly-detail">
+     <div v-if="g.fingerprint" class="behavior-details">
+      <p><b>Фингерпринт {{ g.fingerprint.slice(0,8) }}</b> · {{ g.count }} сессий · {{ g.anomalyCount }} со срабатыванием · {{ g.dismissedCount }} скрытых срабатываний</p>
+      <p v-if="g.missing">Нет сохранённых признаков: сессия создана до обновления или входящий трафик не разобран. Совпадение поведения не установлено.</p>
+      <template v-else>
+       <details><summary>Общие признаки ({{ (g.fields || []).length }})</summary><ul><li v-for="f in g.fields" :key="f"><code>{{ f }}</code></li></ul></details>
+       <p v-if="g.variableFields && g.variableFields.length">Меняются: <code>{{ g.variableFields.join(', ') }}</code></p>
+       <p v-if="g.limited">Достигнут предел описания: первые 8 сообщений, до 48 полей на сообщение. Различия за пределом не сравниваются.</p>
+       <p>Совпадение не определяет команду и не подтверждает атаку. Новые данные и очистка могут менять разбиение переменных полей; обучение детектора группы не скрывает.</p>
+      </template>
+     </div>
      <div v-if="scope==='all'" class="anomaly-member-controls">
       <b-form-checkbox v-if="g.anomalyCount" v-model="memberAlerts" @change="loadMembers(g)">Только со срабатыванием</b-form-checkbox>
       <span v-if="membersLoading" role="status">Загрузка сессий…</span>
       <span v-if="membersError" role="alert">{{ membersError }} <button type="button" class="btn btn-sm btn-link" @click="loadMembers(g, !!g.items.length)">Повторить</button></span>
-      <span v-if="!membersLoading && !membersError && !g.items.length">Сессий больше нет: они могли попасть под очистку. Обновите список.</span>
+      <span v-if="!membersLoading && !membersError && !g.items.length">Сессии удалены или разбиение на группы изменилось. Обновите список.</span>
       <b-button v-if="g.nextBefore" size="sm" variant="outline-secondary" :disabled="membersLoading" @click="loadMembers(g, true)">Ещё сессии (загружено {{ g.items.length }})</b-button>
      </div>
      <template v-if="scope!=='all' || g.items.length">
@@ -113,7 +124,7 @@
 const message = e => e.response?.data?.error || e.message;
 export default {
  data: () => ({
-  scope: 'all', trafficPage: {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}, groupOffset: 0,
+  scope: 'all', grouping: 'behavior', trafficPage: {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}, groupOffset: 0,
   membersLoading: false, membersError: '', memberAlerts: false, memberRequestId: 0,
   items: [], stats: {services: [], drops: 0, flagPattern: true, warmAfter: 100},
   loading: false, busy: false, error: '', help: false, modelInfo: false, expanded: '', selectedId: null,
@@ -155,7 +166,7 @@ export default {
   },
  },
  watch: {
-  scope: 'reloadFilters', service: 'reloadFilters', period: 'reloadFilters', level: 'reloadFilters', sort: 'reloadFilters', showDismissed: 'reloadFilters',
+  scope: 'reloadFilters', grouping: 'reloadFilters', service: 'reloadFilters', period: 'reloadFilters', level: 'reloadFilters', sort: 'reloadFilters', showDismissed: 'reloadFilters',
   group() { this.expanded = ''; },
  },
  mounted() { this.load(); this.timer = setInterval(this.refreshLive, 1000); },
@@ -175,11 +186,11 @@ export default {
     const params = {minScore: this.level, period: this.period, sort: this.sort};
     if (this.service) params.service = this.service;
     if (this.showDismissed) params.dismissed = 1;
-    const [list, stats] = await Promise.all([this.$http.get(this.scope==='all' ? '/v2/anomalies/groups' : '/v2/anomalies', {params: this.scope==='all' ? {service: this.service, period: this.period, sort: this.sort, limit: 100, offset: this.groupOffset} : params}), this.$http.get('/v2/anomalies/stats')]);
+    const [list, stats] = await Promise.all([this.$http.get(this.scope==='all' ? '/v2/anomalies/groups' : '/v2/anomalies', {params: this.scope==='all' ? {service: this.service, period: this.period, sort: this.sort, grouping: this.grouping, limit: 100, offset: this.groupOffset} : params}), this.$http.get('/v2/anomalies/stats')]);
     if (this.destroyed || id !== this.requestId) return;
     if (this.scope==='all') {
      this.trafficPage = {...list.data, groups: list.data.groups.map(g => ({...g,
-      key: JSON.stringify([g.service, g.protocol, g.method, g.path]), items: [], nextBefore: 0,
+      key: g.fingerprint || JSON.stringify([g.service, g.protocol, g.method, g.path]), items: [], nextBefore: 0,
       top: {kind: g.theftCount ? 'theft' : '', service: g.service, protocol: g.protocol, score: g.score, startTimestamp: g.startTimestamp, reasons: [], summary: g.path ? `${g.method} ${g.path}`.trim() : `${g.protocol} · без пути запроса`},
      }))};
      if (this.groupOffset && !this.trafficPage.groups.length && this.trafficPage.totalGroups<=this.groupOffset) {
@@ -226,7 +237,7 @@ export default {
    this.membersLoading=true; this.membersError='';
    if (!more) { g.items=[]; g.nextBefore=0; this.selectedId=null; }
    try {
-    const {data}=await this.$http.get('/v2/anomalies/sessions', {params: {service:g.service, protocol:g.protocol, method:g.method, path:g.path, period:this.period, limit:50, before:more ? g.nextBefore : 0, alerts:this.memberAlerts ? 1 : 0}});
+    const {data}=await this.$http.get('/v2/anomalies/sessions', {params: {fingerprint:g.fingerprint, service:g.service, protocol:g.protocol, method:g.method, path:g.path, period:this.period, limit:50, before:more ? g.nextBefore : 0, alerts:this.memberAlerts ? 1 : 0}});
     if (this.destroyed || id!==this.memberRequestId || this.expanded!==g.key) return;
     g.items=more ? [...g.items, ...data.items] : data.items; g.nextBefore=data.nextBefore;
     if (!more) this.selectedId=g.items[0]?.streamId;
@@ -235,6 +246,11 @@ export default {
    } finally { if (id===this.memberRequestId) this.membersLoading=false; }
   },
   selected(g) { return g.items.find(a => a.streamId === this.selectedId) || g.top; },
+  behaviorPreview(g) {
+   if (g.missing) return 'Нет признаков поведения · только адрес запроса';
+   const fields = (g.fields || []).filter(f=>/\/(json\.|form\.|query\.|token\.|body)/.test(f) && !f.includes('/json.structure'));
+   return (fields.length ? fields.slice(0,2).join(' · ') : 'Общая структура и значения') + (g.variableFields?.length ? ` · ${g.variableFields.length} переменных полей` : '');
+  },
   endpoint(a) { return a.reasons.find(r => r.template)?.template || a.summary.split('?')[0]; },
   reasonPreview(a) {
    const r = a.reasons[0];
@@ -248,6 +264,12 @@ export default {
 </script>
 
 <style scoped>
+.fingerprint-id {font-size:10px;color:var(--gm-muted);margin-left:6px;flex-shrink:0}
+.behavior-details {font-size:12px;overflow-wrap:anywhere;margin-bottom:10px}
+.behavior-details p {margin:0 0 6px}
+.behavior-details ul {padding-left:18px;max-height:230px;overflow:auto}
+.behavior-details summary {cursor:pointer;margin-bottom:6px}
+
 .anomalies{max-width:1500px;margin:auto;padding-bottom:16px}
 .anomaly-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
 .anomaly-header h1{font-size:21px;line-height:1.3;margin:0 0 4px;font-weight:600}

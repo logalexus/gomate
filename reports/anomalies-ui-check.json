@@ -61,8 +61,8 @@
       "docWidth": 800,
       "mainWidth": 800,
       "first": {
-        "top": 392.28125,
-        "bottom": 450.78125,
+        "top": 411.78125,
+        "bottom": 470.28125,
         "height": 58.5
       },
       "visibleRows": 5
@@ -74,8 +74,8 @@
       "docWidth": 800,
       "mainWidth": 800,
       "first": {
-        "top": 392.28125,
-        "bottom": 450.78125,
+        "top": 411.78125,
+        "bottom": 470.28125,
         "height": 58.5
       },
       "visibleRows": 5
@@ -87,11 +87,11 @@
       "docWidth": 375,
       "mainWidth": 375,
       "first": {
-        "top": 573.09375,
-        "bottom": 651.59375,
+        "top": 591.09375,
+        "bottom": 669.59375,
         "height": 78.5
       },
-      "visibleRows": 2
+      "visibleRows": 1
     },
     {
       "width": 375,
@@ -100,11 +100,11 @@
       "docWidth": 375,
       "mainWidth": 375,
       "first": {
-        "top": 573.09375,
-        "bottom": 651.59375,
+        "top": 591.09375,
+        "bottom": 669.59375,
         "height": 78.5
       },
-      "visibleRows": 2
+      "visibleRows": 1
     },
     {
       "width": 667,

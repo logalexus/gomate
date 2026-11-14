@@ -75,6 +75,9 @@ func (s *Server) anomalies(w http.ResponseWriter, r *http.Request, p []string) e
 		if p[4] == "normal" && s.Anomaly != nil {
 			s.Anomaly.Accept(v.Service, v.Reasons)
 		}
+		s.behaviorPages.mu.Lock()
+		s.behaviorPages.pages = nil
+		s.behaviorPages.mu.Unlock()
 		w.WriteHeader(204)
 		return nil
 	}

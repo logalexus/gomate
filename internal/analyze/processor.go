@@ -133,6 +133,7 @@ func (p *Processor) Process(c *model.Chunk) {
 		v.incomplete = true
 	}
 	svc, _ := p.catalog.Service(c.Stream.Service)
+	c.Decoded = svc.HTTP || svc.WebSockets || svc.URLDecode
 	raw := c.Packets
 	if svc.HTTP || svc.WebSockets || svc.URLDecode {
 		decodedBytes := 0

@@ -1,8 +1,12 @@
 package api
 
 import (
+	"context"
+	"encoding/hex"
+	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"gomate/internal/storage"
@@ -42,12 +46,18 @@ func (s *Server) trafficGroups(w http.ResponseWriter, r *http.Request, members b
 	if err != nil {
 		return err
 	}
-	x := storage.TrafficGroupQuery{Service: int(port), Limit: int(limit), Offset: int(offset), ByTime: params.Get("sort") == "time"}
+	x := storage.TrafficGroupQuery{Service: int(port), Limit: int(limit), Offset: int(offset), ByTime: params.Get("sort") == "time", ByCount: params.Get("sort") == "count"}
 	if period > 0 {
 		x.SinceMs = time.Now().Add(-time.Duration(period) * time.Second).UnixMilli()
 	}
 	if !members {
-		v, err := s.Store.TrafficGroups(r.Context(), x)
+		var v storage.TrafficGroupPage
+		var err error
+		if params.Get("grouping") == "behavior" {
+			v, err = s.cachedBehaviorPage(r.Context(), x, period)
+		} else {
+			v, err = s.Store.TrafficGroups(r.Context(), x)
+		}
 		if err != nil {
 			return err
 		}
@@ -63,10 +73,60 @@ func (s *Server) trafficGroups(w http.ResponseWriter, r *http.Request, members b
 		return err
 	}
 	x.AlertsOnly = params.Get("alerts") == "1"
+	x.Fingerprint = params.Get("fingerprint")
+	if x.Fingerprint != "" {
+		if b, e := hex.DecodeString(x.Fingerprint); e != nil || len(b) != 16 {
+			return bad("invalid fingerprint")
+		}
+	}
 	v, err := s.Store.TrafficGroupSessions(r.Context(), x)
 	if err != nil {
 		return err
 	}
 	respond(w, 200, v)
 	return nil
+}
+
+// Share a small, short-lived result cache between browser polls. Membership is
+// checked against current rows, so deleted sessions cannot be reopened via it.
+type cachedBehaviorPage struct {
+	at   time.Time
+	page storage.TrafficGroupPage
+}
+type behaviorPageCache struct {
+	mu    sync.Mutex
+	pages map[string]cachedBehaviorPage
+}
+
+func (s *Server) cachedBehaviorPage(ctx context.Context, q storage.TrafficGroupQuery, period int64) (storage.TrafficGroupPage, error) {
+	c := &s.behaviorPages
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return storage.TrafficGroupPage{}, err
+	}
+	key := fmt.Sprintf("%d/%d/%t/%t/%d/%d", q.Service, period, q.ByTime, q.ByCount, q.Limit, q.Offset)
+	if p, ok := c.pages[key]; ok && time.Since(p.at) < 5*time.Second {
+		return p.page, nil
+	}
+	page, err := s.Store.BehaviorGroups(ctx, q)
+	if err != nil {
+		return page, err
+	}
+	if c.pages == nil {
+		c.pages = map[string]cachedBehaviorPage{}
+	}
+	for k, v := range c.pages {
+		if time.Since(v.at) >= 5*time.Second {
+			delete(c.pages, k)
+		}
+	}
+	if len(c.pages) >= 16 {
+		for k := range c.pages {
+			delete(c.pages, k)
+			break
+		}
+	}
+	c.pages[key] = cachedBehaviorPage{at: time.Now(), page: page}
+	return page, nil
 }

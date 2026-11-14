@@ -6,19 +6,24 @@ import (
 )
 
 // Traffic groups describe retained sessions, independently of detector learning.
-// Use the first request's method/path, without query values. This deliberately
-// does not claim structural similarity of bodies or infer variable path segments.
+// Endpoint groups use the first request method/path without query values.
+// Behavior groups additionally populate the fingerprint and descriptor fields.
 type TrafficGroup struct {
-	Service        int     `json:"service"`
-	Protocol       string  `json:"protocol"`
-	Method         string  `json:"method"`
-	Path           string  `json:"path"`
-	Count          int64   `json:"count"`
-	AnomalyCount   int64   `json:"anomalyCount"`
-	TheftCount     int64   `json:"theftCount"`
-	DismissedCount int64   `json:"dismissedCount"`
-	Score          float64 `json:"score"`
-	Start          int64   `json:"startTimestamp"`
+	Fingerprint    string   `json:"fingerprint,omitempty"`
+	Fields         []string `json:"fields,omitempty"`
+	VariableFields []string `json:"variableFields,omitempty"`
+	Limited        bool     `json:"limited,omitempty"`
+	Missing        bool     `json:"missing,omitempty"`
+	Service        int      `json:"service"`
+	Protocol       string   `json:"protocol"`
+	Method         string   `json:"method"`
+	Path           string   `json:"path"`
+	Count          int64    `json:"count"`
+	AnomalyCount   int64    `json:"anomalyCount"`
+	TheftCount     int64    `json:"theftCount"`
+	DismissedCount int64    `json:"dismissedCount"`
+	Score          float64  `json:"score"`
+	Start          int64    `json:"startTimestamp"`
 }
 
 type TrafficGroupPage struct {
@@ -37,6 +42,8 @@ type TrafficGroupQuery struct {
 	Protocol, Method, Path string
 	Before                 int64
 	AlertsOnly             bool
+	Fingerprint            string
+	ByCount                bool
 }
 
 const trafficGroupSource = ` FROM gomate_streams s
@@ -88,6 +95,23 @@ type TrafficSessionPage struct {
 
 func (s *Store) TrafficGroupSessions(ctx context.Context, q TrafficGroupQuery) (TrafficSessionPage, error) {
 	out := TrafficSessionPage{Items: []TrafficSession{}}
+	var ids []int64
+	if q.Fingerprint != "" {
+		groups, err := s.behaviorGroups(ctx, q)
+		if err != nil {
+			return out, err
+		}
+		for _, g := range groups {
+			if g.Fingerprint == q.Fingerprint {
+				ids = g.ids
+				break
+			}
+		}
+		if len(ids) == 0 {
+			return out, nil
+		}
+	}
+
 	rows, err := s.Pool.Query(ctx, `SELECT s.id,s.service,s.protocol,s.start_ms,s.client,
  s.payload_purged, trim(COALESCE(s.first_request_method,'') || ' ' || COALESCE(s.first_request_path,'')),
  a.stream_id IS NOT NULL,COALESCE(a.score,0),COALESCE(a.kind,''),COALESCE(a.summary,''),
@@ -95,7 +119,8 @@ func (s *Store) TrafficGroupSessions(ctx context.Context, q TrafficGroupQuery) (
  AND s.protocol=$3 AND COALESCE(s.first_request_method,'')=$4
  AND split_part(COALESCE(s.first_request_path,''),'?',1)=$5
  AND ($6::bigint=0 OR s.id<$6) AND (NOT $7 OR (a.stream_id IS NOT NULL AND NOT a.dismissed))
- ORDER BY s.id DESC LIMIT $8`, q.Service, q.SinceMs, q.Protocol, q.Method, q.Path, q.Before, q.AlertsOnly, q.Limit+1)
+ AND ($9::bigint[] IS NULL OR s.id=ANY($9))
+ ORDER BY s.id DESC LIMIT $8`, q.Service, q.SinceMs, q.Protocol, q.Method, q.Path, q.Before, q.AlertsOnly, q.Limit+1, ids)
 	if err != nil {
 		return out, err
 	}

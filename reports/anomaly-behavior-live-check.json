@@ -1,0 +1,162 @@
+{
+  "passed": true,
+  "at": "2026-11-14T22:55:31.010Z",
+  "url": "http://192.168.56.103:65000/#/anomalies",
+  "totals": {
+    "sessions": 35665,
+    "groups": 2208,
+    "alerts": 1178
+  },
+  "groupLatencyMs": 4899,
+  "layout": {
+    "firstRowTop": 283.59375,
+    "rowHeight": 58.5,
+    "visibleRows": 7,
+    "width": 1366
+  },
+  "detail": {
+    "link": "#/19090/191224",
+    "commonFields": 3
+  },
+  "samples": [
+    {
+      "fingerprint": "1818e71eb897432420a6eed0cee0e831",
+      "service": 19090,
+      "method": "",
+      "path": "",
+      "count": 1649,
+      "anomalies": 0,
+      "variableFields": [
+        "1:/token.2"
+      ],
+      "missing": false
+    },
+    {
+      "fingerprint": "9432e68098c5f59e503f91530ff0dea5",
+      "service": 19090,
+      "method": "",
+      "path": "",
+      "count": 907,
+      "anomalies": 0,
+      "missing": false
+    },
+    {
+      "fingerprint": "31efe4442ee2f33dd1f6990b321d6129",
+      "service": 19090,
+      "method": "",
+      "path": "",
+      "count": 876,
+      "anomalies": 0,
+      "missing": false
+    },
+    {
+      "fingerprint": "b8b116c45a8fd5eada4836f205568874",
+      "service": 19090,
+      "method": "",
+      "path": "",
+      "count": 875,
+      "anomalies": 0,
+      "variableFields": [
+        "1:/token.2",
+        "1:/token.5",
+        "1:/token.8"
+      ],
+      "missing": false
+    },
+    {
+      "fingerprint": "40ca18292c4e7a31a2e5e9e0d45b4c36",
+      "service": 19090,
+      "method": "",
+      "path": "",
+      "count": 842,
+      "anomalies": 8,
+      "variableFields": [
+        "1:/json.marker"
+      ],
+      "missing": false
+    },
+    {
+      "fingerprint": "035bb9cbb99e9da2a201627e6632900e",
+      "service": 18080,
+      "method": "GET",
+      "path": "/",
+      "count": 830,
+      "anomalies": 8,
+      "missing": false
+    },
+    {
+      "fingerprint": "8840e5b073a5f85703213a47f24ad687",
+      "service": 19090,
+      "method": "",
+      "path": "",
+      "count": 286,
+      "anomalies": 0,
+      "missing": false
+    },
+    {
+      "fingerprint": "6eb0d494bfe1cbcd4abb0898406901e9",
+      "service": 19090,
+      "method": "",
+      "path": "",
+      "count": 283,
+      "anomalies": 2,
+      "missing": false
+    },
+    {
+      "fingerprint": "edd7d32b327d26e28eebcde97f8f5986",
+      "service": 18080,
+      "method": "GET",
+      "path": "/ws",
+      "count": 282,
+      "anomalies": 18,
+      "variableFields": [
+        "1:http/header.sec-websocket-key",
+        "2:websocket/token.2"
+      ],
+      "missing": false
+    },
+    {
+      "fingerprint": "fd218e3c821729667041abecc45b24f3",
+      "service": 18080,
+      "method": "GET",
+      "path": "/ws",
+      "count": 282,
+      "anomalies": 12,
+      "variableFields": [
+        "1:http/header.sec-websocket-key",
+        "2:websocket/token.2"
+      ],
+      "missing": false
+    },
+    {
+      "fingerprint": "90a3ac91344759b271c1b803da851b29",
+      "service": 18080,
+      "method": "GET",
+      "path": "/ws",
+      "count": 282,
+      "anomalies": 12,
+      "variableFields": [
+        "1:http/header.sec-websocket-key",
+        "2:websocket/token.2"
+      ],
+      "missing": false
+    },
+    {
+      "fingerprint": "ff68b1aacb7813ac37c593c9e5ba346f",
+      "service": 18080,
+      "method": "GET",
+      "path": "/ws",
+      "count": 282,
+      "anomalies": 21,
+      "variableFields": [
+        "1:http/header.sec-websocket-key",
+        "2:websocket/token.2"
+      ],
+      "missing": false
+    }
+  ],
+  "pageErrors": [],
+  "apiWrites": [],
+  "captureStartedBefore": "2026-11-14T22:55:06.299960329Z",
+  "captureStartedAfter": "2026-11-14T22:55:06.299960329Z"
+}

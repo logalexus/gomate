@@ -71,6 +71,12 @@ func serveDynamic(parent context.Context, cfg config.Config, app *api.Server) er
 					continue
 				}
 				q, cancel = context.WithTimeout(ctx, cfg.DBTimeout)
+				_, e = app.Store.StepBehaviorBackfill(q)
+				cancel()
+				if e != nil && ctx.Err() == nil {
+					slog.Warn("behavior backfill will retry", "error", e)
+				}
+				q, cancel = context.WithTimeout(ctx, cfg.DBTimeout)
 				changed, e = app.Store.StepLookback(q)
 				cancel()
 				if e != nil && ctx.Err() == nil {

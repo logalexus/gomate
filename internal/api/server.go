@@ -29,15 +29,16 @@ import (
 )
 
 type Server struct {
-	chatLimit chatLimiter
-	Control   *control.Manager
-	Config    config.Config
-	Store     *storage.Store
-	Catalog   *analyze.Catalog
-	Metrics   *metrics.Metrics
-	Hub       *events.Hub
-	Anomaly   *anomaly.Engine
-	mu        sync.Mutex
+	chatLimit     chatLimiter
+	behaviorPages behaviorPageCache
+	Control       *control.Manager
+	Config        config.Config
+	Store         *storage.Store
+	Catalog       *analyze.Catalog
+	Metrics       *metrics.Metrics
+	Hub           *events.Hub
+	Anomaly       *anomaly.Engine
+	mu            sync.Mutex
 }
 
 func (s *Server) Reload(ctx context.Context) error {
@@ -104,7 +105,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), s.Config.DBTimeout)
+	// Behavior reads scan the retained descriptor corpus. Keep their budget
+	// separate from short metadata/write operations, including under host load.
+	timeout := s.Config.DBTimeout
+	if (r.URL.Path == "/api/v2/anomalies/groups" && r.URL.Query().Get("grouping") == "behavior") ||
+		(r.URL.Path == "/api/v2/anomalies/sessions" && r.URL.Query().Get("fingerprint") != "") {
+		if timeout < 10*time.Second {
+			timeout = 10 * time.Second
+		}
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), timeout)
 	defer cancel()
 	r = r.WithContext(ctx)
 	if r.URL.Path == "/health/ready" {

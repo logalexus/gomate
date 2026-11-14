@@ -121,3 +121,8 @@ ALTER TABLE gomate_streams ADD COLUMN IF NOT EXISTS first_request_path text;
 ALTER TABLE gomate_streams ADD COLUMN IF NOT EXISTS first_request_method text;
 ALTER TABLE gomate_streams ADD COLUMN IF NOT EXISTS first_request_truncated boolean;
 INSERT INTO gomate_schema_versions(version) VALUES (8) ON CONFLICT DO NOTHING;
+
+-- Compact client-message descriptors survive packet cleanup, but not session deletion.
+ALTER TABLE gomate_streams ADD COLUMN IF NOT EXISTS behavior jsonb;
+INSERT INTO gomate_schema_versions(version) VALUES (9) ON CONFLICT DO NOTHING;
+CREATE INDEX IF NOT EXISTS gomate_behavior_backfill ON gomate_streams(id) WHERE behavior IS NULL AND NOT ignored;

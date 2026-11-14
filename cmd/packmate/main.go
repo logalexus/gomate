@@ -94,6 +94,12 @@ func run() error {
 					continue
 				}
 				q, cancel := context.WithTimeout(ctx, cfg.DBTimeout)
+				_, err := store.StepBehaviorBackfill(q)
+				cancel()
+				if err != nil && ctx.Err() == nil {
+					slog.Warn("behavior backfill will retry", "error", err)
+				}
+				q, cancel = context.WithTimeout(ctx, cfg.DBTimeout)
 				changed, err := store.StepLookback(q)
 				cancel()
 				if err != nil && ctx.Err() == nil {

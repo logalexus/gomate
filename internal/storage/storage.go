@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"gomate/internal/anomaly"
 	"gomate/internal/model"
 )
 
@@ -159,6 +160,7 @@ func (s *Store) SaveChunks(ctx context.Context, chunks []*model.Chunk) error {
 		packets  int
 		ignore   bool
 		patterns map[int]bool
+		behavior []anomaly.BehaviorMessage
 	}
 	groups := make(map[string]*aggregate)
 	keys := []string{}
@@ -189,6 +191,17 @@ func (s *Store) SaveChunks(ctx context.Context, chunks []*model.Chunk) error {
 				break
 			}
 		}
+		for _, packet := range c.Packets {
+			if c.Ignore || (c.Decoded && packet.Kind == "") {
+				continue
+			}
+			if len(a.behavior) >= anomaly.BehaviorMessages {
+				break
+			}
+			if b, ok := anomaly.BehaviorPacket(packet); ok {
+				a.behavior = append(a.behavior, b)
+			}
+		}
 		a.bytes += c.Bytes
 		a.packets += len(c.Packets)
 		a.ignore = a.ignore || c.Ignore
@@ -211,21 +224,22 @@ func (s *Store) SaveChunks(ctx context.Context, chunks []*model.Chunk) error {
 		for id := range a.patterns {
 			ids = append(ids, id)
 		}
-		metadata = append(metadata, map[string]any{"flow_key": key, "service": v.Service, "protocol": v.Protocol, "start_ms": v.Start, "end_ms": v.End, "pattern_ids": ids, "incomplete": v.Incomplete, "ignored": a.ignore, "ttl": v.TTL, "size_bytes": a.bytes, "packets_count": a.packets, "client": v.Client, "server": v.Server, "user_agent_hash": v.UserAgentHash, "first_request_path": v.FirstRequestPath, "first_request_method": v.FirstRequestMethod, "first_request_truncated": v.FirstRequestTruncated})
+		metadata = append(metadata, map[string]any{"flow_key": key, "service": v.Service, "protocol": v.Protocol, "start_ms": v.Start, "end_ms": v.End, "pattern_ids": ids, "incomplete": v.Incomplete, "ignored": a.ignore, "ttl": v.TTL, "size_bytes": a.bytes, "packets_count": a.packets, "client": v.Client, "server": v.Server, "user_agent_hash": v.UserAgentHash, "first_request_path": v.FirstRequestPath, "first_request_method": v.FirstRequestMethod, "first_request_truncated": v.FirstRequestTruncated, "behavior": a.behavior})
 	}
 	payload, err := json.Marshal(metadata)
 	if err != nil {
 		return err
 	}
-	records, err := tx.Query(ctx, `INSERT INTO gomate_streams(flow_key,service,protocol,start_ms,end_ms,pattern_ids,incomplete,ignored,ttl,size_bytes,packets_count,client,server,user_agent_hash,first_request_path,first_request_method,first_request_truncated)
-    SELECT flow_key,service,protocol,start_ms,end_ms,pattern_ids,incomplete,ignored,ttl,size_bytes,packets_count,client,server,user_agent_hash,NULLIF(first_request_path,''),NULLIF(first_request_method,''),first_request_truncated
-    FROM jsonb_to_recordset($1::jsonb) AS x(flow_key text,service integer,protocol text,start_ms bigint,end_ms bigint,pattern_ids integer[],incomplete boolean,ignored boolean,ttl integer,size_bytes bigint,packets_count integer,client text,server text,user_agent_hash text,first_request_path text,first_request_method text,first_request_truncated boolean)
+	records, err := tx.Query(ctx, `INSERT INTO gomate_streams(flow_key,service,protocol,start_ms,end_ms,pattern_ids,incomplete,ignored,ttl,size_bytes,packets_count,client,server,user_agent_hash,first_request_path,first_request_method,first_request_truncated,behavior)
+    SELECT flow_key,service,protocol,start_ms,end_ms,pattern_ids,incomplete,ignored,ttl,size_bytes,packets_count,client,server,user_agent_hash,NULLIF(first_request_path,''),NULLIF(first_request_method,''),first_request_truncated,COALESCE(NULLIF(behavior,'null'::jsonb),'[]'::jsonb)
+    FROM jsonb_to_recordset($1::jsonb) AS x(flow_key text,service integer,protocol text,start_ms bigint,end_ms bigint,pattern_ids integer[],incomplete boolean,ignored boolean,ttl integer,size_bytes bigint,packets_count integer,client text,server text,user_agent_hash text,first_request_path text,first_request_method text,first_request_truncated boolean,behavior jsonb)
     ON CONFLICT(flow_key) DO UPDATE SET end_ms=GREATEST(gomate_streams.end_ms,excluded.end_ms),
     pattern_ids=ARRAY(SELECT DISTINCT unnest(gomate_streams.pattern_ids||excluded.pattern_ids)),
     user_agent_hash=COALESCE(excluded.user_agent_hash,gomate_streams.user_agent_hash),
     first_request_path=COALESCE(gomate_streams.first_request_path,excluded.first_request_path),
     first_request_method=CASE WHEN gomate_streams.first_request_path IS NULL THEN excluded.first_request_method ELSE gomate_streams.first_request_method END,
     first_request_truncated=CASE WHEN gomate_streams.first_request_path IS NULL THEN excluded.first_request_truncated ELSE gomate_streams.first_request_truncated END,
+ behavior=jsonb_path_query_array(COALESCE(gomate_streams.behavior,'[]'::jsonb)||excluded.behavior,'$[0 to 7]'),
  incomplete=gomate_streams.incomplete OR excluded.incomplete,ignored=gomate_streams.ignored OR excluded.ignored,
     size_bytes=gomate_streams.size_bytes+excluded.size_bytes,packets_count=gomate_streams.packets_count+excluded.packets_count
     RETURNING flow_key,id,ignored`, payload)
