@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"gomate/internal/anomaly"
+	"gomate/internal/attachments"
 	"gomate/internal/model"
 )
 
@@ -353,6 +354,7 @@ func (s *Store) PacketsPage(ctx context.Context, id int64, page model.Page) ([]m
 		if len(out) >= page.PageSize || size > 4<<20 && len(out) > 0 {
 			return out, true, nil
 		}
+		attachments.Enrich(&p)
 		out = append(out, p)
 	}
 	return out, false, rows.Err()

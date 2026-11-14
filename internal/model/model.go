@@ -37,7 +37,19 @@ type Match struct {
 	End           int  `json:"endPosition"`
 }
 
+type Attachment struct {
+	Name         string `json:"name"`
+	DownloadName string `json:"downloadName"`
+	Field        string `json:"field,omitempty"`
+	Type         string `json:"type"`
+	DeclaredType string `json:"declaredType,omitempty"`
+	Size         int    `json:"size"`
+	Content      []byte `json:"content"`
+}
+
 type Packet struct {
+	Attachments     []Attachment      `json:"attachments,omitempty"`
+	Preview         string            `json:"preview,omitempty"`
 	Kind            string            `json:"kind,omitempty"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
 	ID              int64             `json:"id"`
