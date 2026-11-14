@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "interfaces": [
+    "Выберите интерфейс",
+    "br-7e5cd8c8c911 · 172.18.0.1, fe80::f867:23ff:feed:d263",
+    "br-gomate-lab · 172.30.77.1, fe80::460:c3ff:fe9d:db50",
+    "docker0 · 172.17.0.1, fe80::6881:d4ff:feb3:3ef3",
+    "eth0 · 10.0.2.15, fd17:625c:f037:2:4fb3:4cd9:af65:6c01, fe80::35e7:563a:f0bc:2f1a",
+    "eth1 · 192.168.56.103, fe80::b852:684f:158e:45c2",
+    "lo · 127.0.0.1, ::1 — This capture adapter requires Ethernet",
+    "veth1137238 · fe80::c4b6:3ff:fe00:6d0b",
+    "veth3a08dc6 · fe80::b0ee:bdff:fe66:30b8",
+    "veth486ecc1 · fe80::c0ef:83ff:fed8:d050",
+    "veth5c2e01a · fe80::fcdd:1dff:fe57:706f",
+    "vetha9e13d8 · fe80::c4c:eaff:fec5:335e"
+  ],
+  "patternID": 11,
+  "fixtureResponses": 3,
+  "checks": [
+    "hot interface switching",
+    "persistent retention settings across restart",
+    "Docker one-click add",
+    "pattern tester and semantic edit",
+    "bulk enable/disable",
+    "scoped payload cleanup preserves favorites and session metadata"
+  ],
+  "pageErrors": []
+}

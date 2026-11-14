@@ -1,0 +1,50 @@
+{
+  "localImage": "sha256:cfcc718809109e731d46e284a2578eebf6db9ecb8c1f4ad191968485fd8ee735",
+  "remoteImage": "sha256:2da8161a7cc9be76f6bf6a916a2e64538b418047c85b3ef072bc68e32ed9a5e4",
+  "sameLayers": true,
+  "runningMatchesImage": true,
+  "ready": {
+    "ready": true
+  },
+  "capture": {
+    "running": true,
+    "interface": "eth1",
+    "localIPs": [
+      "192.168.56.103"
+    ],
+    "startedAt": "2026-11-14T19:21:37.317880804Z"
+  },
+  "stalled": false,
+  "metrics": {
+    "accepted_total": 11,
+    "active_bytes": 0,
+    "active_flows": 0,
+    "analysis_bytes": 0,
+    "analysis_evictions_total": 0,
+    "capture_drops_total": 0,
+    "captured_total": 11,
+    "db_errors_total": 0,
+    "decode_errors_total": 0,
+    "filtered_total": 0,
+    "flow_drops_total": 0,
+    "gaps_total": 0,
+    "last_capture_unix": 1794684118,
+    "last_commit_unix": 1794684118,
+    "last_process_unix": 1794684118,
+    "pending_since_unix": 0,
+    "persisted_bytes_total": 442,
+    "persisted_chunks_total": 1,
+    "queue_bytes": 0,
+    "queue_drops_total": 0,
+    "unsupported_total": 0,
+    "write_bytes": 0,
+    "write_drops_total": 0
+  },
+  "changedFilesSHA256": {
+    "web/src/components/Packet.vue": "29b0c233cd0065ba4cf79388d754d8988ad085aed7c99b9aaf6b4413f5e86650",
+    "web/src/views/ContentStream.vue": "bd33e6745cad9e2ab0bda01cdd0a73cee99e00c56d651f158e93fd4acc3e6bce",
+    "web/src/components/TrafficDecoder.vue": "085a44b908a1b2625679911ab9819626f84bd8280f7d54976ae773e0e56cd16f",
+    "web/src/trafficDecode.mjs": "2b4122b252ea0d184182cccfee7b44e6d1d0441bb75c498ded6587c8f22e9686",
+    "web/src/trafficDecode.worker.mjs": "19b533361aff0a3d0ffe65c70b75d7b860d78519309766722b09059a35a2e015"
+  }
+}

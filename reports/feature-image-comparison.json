@@ -1,0 +1,23 @@
+{
+  "local": {
+    "id": "sha256:447beb5d2a574b9401a5eb3c596245c2524675a44e6e381eaabeeb298d0f8d9e",
+    "created": "2026-11-14T16:50:36.559733891Z",
+    "layers": [
+      "sha256:8e16abd8e04833ea77df3a82615a5762bd2fcb4f16a594c92366d1bee779908e",
+      "sha256:60d6f1a59f790f8ec089acbad1eedc1bd7e1f4a0e2f17da9e6d5f781e9a58687",
+      "sha256:35693b5eeceeb335c5e38719ea24c20933dc2bd93ff5ec413f06c896a3553afd",
+      "sha256:4978fa48473322a02ea7d942a7383a27825a28d48f33906009d30e45aa0ce45b"
+    ]
+  },
+  "kali": {
+    "id": "sha256:315d943a2a05d765dbb82cebc4801c18fc5f3ea6827f70b1786448df1defc27d",
+    "created": "2026-11-14T16:50:36.559733891Z",
+    "layers": [
+      "sha256:8e16abd8e04833ea77df3a82615a5762bd2fcb4f16a594c92366d1bee779908e",
+      "sha256:60d6f1a59f790f8ec089acbad1eedc1bd7e1f4a0e2f17da9e6d5f781e9a58687",
+      "sha256:35693b5eeceeb335c5e38719ea24c20933dc2bd93ff5ec413f06c896a3553afd",
+      "sha256:4978fa48473322a02ea7d942a7383a27825a28d48f33906009d30e45aa0ce45b"
+    ]
+  },
+  "sameConfig": false
+}

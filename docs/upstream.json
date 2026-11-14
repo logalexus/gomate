@@ -1,0 +1,15 @@
+{
+  "backend": {
+    "url": "https://gitlab.com/packmate/Packmate.git",
+    "commit": "938031f1dedfbedabef5b049368ed5b6ba6a900a"
+  },
+  "frontend": {
+    "url": "https://gitlab.com/packmate/packmate-frontend.git",
+    "imported_commit": "8f23d97100f11cd6671bb62aca5ce9b6a898b865",
+    "inspected_head": "a15d846d37b03e82b243517c594a53895121cc84"
+  },
+  "starter": {
+    "url": "https://gitlab.com/packmate/starter.git",
+    "commit": "25a2517dceb567a1571cd3666cfaadee0b66779b"
+  }
+}

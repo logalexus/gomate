@@ -1,0 +1,75 @@
+{
+  "ready": {
+    "ready": true
+  },
+  "capture": {
+    "running": true,
+    "interface": "eth1",
+    "localIPs": [
+      "192.168.56.103"
+    ],
+    "startedAt": "2026-11-14T18:16:28.918854125Z"
+  },
+  "captureRunning": true,
+  "stalled": false,
+  "metrics": {
+    "accepted_total": 8296,
+    "active_bytes": 0,
+    "active_flows": 0,
+    "analysis_bytes": 0,
+    "analysis_evictions_total": 0,
+    "capture_drops_total": 0,
+    "captured_total": 8296,
+    "db_errors_total": 0,
+    "decode_errors_total": 0,
+    "filtered_total": 0,
+    "flow_drops_total": 0,
+    "gaps_total": 0,
+    "last_capture_unix": 1794680413,
+    "last_commit_unix": 1794680413,
+    "last_process_unix": 1794680413,
+    "pending_since_unix": 0,
+    "persisted_bytes_total": 224425,
+    "persisted_chunks_total": 640,
+    "queue_bytes": 0,
+    "queue_drops_total": 0,
+    "unsupported_total": 0,
+    "write_bytes": 0,
+    "write_drops_total": 0
+  },
+  "removedTestChatMessages": 122,
+  "testRun": "ops_1794678917023",
+  "fixturesRemaining": [],
+  "labContainers": [
+    {
+      "name": "gomate-lab-app-1",
+      "state": "running",
+      "protected": true
+    },
+    {
+      "name": "gomate-lab-db-1",
+      "state": "running",
+      "protected": true
+    },
+    {
+      "name": "gomate-lab-discovery-1",
+      "state": "running",
+      "protected": true
+    },
+    {
+      "name": "gomate-lab-grpc-1",
+      "state": "running",
+      "protected": false
+    },
+    {
+      "name": "gomate-lab-http-1",
+      "state": "running",
+      "protected": false
+    },
+    {
+      "name": "gomate-lab-tcp-1",
+      "state": "running",
+      "protected": false
+    }
+  ]
+}

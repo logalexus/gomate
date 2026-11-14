@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "logDOMRows": 19,
+  "pageErrors": [],
+  "checks": [
+    "restart isolated fixture with confirmation",
+    "real Docker log API",
+    "bounded virtual rows",
+    "stderr/text filter",
+    "line detail",
+    "polling stops on navigation"
+  ]
+}

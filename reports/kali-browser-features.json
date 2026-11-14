@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "browsers": 20,
+  "elapsedSeconds": 36.576,
+  "pageErrors": [],
+  "checks": [
+    "virtual list",
+    "decoded gRPC view",
+    "hex/text",
+    "WebSocket reconnect snapshot",
+    "SUBBYTES live matching and hex highlighting"
+  ]
+}

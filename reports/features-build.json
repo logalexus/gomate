@@ -1,0 +1,76 @@
+{
+  "source_sha256": "d2d092b79451d2f929f71a5472a9bf73a998b1265c47a0e35068ee8ab55fc7e9",
+  "source_files": 50,
+  "kali_images": [
+    {
+      "tags": [
+        "gomate-app:kali-test"
+      ],
+      "id": "sha256:315d943a2a05d765dbb82cebc4801c18fc5f3ea6827f70b1786448df1defc27d",
+      "created": "2026-11-14T16:50:36.559733891Z"
+    },
+    {
+      "tags": [
+        "gomate-mock:kali-test"
+      ],
+      "id": "sha256:d1fc44d29303e0e6c73968092b5d5c463dfd31fc1678d231756f2b5515d229ec",
+      "created": "2026-11-14T16:44:53.584572049Z"
+    },
+    {
+      "tags": [
+        "postgres:17.7-alpine"
+      ],
+      "id": "sha256:d497921489a8ea214abea27476c836b8ce19966d08f96feba3d7ca8f21ccf89a",
+      "created": "2026-01-28T02:32:19.008847153Z"
+    }
+  ],
+  "containers": [
+    {
+      "name": "/gomate-lab-app-1",
+      "image": "sha256:315d943a2a05d765dbb82cebc4801c18fc5f3ea6827f70b1786448df1defc27d",
+      "memoryBytes": 2147483648,
+      "nanoCPUs": 1000000000,
+      "restarts": 0,
+      "started": "2026-11-14T16:52:12.310282419Z",
+      "running": true
+    },
+    {
+      "name": "/gomate-lab-db-1",
+      "image": "sha256:d497921489a8ea214abea27476c836b8ce19966d08f96feba3d7ca8f21ccf89a",
+      "memoryBytes": 2147483648,
+      "nanoCPUs": 1000000000,
+      "restarts": 0,
+      "started": "2026-11-14T16:15:42.300290245Z",
+      "running": true
+    },
+    {
+      "name": "/gomate-lab-http-1",
+      "image": "sha256:d1fc44d29303e0e6c73968092b5d5c463dfd31fc1678d231756f2b5515d229ec",
+      "memoryBytes": 134217728,
+      "nanoCPUs": 1000000000,
+      "restarts": 0,
+      "started": "2026-11-14T16:45:46.44292604Z",
+      "running": true
+    },
+    {
+      "name": "/gomate-lab-tcp-1",
+      "image": "sha256:d1fc44d29303e0e6c73968092b5d5c463dfd31fc1678d231756f2b5515d229ec",
+      "memoryBytes": 134217728,
+      "nanoCPUs": 1000000000,
+      "restarts": 0,
+      "started": "2026-11-14T16:45:46.453692309Z",
+      "running": true
+    },
+    {
+      "name": "/gomate-lab-grpc-1",
+      "image": "sha256:d1fc44d29303e0e6c73968092b5d5c463dfd31fc1678d231756f2b5515d229ec",
+      "memoryBytes": 134217728,
+      "nanoCPUs": 1000000000,
+      "restarts": 0,
+      "started": "2026-11-14T16:45:46.440043046Z",
+      "running": true
+    }
+  ],
+  "kali_vcpus": 12,
+  "kali_mem_bytes": 25061769216
+}

@@ -1,0 +1,32 @@
+{
+  "passed": false,
+  "browserClients": 8,
+  "logViewers": 4,
+  "chatViewers": 4,
+  "logResponses": 53,
+  "logHTTPFailures": [],
+  "logDOMRows": [
+    30,
+    30,
+    30,
+    30
+  ],
+  "pageErrors": [],
+  "traffic": {
+    "report": "reports/kali-operations-smoke.json",
+    "passed": false,
+    "stored": {
+      "grpc": 99,
+      "grpc-stream": 30,
+      "http": 99,
+      "tcp": 99
+    },
+    "drops": {
+      "capture_drops_total": 0,
+      "flow_drops_total": 0,
+      "queue_drops_total": 0,
+      "write_drops_total": 0
+    }
+  },
+  "logPollingStoppedAfterLeaving": true
+}

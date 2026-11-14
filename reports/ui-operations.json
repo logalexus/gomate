@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "run": "ops_1794678917023",
+  "logDOMRows": 30,
+  "chatDOMRows": 16,
+  "anonymousClients": 14,
+  "chatMessages": 122,
+  "checks": [
+    "start/stop/restart/pause/unpause isolated container",
+    "protected gomate denied",
+    "bounded virtual log list",
+    "stdout/stderr and text filtering",
+    "TTY logs",
+    "literal HTML in logs and chat",
+    "two-way anonymous chat",
+    "multiple clients, history pagination",
+    "chat and anonymous identity survive restart"
+  ],
+  "pageErrors": []
+}
