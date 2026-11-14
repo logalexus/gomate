@@ -10,7 +10,10 @@
     "group pagination preserves global totals",
     "stale member response cannot replace another group",
     "member failure and retry",
-    "retention during inspection"
+    "retention during inspection",
+    "alerts to all sessions with response exceeding five seconds",
+    "slow group members remain selectable",
+    "failed refresh clears obsolete rows and retry recovers"
   ],
   "layouts": [
     {

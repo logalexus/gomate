@@ -11,7 +11,7 @@
 
   <div v-if="help" id="anomaly-help" class="gm-panel anomaly-help">
    <ol>
-    <li><b>«Все сессии»</b> показывает и обычный трафик, и срабатывания. «По поведению» сравнивает структуру и значения первых 8 входящих сообщений: параметры, заголовки и тела запросов. Часто меняющиеся значения отмечаются как переменные; повторяющаяся нагрузка остаётся отдельным фингерпринтом. Это сходство трафика, а не доказательство атаки или принадлежности команде. «По адресу» объединяет только по первому методу и пути. Очистка сессий уменьшает список, обучение модели его не скрывает.</li>
+    <li><b>«Все сессии»</b> показывает и обычный трафик, и срабатывания. «По поведению» сравнивает структуру и значения первых 8 входящих сообщений: параметры, заголовки и тела запросов. Часто меняющиеся значения отмечаются как переменные; повторяющаяся нагрузка остаётся отдельным фингерпринтом. Это сходство трафика, а не доказательство атаки или принадлежности команде. «По адресу» объединяет только по первому методу и пути. Удаление сессий удаляет и их срабатывания. Очистка только содержимого пакетов сохраняет сессии, аномалии и признаки поведения. Обучение модели группы не скрывает.</li>
     <li><b>Выберите сервис и период.</b> По умолчанию выше сессии с большей необычностью. Баллы — сумма отличий от изученного трафика, а не вероятность атаки.</li>
     <li><b>Раскройте строку.</b> Посмотрите, какое поле отличается и почему. В группе можно выбрать конкретную сессию. Пока причины открыты, список не обновляется.</li>
     <li><b>Откройте сессию</b> и проверьте запрос и ответ. Высокая оценка сама по себе не подтверждает атаку; повторяющиеся атаки могут стать привычными для модели.</li>
@@ -121,7 +121,9 @@
 </template>
 
 <script>
-const message = e => e.response?.data?.error || e.message;
+const message = e => e.code === 'ECONNABORTED' ? 'Сервер не успел ответить. Повторите запрос или выберите один сервис.' : e.response?.data?.error || e.message;
+// Behavior grouping has a 10-second server budget; allow time for transport too.
+const requestTimeout = 15000;
 export default {
  data: () => ({
   scope: 'all', grouping: 'behavior', trafficPage: {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}, groupOffset: 0,
@@ -170,7 +172,7 @@ export default {
   group() { this.expanded = ''; },
  },
  mounted() { this.load(); this.timer = setInterval(this.refreshLive, 1000); },
- beforeDestroy() { this.destroyed = true; clearInterval(this.timer); },
+ beforeDestroy() { this.destroyed = true; clearInterval(this.timer); this.listController?.abort(); this.memberController?.abort(); },
  methods: {
   resetFilters() { this.service=0; this.period=3600; this.level=6; this.showDismissed=false; this.sort='score'; },
   reloadFilters() { this.items = []; this.trafficPage = {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}; this.groupOffset=0; return this.load(); },
@@ -179,14 +181,17 @@ export default {
    if (!document.hidden && !this.paused && !this.expanded && !this.busy && !this.loading && Date.now()-this.loadedAt>3000) return this.load(false);
   },
   async load(closeDetails = true) {
-   if (closeDetails) { this.expanded = ''; ++this.memberRequestId; }
+   if (closeDetails) { this.expanded = ''; ++this.memberRequestId; this.memberController?.abort(); }
+   this.listController?.abort();
+   const controller = new AbortController();
+   this.listController = controller;
    const id = ++this.requestId;
    this.loading = true;
    try {
     const params = {minScore: this.level, period: this.period, sort: this.sort};
     if (this.service) params.service = this.service;
     if (this.showDismissed) params.dismissed = 1;
-    const [list, stats] = await Promise.all([this.$http.get(this.scope==='all' ? '/v2/anomalies/groups' : '/v2/anomalies', {params: this.scope==='all' ? {service: this.service, period: this.period, sort: this.sort, grouping: this.grouping, limit: 100, offset: this.groupOffset} : params}), this.$http.get('/v2/anomalies/stats')]);
+    const [list, stats] = await Promise.all([this.$http.get(this.scope==='all' ? '/v2/anomalies/groups' : '/v2/anomalies', {timeout: requestTimeout, signal: controller.signal, params: this.scope==='all' ? {service: this.service, period: this.period, sort: this.sort, grouping: this.grouping, limit: 100, offset: this.groupOffset} : params}), this.$http.get('/v2/anomalies/stats', {timeout: requestTimeout, signal: controller.signal})]);
     if (this.destroyed || id !== this.requestId) return;
     if (this.scope==='all') {
      this.trafficPage = {...list.data, groups: list.data.groups.map(g => ({...g,
@@ -200,7 +205,11 @@ export default {
     this.stats = stats.data;
     this.error = '';
    } catch (e) {
-    if (!this.destroyed && id === this.requestId) this.error = 'Не удалось загрузить список: ' + message(e);
+    if (!this.destroyed && id === this.requestId) {
+     this.items = [];
+     this.trafficPage = {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0};
+     this.error = 'Не удалось загрузить список: ' + message(e);
+    }
    } finally {
     if (id === this.requestId) { this.loading = false; this.loadedAt = Date.now(); }
    }
@@ -223,6 +232,8 @@ export default {
   toggle(g) {
    // Ignore an in-flight live response so opening details always freezes this list.
    ++this.requestId;
+   this.listController?.abort();
+   this.memberController?.abort();
    this.loading = false;
    this.expanded = this.expanded === g.key ? '' : g.key;
    this.selectedId = g.top.streamId;
@@ -234,10 +245,13 @@ export default {
   },
   async loadMembers(g, more = false) {
    const id=++this.memberRequestId;
+   this.memberController?.abort();
+   const controller = new AbortController();
+   this.memberController = controller;
    this.membersLoading=true; this.membersError='';
    if (!more) { g.items=[]; g.nextBefore=0; this.selectedId=null; }
    try {
-    const {data}=await this.$http.get('/v2/anomalies/sessions', {params: {fingerprint:g.fingerprint, service:g.service, protocol:g.protocol, method:g.method, path:g.path, period:this.period, limit:50, before:more ? g.nextBefore : 0, alerts:this.memberAlerts ? 1 : 0}});
+    const {data}=await this.$http.get('/v2/anomalies/sessions', {timeout: requestTimeout, signal: controller.signal, params: {fingerprint:g.fingerprint, service:g.service, protocol:g.protocol, method:g.method, path:g.path, period:this.period, limit:50, before:more ? g.nextBefore : 0, alerts:this.memberAlerts ? 1 : 0}});
     if (this.destroyed || id!==this.memberRequestId || this.expanded!==g.key) return;
     g.items=more ? [...g.items, ...data.items] : data.items; g.nextBefore=data.nextBefore;
     if (!more) this.selectedId=g.items[0]?.streamId;

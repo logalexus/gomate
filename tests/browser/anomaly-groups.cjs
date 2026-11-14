@@ -10,7 +10,7 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
  try {
   for(let i=0;i<60;i++){try{if((await fetch(base)).ok)break}catch{}await delay(200)}
   browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1366,height:768}});
-  const errors=[],writes=[],queries=[];let failMembers=false,slow=false,expired=false;
+  const errors=[],writes=[],queries=[];let failMembers=false,slow=false,expired=false,groupDelay=0,memberDelay=0,failGroups=false;
   page.on('pageerror',e=>errors.push(e.message));
   const groups=Array.from({length:105},(_,i)=>({service:8080,protocol:'TCP',method:'GET',path:'/items/'+i,fingerprint:i.toString(16).padStart(32,'0'),fields:['1:http/json.command = cat /srv/flag; id'],variableFields:['1:http/json.nonce','1:http/cookie.session'],count:i?1:251,anomalyCount:i?0:1,theftCount:i?0:1,dismissedCount:i?0:1,score:i?0:20,startTimestamp:Date.now()}));
   const normal=(id)=>({streamId:id,service:8080,protocol:'TCP',startTimestamp:Date.now(),hasAnomaly:false,score:0,reasons:[],summary:'',request:'GET /items/0?q='+id,payloadPurged:id===250});
@@ -24,10 +24,15 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
    if(u.pathname==='/api/v2/snapshot') data={services:[{port:8080,name:'HTTP mock'}],patterns:[],metrics:{},captureRunning:true};
    if(u.pathname==='/api/v2/anomalies/stats') data={services:[{port:8080,messages:30000,warm:true}],drops:0,flagPattern:false,warmAfter:100};
    if(u.pathname==='/api/v2/anomalies/groups') {
-    queries.push(u.toString());const offset=+u.searchParams.get('offset');
+    queries.push(u.toString());
+    if(failGroups)return route.fulfill({status:500,json:{error:'test unavailable'}});
+    if(groupDelay)await delay(groupDelay);
+    const offset=+u.searchParams.get('offset');
     data={groups:groups.slice(offset,offset+100),totalGroups:105,totalSessions:355,totalAnomalies:1};
    }
+   if(u.pathname==='/api/v2/anomalies') data=[sessions[1]];
    if(u.pathname==='/api/v2/anomalies/sessions') {
+    if(memberDelay)await delay(memberDelay);
     queries.push(u.toString());if(failMembers)return route.fulfill({status:500,json:{error:'test unavailable'}});
     const before=+u.searchParams.get('before'),alerts=u.searchParams.get('alerts')==='1';
     const rows=expired?[]:u.searchParams.get('path')==='/items/0'?sessions.filter(a=>(!before||a.streamId<before)&&(!alerts||(a.hasAnomaly&&!a.dismissed))):[normal(777)];
@@ -74,6 +79,22 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
   failMembers=false;expired=true;await page.getByRole('button',{name:'Повторить',exact:true}).click();
   await page.getByText('Сессии удалены или разбиение на группы изменилось.',{exact:false}).waitFor();expired=false;await page.locator('.anomaly-row').first().click();
   report.checks.push('stale member response cannot replace another group','member failure and retry','retention during inspection');
+  await page.getByLabel('Показать',{exact:true}).selectOption('alerts');
+  await page.waitForFunction(()=>document.querySelectorAll('.anomaly-row').length===1);
+  groupDelay=6000;
+  await page.getByLabel('Показать',{exact:true}).selectOption('all');
+  await page.waitForFunction(()=>document.querySelectorAll('.anomaly-row').length===100);
+  assert.equal(await page.locator('.anomaly-notice.error').count(),0);groupDelay=0;
+  memberDelay=6000;await page.locator('.anomaly-row').first().click();
+  await page.getByRole('link',{name:'Открыть сессию',exact:true}).waitFor();memberDelay=0;
+  await page.locator('.anomaly-row').first().click();
+  report.checks.push('alerts to all sessions with response exceeding five seconds','slow group members remain selectable');
+  failGroups=true;await page.getByRole('button',{name:'Обновить',exact:true}).click();
+  await page.getByRole('heading',{name:'Результаты недоступны'}).waitFor();
+  assert.equal(await page.locator('.anomaly-row').count(),0);
+  failGroups=false;await page.getByRole('button',{name:'Обновить',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelectorAll('.anomaly-row').length===100);
+  report.checks.push('failed refresh clears obsolete rows and retry recovers');
   for(const width of [1366,1920,800,375,667]) for(const theme of ['dark','light']) {
    await page.setViewportSize({width,height:width===667?375:768});await page.evaluate(t=>document.body.dataset.theme=t,theme);
    await page.locator('main').evaluate(e=>e.scrollTop=0);await delay(50);
