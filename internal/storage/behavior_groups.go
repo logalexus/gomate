@@ -16,18 +16,20 @@ import (
 )
 
 type behaviorSession struct {
-	id, start                  int64
-	service                    int
-	protocol, method, path     string
-	fields                     []anomaly.BehaviorField
-	structure                  string
-	limited, missing           bool
-	hasAlert, dismissed, theft bool
-	score                      float64
+	id, start              int64
+	service                int
+	protocol, method, path string
+	fields                 []anomaly.BehaviorField
+	structure              string
+	limited, missing       bool
+	hasAlert, dismissed    bool
+	patterns               []int
+	score                  float64
 }
 type behaviorCluster struct {
 	TrafficGroup
-	ids []int64
+	ids      []int64
+	patterns map[int]bool
 }
 
 func digest(v any) string {
@@ -99,19 +101,19 @@ func clusterBehavior(ctx context.Context, sessions []behaviorSession, since int6
 			if !ok {
 				index = len(groups)
 				byKey[key] = index
-				groups = append(groups, behaviorCluster{TrafficGroup: TrafficGroup{Fingerprint: key, Service: s.service, Protocol: s.protocol, Method: s.method, Path: s.path, Fields: fields, VariableFields: variable, Limited: s.limited, Missing: s.missing}})
+				groups = append(groups, behaviorCluster{patterns: map[int]bool{}, TrafficGroup: TrafficGroup{Fingerprint: key, Service: s.service, Protocol: s.protocol, Method: s.method, Path: s.path, Fields: fields, VariableFields: variable, Limited: s.limited, Missing: s.missing}})
 			}
 			g := &groups[index]
 			g.ids = append(g.ids, s.id)
 			g.Count++
+			for _, id := range s.patterns {
+				g.patterns[id] = true
+			}
 			if s.start > g.Start {
 				g.Start = s.start
 			}
 			if s.hasAlert && !s.dismissed {
 				g.AnomalyCount++
-				if s.theft {
-					g.TheftCount++
-				}
 				if s.score > g.Score {
 					g.Score = s.score
 				}
@@ -120,6 +122,14 @@ func clusterBehavior(ctx context.Context, sessions []behaviorSession, since int6
 				g.DismissedCount++
 			}
 		}
+	}
+	for i := range groups {
+		g := &groups[i]
+		g.Patterns = make([]int, 0, len(g.patterns))
+		for id := range g.patterns {
+			g.Patterns = append(g.Patterns, id)
+		}
+		sort.Ints(g.Patterns)
 	}
 	return groups, nil
 }
@@ -147,7 +157,7 @@ func (s *Store) behaviorGroups(ctx context.Context, q TrafficGroupQuery) ([]beha
 	}
 	rows, err := tx.Query(ctx, `SELECT s.id,s.service,s.protocol,s.start_ms,
  COALESCE(s.first_request_method,''),split_part(COALESCE(s.first_request_path,''),'?',1),
- COALESCE(s.behavior,'[]'::jsonb),a.stream_id IS NOT NULL,COALESCE(a.dismissed,false),COALESCE(a.kind='theft',false),COALESCE(a.score,0)
+ COALESCE(s.behavior,'[]'::jsonb),a.stream_id IS NOT NULL,COALESCE(a.dismissed,false),s.pattern_ids,COALESCE(a.score,0)
  FROM gomate_streams s LEFT JOIN gomate_anomalies a ON a.stream_id=s.id
  WHERE NOT s.ignored AND ($1=0 OR s.service=$1)`, q.Service)
 	if err != nil {
@@ -158,7 +168,7 @@ func (s *Store) behaviorGroups(ctx context.Context, q TrafficGroupQuery) ([]beha
 	for rows.Next() {
 		var v behaviorSession
 		var payload []byte
-		if err = rows.Scan(&v.id, &v.service, &v.protocol, &v.start, &v.method, &v.path, &payload, &v.hasAlert, &v.dismissed, &v.theft, &v.score); err != nil {
+		if err = rows.Scan(&v.id, &v.service, &v.protocol, &v.start, &v.method, &v.path, &payload, &v.hasAlert, &v.dismissed, &v.patterns, &v.score); err != nil {
 			return nil, err
 		}
 		var messages []anomaly.BehaviorMessage

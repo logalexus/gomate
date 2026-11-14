@@ -2,6 +2,7 @@
   "passed": true,
   "mocked": true,
   "checks": [
+    "group pattern union, compact overflow, deleted pattern label, selected session labels independent of score",
     "all traffic default with full totals",
     "normal session link without learning action",
     "member cursor paging",
@@ -24,7 +25,7 @@
       "docWidth": 1366,
       "mainWidth": 1366,
       "firstRowTop": 278.796875,
-      "rowHeight": 58.5
+      "rowHeight": 81.5
     },
     {
       "width": 1366,
@@ -32,7 +33,7 @@
       "docWidth": 1366,
       "mainWidth": 1366,
       "firstRowTop": 278.796875,
-      "rowHeight": 58.5
+      "rowHeight": 81.5
     },
     {
       "width": 1920,
@@ -40,7 +41,7 @@
       "docWidth": 1920,
       "mainWidth": 1920,
       "firstRowTop": 278.796875,
-      "rowHeight": 58.5
+      "rowHeight": 81.5
     },
     {
       "width": 1920,
@@ -48,7 +49,7 @@
       "docWidth": 1920,
       "mainWidth": 1920,
       "firstRowTop": 278.796875,
-      "rowHeight": 58.5
+      "rowHeight": 81.5
     },
     {
       "width": 800,
@@ -56,7 +57,7 @@
       "docWidth": 800,
       "mainWidth": 800,
       "firstRowTop": 405.78125,
-      "rowHeight": 58.5
+      "rowHeight": 81.5
     },
     {
       "width": 800,
@@ -64,23 +65,23 @@
       "docWidth": 800,
       "mainWidth": 800,
       "firstRowTop": 405.78125,
-      "rowHeight": 58.5
+      "rowHeight": 81.5
     },
     {
       "width": 375,
       "theme": "dark",
       "docWidth": 375,
       "mainWidth": 375,
-      "firstRowTop": 621.09375,
-      "rowHeight": 78.5
+      "firstRowTop": 603.09375,
+      "rowHeight": 123.5
     },
     {
       "width": 375,
       "theme": "light",
       "docWidth": 375,
       "mainWidth": 375,
-      "firstRowTop": 621.09375,
-      "rowHeight": 78.5
+      "firstRowTop": 603.09375,
+      "rowHeight": 123.5
     },
     {
       "width": 667,
@@ -88,7 +89,7 @@
       "docWidth": 667,
       "mainWidth": 667,
       "firstRowTop": 474.78125,
-      "rowHeight": 58.5
+      "rowHeight": 81.5
     },
     {
       "width": 667,
@@ -96,7 +97,7 @@
       "docWidth": 667,
       "mainWidth": 667,
       "firstRowTop": 474.78125,
-      "rowHeight": 58.5
+      "rowHeight": 81.5
     }
   ],
   "pageErrors": []

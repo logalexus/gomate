@@ -5,10 +5,7 @@ package anomaly
 import (
 	"container/list"
 	"context"
-	"fmt"
 	"log/slog"
-	"math"
-	"regexp"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -19,12 +16,8 @@ import (
 )
 
 const (
-	reportBits   = 6.0  // stream score that is stored and shown
-	theftBits    = 40.0 // a flag leaving through an unrelated session
+	reportBits   = 6.0 // stream score that is stored and shown
 	maxStreams   = 8192
-	maxFlags     = 50000
-	maxOrphans   = 20000
-	maxLinkVals  = 64
 	maxReasons   = 10
 	queueBytes   = 32 << 20
 	flushPeriod  = time.Second
@@ -46,34 +39,21 @@ type Result struct {
 }
 
 type ServiceStats struct {
-	Port       int    `json:"port"`
-	Messages   uint64 `json:"messages"`
-	Endpoints  int    `json:"endpoints"`
-	Warm       bool   `json:"warm"`
-	FlagsPut   int64  `json:"flagsPut"`
-	FlagsGot   int64  `json:"flagsChecked"`
-	FlagsStole int64  `json:"flagsStolen"`
-	FlagsOther int64  `json:"flagsUnknown"`
-	Reported   int64  `json:"reported"`
+	Port      int    `json:"port"`
+	Messages  uint64 `json:"messages"`
+	Endpoints int    `json:"endpoints"`
+	Warm      bool   `json:"warm"`
+	Reported  int64  `json:"reported"`
 }
 
 type Stats struct {
-	Services    []ServiceStats `json:"services"`
-	Drops       int64          `json:"drops"`
-	QueueBytes  int64          `json:"queueBytes"`
-	FlagPattern bool           `json:"flagPattern"`
-	WarmAfter   int            `json:"warmAfter"`
+	Services   []ServiceStats `json:"services"`
+	Drops      int64          `json:"drops"`
+	QueueBytes int64          `json:"queueBytes"`
+	WarmAfter  int            `json:"warmAfter"`
 }
-
-type values struct{ weak, strong map[uint64]bool }
 
 type pendingRequest struct{ tpl, summary string }
-
-type theft struct {
-	flag string
-	put  int64
-	weak int
-}
 
 type streamState struct {
 	key      string
@@ -81,25 +61,10 @@ type streamState struct {
 	service  int
 	pending  []pendingRequest
 	h2       map[string]pendingRequest
-	vals     *values
 	best     [2]float64 // the two most unusual messages, usually request and response
 	reasons  []Reason
-	stolen   []theft
-	flagSeen map[string]bool
 	summary  string
 	reported float64
-}
-
-type flagInfo struct {
-	key  string
-	id   int64
-	vals *values
-}
-
-// orphan is a flag that left the service before its placement was processed.
-type orphan struct {
-	flag string
-	st   *streamState
 }
 
 type feedback struct {
@@ -119,15 +84,10 @@ type Engine struct {
 	drops   atomic.Int64
 	stats   atomic.Pointer[Stats]
 
-	services  map[int]*serviceModel
-	streams   map[string]*list.Element
-	lru       *list.List
-	flags     map[string]*flagInfo
-	flagOrder []string
-	orphans   map[string][]*streamState
-	orphanLog []orphan
-	pending   map[int64]Result
-	flagRe    []*regexp.Regexp
+	services map[int]*serviceModel
+	streams  map[string]*list.Element
+	lru      *list.List
+	pending  map[int64]Result
 }
 
 func New(c *analyze.Catalog, sink Sink, timeout time.Duration) *Engine {
@@ -137,7 +97,7 @@ func New(c *analyze.Catalog, sink Sink, timeout time.Duration) *Engine {
 }
 
 func newEngine(c *analyze.Catalog, sink Sink, timeout time.Duration) *Engine {
-	e := &Engine{catalog: c, sink: sink, timeout: timeout, queue: make(chan []*model.Chunk, 1024), accept: make(chan feedback, 64), done: make(chan struct{}), services: map[int]*serviceModel{}, streams: map[string]*list.Element{}, lru: list.New(), flags: map[string]*flagInfo{}, orphans: map[string][]*streamState{}, pending: map[int64]Result{}}
+	e := &Engine{catalog: c, sink: sink, timeout: timeout, queue: make(chan []*model.Chunk, 1024), accept: make(chan feedback, 64), done: make(chan struct{}), services: map[int]*serviceModel{}, streams: map[string]*list.Element{}, lru: list.New(), pending: map[int64]Result{}}
 	e.publish()
 	return e
 }
@@ -232,7 +192,7 @@ func (e *Engine) flush() {
 }
 
 func (e *Engine) publish() {
-	st := &Stats{Services: []ServiceStats{}, Drops: e.drops.Load(), QueueBytes: e.queued.Load(), FlagPattern: len(e.catalog.FlagMatchers()) > 0, WarmAfter: warmService}
+	st := &Stats{Services: []ServiceStats{}, Drops: e.drops.Load(), QueueBytes: e.queued.Load(), WarmAfter: warmService}
 	for port, s := range e.services {
 		x := s.stats
 		x.Port = port
@@ -250,7 +210,7 @@ func (e *Engine) stream(c *model.Chunk) *streamState {
 		e.lru.MoveToBack(el)
 		return el.Value.(*streamState)
 	}
-	st := &streamState{key: c.Stream.Key, id: c.Stream.ID, service: c.Stream.Service, h2: map[string]pendingRequest{}, vals: &values{weak: map[uint64]bool{}, strong: map[uint64]bool{}}, flagSeen: map[string]bool{}}
+	st := &streamState{key: c.Stream.Key, id: c.Stream.ID, service: c.Stream.Service, h2: map[string]pendingRequest{}}
 	e.streams[st.key] = e.lru.PushBack(st)
 	for e.lru.Len() > maxStreams {
 		old := e.lru.Remove(e.lru.Front()).(*streamState)
@@ -266,7 +226,6 @@ func (e *Engine) process(c *model.Chunk) {
 		s = newService()
 		e.services[c.Stream.Service] = s
 	}
-	e.flagRe = e.catalog.FlagMatchers()
 	st := e.stream(c)
 	decoded := cfg.HTTP || cfg.WebSockets || cfg.URLDecode
 	for _, p := range c.Packets {
@@ -305,7 +264,7 @@ func (e *Engine) process(c *model.Chunk) {
 			continue
 		}
 		e.pair(s, st, &m, p)
-		e.handle(s, st, &m, p.Content)
+		e.handle(s, st, &m)
 	}
 	if c.Closed {
 		if el := e.streams[st.key]; el != nil {
@@ -363,30 +322,10 @@ func (e *Engine) pair(s *serviceModel, st *streamState, m *message, p model.Pack
 	}
 }
 
-func (e *Engine) handle(s *serviceModel, st *streamState, m *message, content []byte) {
+func (e *Engine) handle(s *serviceModel, st *streamState, m *message) {
 	reasons := s.score(m)
 	s.learn(m)
-	if m.incoming {
-		for _, f := range m.fields {
-			if f.link == linkNone || f.size < 3 {
-				continue
-			}
-			set := st.vals.weak
-			if f.link == linkStrong {
-				set = st.vals.strong
-			}
-			if len(set) < maxLinkVals {
-				set[hash64(f.value)] = true
-			}
-		}
-	} else {
-		for _, f := range m.fields {
-			if f.link == linkStrong && f.size >= 3 && len(st.vals.strong) < maxLinkVals {
-				st.vals.strong[hash64(f.value)] = true
-			}
-		}
-	}
-	changed := e.checkFlags(s, st, m.incoming, content)
+	changed := false
 	total := 0.0
 	for _, r := range reasons {
 		total += clampReason(r.Bits)
@@ -446,18 +385,6 @@ func clampReason(b float64) float64 {
 func (e *Engine) report(s *serviceModel, st *streamState) {
 	score := st.best[0] + st.best[1]
 	all := append([]Reason{}, st.reasons...)
-	kind := ""
-	if n := len(st.stolen); n > 0 {
-		kind = "theft"
-		bits := theftBits + 2*math.Log2(float64(n))
-		score += bits
-		first := st.stolen[0]
-		text := fmt.Sprintf("флаг %s положен в сессии #%d, а отдан этой сессии; общих значений с ней: %d (для своей сессии нужно ≥2 или общий cookie/токен)", first.flag, first.put, first.weak)
-		if n > 1 {
-			text = fmt.Sprintf("отдано %d чужих флагов, например %s из сессии #%d; общих значений с сессиями закладки нет", n, first.flag, first.put)
-		}
-		all = append(all, Reason{Bits: capBits(bits, 1000), Detector: "theft", Text: text})
-	}
 	if score < reportBits || score <= st.reported {
 		return
 	}
@@ -469,92 +396,8 @@ func (e *Engine) report(s *serviceModel, st *streamState) {
 	if len(all) > maxReasons {
 		all = all[:maxReasons]
 	}
-	e.pending[st.id] = Result{StreamID: st.id, Service: st.service, Score: capBits(score, 1000), Kind: kind, Summary: st.summary, Reasons: all, UpdatedMs: time.Now().UnixMilli()}
+	e.pending[st.id] = Result{StreamID: st.id, Service: st.service, Score: capBits(score, 1000), Summary: st.summary, Reasons: all, UpdatedMs: time.Now().UnixMilli()}
 	if len(e.pending) > pendingLimit {
 		e.flush()
 	}
-}
-
-// checkFlags tracks flag provenance without IP addresses: a flag entering the
-// service marks a placing session; a flag leaving through a session that shares
-// no token and fewer than two request values with it is reported as stolen.
-// A flag leaving before its placement was processed waits as an orphan.
-func (e *Engine) checkFlags(s *serviceModel, st *streamState, incoming bool, content []byte) bool {
-	changed := false
-	for _, re := range e.flagRe {
-		for _, loc := range re.FindAllIndex(content, 64) {
-			flag := string(content[loc[0]:loc[1]])
-			if st.flagSeen[flag] {
-				continue
-			}
-			st.flagSeen[flag] = true
-			if !incoming {
-				if info := e.flags[flag]; info != nil {
-					changed = e.resolve(s, st, flag, info) || changed
-				} else {
-					e.addOrphan(s, st, flag)
-				}
-				continue
-			}
-			if _, ok := e.flags[flag]; ok {
-				continue
-			}
-			if len(e.flagOrder) >= maxFlags {
-				delete(e.flags, e.flagOrder[0])
-				e.flagOrder = e.flagOrder[1:]
-			}
-			info := &flagInfo{key: st.key, id: st.id, vals: st.vals}
-			e.flags[flag] = info
-			e.flagOrder = append(e.flagOrder, flag)
-			s.stats.FlagsPut++
-			for _, o := range e.orphans[flag] {
-				s.stats.FlagsOther--
-				if e.resolve(s, o, flag, info) {
-					e.report(s, o)
-				}
-			}
-			delete(e.orphans, flag)
-		}
-	}
-	return changed
-}
-
-func (e *Engine) addOrphan(s *serviceModel, st *streamState, flag string) {
-	if len(e.orphanLog) >= maxOrphans {
-		old := e.orphanLog[0]
-		e.orphanLog = e.orphanLog[1:]
-		if list := e.orphans[old.flag]; len(list) > 0 {
-			e.orphans[old.flag] = list[1:]
-			if len(list) == 1 {
-				delete(e.orphans, old.flag)
-			}
-		}
-	}
-	e.orphans[flag] = append(e.orphans[flag], st)
-	e.orphanLog = append(e.orphanLog, orphan{flag, st})
-	s.stats.FlagsOther++
-}
-
-func (e *Engine) resolve(s *serviceModel, st *streamState, flag string, info *flagInfo) bool {
-	if info.key == st.key {
-		return false
-	}
-	weak, strong := shared(st.vals.weak, info.vals.weak), shared(st.vals.strong, info.vals.strong)
-	if strong > 0 || weak >= 2 {
-		s.stats.FlagsGot++
-		return false
-	}
-	s.stats.FlagsStole++
-	st.stolen = append(st.stolen, theft{flag: preview([]byte(flag), 48), put: info.id, weak: weak})
-	return true
-}
-
-func shared(a, b map[uint64]bool) int {
-	n := 0
-	for k := range a {
-		if b[k] {
-			n++
-		}
-	}
-	return n
 }

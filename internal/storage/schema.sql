@@ -126,3 +126,24 @@ INSERT INTO gomate_schema_versions(version) VALUES (8) ON CONFLICT DO NOTHING;
 ALTER TABLE gomate_streams ADD COLUMN IF NOT EXISTS behavior jsonb;
 INSERT INTO gomate_schema_versions(version) VALUES (9) ON CONFLICT DO NOTHING;
 CREATE INDEX IF NOT EXISTS gomate_behavior_backfill ON gomate_streams(id) WHERE behavior IS NULL AND NOT ignored;
+
+-- FIND matches are metadata, not evidence of flag theft. Remove only the
+-- historical provenance contribution; preserve other reasons and dismissals.
+DO $$
+BEGIN
+ IF NOT EXISTS (SELECT 1 FROM gomate_schema_versions WHERE version=10) THEN
+  DELETE FROM gomate_anomalies a
+  WHERE (kind='theft' OR reasons @> '[{"detector":"theft"}]'::jsonb)
+   AND score - COALESCE((SELECT sum((r->>'bits')::real)
+    FROM jsonb_array_elements(a.reasons) r WHERE r->>'detector'='theft'),0) < 6;
+  UPDATE gomate_anomalies a SET
+   score = greatest(0, score - COALESCE((SELECT sum((r->>'bits')::real)
+    FROM jsonb_array_elements(a.reasons) r WHERE r->>'detector'='theft'),0)),
+   reasons = COALESCE((SELECT jsonb_agg(r ORDER BY ord)
+    FROM jsonb_array_elements(a.reasons) WITH ORDINALITY AS e(r,ord)
+    WHERE r->>'detector' IS DISTINCT FROM 'theft'),'[]'::jsonb),
+   kind = CASE WHEN kind='theft' THEN '' ELSE kind END
+  WHERE kind='theft' OR reasons @> '[{"detector":"theft"}]'::jsonb;
+  INSERT INTO gomate_schema_versions(version) VALUES (10);
+ END IF;
+END $$;

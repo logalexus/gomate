@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -35,6 +36,10 @@ func TestBehaviorFingerprintsSurviveRepetitionRestartAndPayloadCleanup(t *testin
 	if err := s.SaveChunks(ctx, chunks); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := s.Pool.Exec(ctx, `UPDATE gomate_streams SET pattern_ids=ARRAY[1] WHERE id=1;
+ UPDATE gomate_streams SET pattern_ids=ARRAY[2] WHERE id=120`); err != nil {
+		t.Fatal(err)
+	}
 	// Receipt retries must not double descriptors or change the fingerprint.
 	if err := s.SaveChunks(ctx, chunks); err != nil {
 		t.Fatal(err)
@@ -53,7 +58,7 @@ func TestBehaviorFingerprintsSurviveRepetitionRestartAndPayloadCleanup(t *testin
 			attack = g
 		}
 	}
-	if attack.Count != 120 || len(attack.VariableFields) != 2 {
+	if attack.Count != 120 || len(attack.VariableFields) != 2 || !reflect.DeepEqual(attack.Patterns, []int{1, 2}) {
 		t.Fatalf("tokens fragmented exploit: %+v", attack)
 	}
 	members := storage.TrafficGroupQuery{Service: 8080, Protocol: "TCP", Method: "POST", Path: "/exec", Fingerprint: attack.Fingerprint, Limit: 50}
@@ -86,7 +91,7 @@ func TestBehaviorFingerprintsSurviveRepetitionRestartAndPayloadCleanup(t *testin
 		t.Fatal(err)
 	}
 	for _, g := range p.Groups {
-		if g.Count == 20 && g.Fingerprint != attack.Fingerprint {
+		if g.Count == 20 && (g.Fingerprint != attack.Fingerprint || !reflect.DeepEqual(g.Patterns, []int{2})) {
 			t.Fatal("period changed fingerprint")
 		}
 	}

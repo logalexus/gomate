@@ -11,7 +11,7 @@
 
   <div v-if="help" id="anomaly-help" class="gm-panel anomaly-help">
    <ol>
-    <li><b>«Все сессии»</b> показывает и обычный трафик, и срабатывания. «По поведению» сравнивает структуру и значения первых 8 входящих сообщений: параметры, заголовки и тела запросов. Часто меняющиеся значения отмечаются как переменные; повторяющаяся нагрузка остаётся отдельным фингерпринтом. Это сходство трафика, а не доказательство атаки или принадлежности команде. «По адресу» объединяет только по первому методу и пути. Удаление сессий удаляет и их срабатывания. Очистка только содержимого пакетов сохраняет сессии, аномалии и признаки поведения. Обучение модели группы не скрывает.</li>
+    <li><b>«Все сессии»</b> показывает и обычный трафик, и срабатывания. «По поведению» сравнивает структуру и значения первых 8 входящих сообщений: параметры, заголовки и тела запросов. Часто меняющиеся значения отмечаются как переменные; повторяющаяся нагрузка остаётся отдельным фингерпринтом. Это сходство трафика, а не доказательство атаки или принадлежности команде. «По адресу» объединяет только по первому методу и пути. Удаление сессий удаляет и их срабатывания. Очистка только содержимого пакетов сохраняет сессии, аномалии и признаки поведения. Обучение модели группы не скрывает. Лейблы показывают совпавшие FIND-шаблоны: в строке — всей группы, внутри — выбранной сессии. Совпадения не добавляют баллы и сохраняются после очистки содержимого пакетов.</li>
     <li><b>Выберите сервис и период.</b> По умолчанию выше сессии с большей необычностью. Баллы — сумма отличий от изученного трафика, а не вероятность атаки.</li>
     <li><b>Раскройте строку.</b> Посмотрите, какое поле отличается и почему. В группе можно выбрать конкретную сессию. Пока причины открыты, список не обновляется.</li>
     <li><b>Откройте сессию</b> и проверьте запрос и ответ. Высокая оценка сама по себе не подтверждает атаку; повторяющиеся атаки могут стать привычными для модели.</li>
@@ -36,12 +36,11 @@
     <b-form-checkbox v-if="scope==='alerts'" v-model="group">Группировать похожие</b-form-checkbox>
     <b-form-checkbox v-if="scope==='alerts'" v-model="showDismissed">Включая скрытые</b-form-checkbox>
     <b-button v-if="service||period!==3600||level!==6||showDismissed||sort!=='score'" size="sm" variant="link" @click="resetFilters">Сбросить фильтры</b-button>
-    <button type="button" class="anomaly-status-toggle" :aria-expanded="String(modelInfo)" aria-controls="anomaly-model" @click="modelInfo=!modelInfo">Модель: {{ stats.services.filter(s=>s.warm).length }}/{{ serviceCards.length }} сервисов прогрето<span v-if="!stats.flagPattern"> · кража флагов не проверяется</span> {{ modelInfo ? '▴' : '▾' }}</button>
+    <button type="button" class="anomaly-status-toggle" :aria-expanded="String(modelInfo)" aria-controls="anomaly-model" @click="modelInfo=!modelInfo">Модель: {{ stats.services.filter(s=>s.warm).length }}/{{ serviceCards.length }} сервисов прогрето {{ modelInfo ? '▴' : '▾' }}</button>
    </div>
   </div>
   <div v-if="modelInfo" id="anomaly-model" class="gm-panel anomaly-model">
-   <p v-if="!stats.flagPattern">Для проверки кражи флагов создайте FIND-шаблон с «flag» или «флаг» в названии или группе, например <code>[A-Z0-9]{31}=</code>.</p>
-   <ul><li v-for="s in serviceCards" :key="s.port"><b>{{ s.name }} #{{ s.port }}</b> · {{ s.state }} · {{ s.messages }} сообщений · {{ s.reported }} срабатываний с запуска<span v-if="s.flagsPut || s.flagsChecked || s.flagsStolen || s.flagsUnknown"> · флаги: положено {{ s.flagsPut || 0 }}, забрал чекер {{ s.flagsChecked || 0 }}, украдено {{ s.flagsStolen || 0 }}, без закладки {{ s.flagsUnknown || 0 }}</span></li></ul>
+   <ul><li v-for="s in serviceCards" :key="s.port"><b>{{ s.name }} #{{ s.port }}</b> · {{ s.state }} · {{ s.messages }} сообщений · {{ s.reported }} срабатываний с запуска</li></ul>
   </div>
 
   <div class="anomaly-results-heading">
@@ -57,12 +56,13 @@
   </div>
 
   <div class="anomaly-list">
-   <article v-for="(g, index) in groups" :key="g.key" class="anomaly" :class="{expanded:expanded===g.key, theft:g.top.kind==='theft', dismissed:g.top.dismissed, alerted:g.anomalyCount>0}">
+   <article v-for="(g, index) in groups" :key="g.key" class="anomaly" :class="{expanded:expanded===g.key, dismissed:g.top.dismissed, alerted:g.anomalyCount>0}">
     <button type="button" class="anomaly-row" :aria-expanded="String(expanded===g.key)" :aria-controls="'anomaly-detail-'+index" @click="toggle(g)">
      <span class="anomaly-score"><strong>{{ g.top.score ? Math.round(g.top.score) : '—' }}</strong><small>{{ scope==='all' && g.top.score ? 'макс.' : 'баллов' }}</small></span>
      <span class="anomaly-description">
-      <span class="anomaly-title"><b v-if="g.top.kind==='theft'" class="theft-label">Кража флага</b><code :title="g.top.summary">{{ endpoint(g.top) }}</code><small v-if="g.fingerprint" class="fingerprint-id">{{ g.fingerprint.slice(0,8) }}</small><span v-if="g.top.dismissed" class="hidden-label">Скрыто</span></span>
+      <span class="anomaly-title"><code :title="g.top.summary">{{ endpoint(g.top) }}</code><small v-if="g.fingerprint" class="fingerprint-id">{{ g.fingerprint.slice(0,8) }}</small><span v-if="g.top.dismissed" class="hidden-label">Скрыто</span></span>
       <span class="anomaly-reason-preview" :title="g.fingerprint ? behaviorPreview(g) : ''">{{ g.fingerprint ? behaviorPreview(g) : scope==='all' ? `${g.anomalyCount} со срабатыванием · ${g.count-g.anomalyCount-g.dismissedCount} без срабатывания${g.dismissedCount ? ' · '+g.dismissedCount+' скрытых' : ''}` : reasonPreview(g.top) }}</span>
+      <PatternLabels v-if="scope==='all'" :ids="g.foundPatternsIds" compact title="Шаблоны, найденные хотя бы в одной сессии группы"/>
      </span>
      <span class="anomaly-meta"><span>{{ serviceName(g.top.service) }}</span><span>{{ time(g.top.startTimestamp) }} · {{ scope==='all' ? g.count+' сессий' : g.items.length>1 ? g.items.length+' сессий' : '#'+g.top.streamId }}</span></span>
      <span class="anomaly-chevron" aria-hidden="true">{{ expanded===g.key ? '▴' : '▾' }}</span>
@@ -96,10 +96,11 @@
        <b-button v-if="selected(g).hasAnomaly!==false" size="sm" variant="outline-secondary" :disabled="busy" :title="selected(g).dismissed ? 'Отменить скрытие этой сессии; обучение сохранится' : 'Скрыть эту сессию и обучить модель на её отличиях'" @click="mark(selected(g))">{{ selected(g).dismissed ? 'Вернуть в список' : 'Это норма' }}</b-button>
       </div>
      </div>
+     <div v-if="scope==='all'" class="session-patterns"><span>Шаблоны этой сессии · на баллы не влияют</span><PatternLabels :ids="selected(g).foundPatternsIds"/><span v-if="!selected(g).foundPatternsIds?.length">Нет совпадений</span></div>
      <code class="anomaly-full-summary">{{ selected(g).request || selected(g).summary || g.top.summary }}</code>
      <p v-if="selected(g).hasAnomaly===false" class="anomaly-detail-note">Нет сохранённого срабатывания. Это не подтверждение безопасности: модель могла ещё учиться или привыкнуть к таким запросам.</p>
      <p v-if="selected(g).payloadPurged" class="anomaly-detail-note">Содержимое пакетов удалено очисткой; метаданные сессии сохранены.</p>
-     <p v-if="scope==='all' && selected(g).hasAnomaly" class="anomaly-detail-note">Сохранённое срабатывание: {{ Math.round(selected(g).score) }} баллов<span v-if="selected(g).kind==='theft'"> · Кража флага</span>. Оценка старой сессии не пересчитывается при обучении.</p>
+     <p v-if="scope==='all' && selected(g).hasAnomaly" class="anomaly-detail-note">Сохранённое срабатывание: {{ Math.round(selected(g).score) }} баллов. Оценка старой сессии не пересчитывается при обучении.</p>
      <p v-if="selected(g).dismissed" class="anomaly-detail-note">Срабатывание этой сессии скрыто вручную.</p>
      <ul class="anomaly-reasons">
       <li v-for="(r, i) in selected(g).reasons" :key="i">
@@ -121,16 +122,18 @@
 </template>
 
 <script>
+import PatternLabels from '../components/PatternLabels.vue';
 const message = e => e.code === 'ECONNABORTED' ? 'Сервер не успел ответить. Выберите один сервис или увеличьте ожидание в настройках приложения.' : e.response?.data?.error || e.message;
 export default {
+ components: {PatternLabels},
  data: () => ({
   scope: 'all', grouping: 'behavior', trafficPage: {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}, groupOffset: 0,
   membersLoading: false, membersError: '', memberAlerts: false, memberRequestId: 0,
-  items: [], stats: {services: [], drops: 0, flagPattern: true, warmAfter: 100},
+  items: [], stats: {services: [], drops: 0, warmAfter: 100},
   loading: false, busy: false, error: '', help: false, modelInfo: false, expanded: '', selectedId: null,
   paused: false, timer: null, loadedAt: 0, destroyed: false, requestId: 0,
   service: 0, period: 3600, level: 6, sort: 'score', group: true, showDismissed: false,
-  detectors: {theft: 'Кража флага', flag: 'Флаг', template: 'Эндпоинт', field: 'Новое поле', missing: 'Нет поля', chars: 'Символы', enum: 'Значение', shape: 'Форма', length: 'Длина'},
+  detectors: {template: 'Эндпоинт', field: 'Новое поле', missing: 'Нет поля', chars: 'Символы', enum: 'Значение', shape: 'Форма', length: 'Длина'},
   periods: [{value: 900, text: '15 минут'}, {value: 3600, text: 'Час'}, {value: 6 * 3600, text: '6 часов'}, {value: 0, text: 'Всё время'}],
   levels: [6, 12, 20, 40].map(value => ({value, text: '≥ ' + value + ' баллов'})),
   sorts: [{value: 'score', text: 'Сначала необычные'}, {value: 'time', text: 'Сначала новые'}],
@@ -161,8 +164,7 @@ export default {
   summaryLine() {
    if (this.scope==='all') return `${this.trafficPage.totalSessions} сохранённых сессий · ${this.trafficPage.totalGroups} групп · ${this.trafficPage.totalAnomalies} со срабатыванием`;
    const n = this.items.length;
-   const theft = this.items.filter(a => a.kind === 'theft').length;
-   return `${n} сессий${this.group ? ` · ${this.groups.length} групп` : ''}${theft ? ` · краж флагов: ${theft}` : ''}${n>=200 ? ' · лимит 200, сузьте фильтры' : ''}`;
+   return `${n} сессий${this.group ? ` · ${this.groups.length} групп` : ''}${n>=200 ? ' · лимит 200, сузьте фильтры' : ''}`;
   },
  },
  watch: {
@@ -194,7 +196,7 @@ export default {
     if (this.scope==='all') {
      this.trafficPage = {...list.data, groups: list.data.groups.map(g => ({...g,
       key: g.fingerprint || JSON.stringify([g.service, g.protocol, g.method, g.path]), items: [], nextBefore: 0,
-      top: {kind: g.theftCount ? 'theft' : '', service: g.service, protocol: g.protocol, score: g.score, startTimestamp: g.startTimestamp, reasons: [], summary: g.path ? `${g.method} ${g.path}`.trim() : `${g.protocol} · без пути запроса`},
+      top: {service: g.service, protocol: g.protocol, score: g.score, startTimestamp: g.startTimestamp, reasons: [], summary: g.path ? `${g.method} ${g.path}`.trim() : `${g.protocol} · без пути запроса`},
      }))};
      if (this.groupOffset && !this.trafficPage.groups.length && this.trafficPage.totalGroups<=this.groupOffset) {
       this.groupOffset=0; return this.load();
@@ -276,6 +278,7 @@ export default {
 </script>
 
 <style scoped>
+.session-patterns {font-size:11px;color:var(--gm-muted);margin-bottom:8px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .fingerprint-id {font-size:10px;color:var(--gm-muted);margin-left:6px;flex-shrink:0}
 .behavior-details {font-size:12px;overflow-wrap:anywhere;margin-bottom:10px}
 .behavior-details p {margin:0 0 6px}
@@ -308,13 +311,12 @@ export default {
 .anomaly-row:hover,.anomaly.expanded>.anomaly-row{background:var(--gm-panel-alt)}
 .anomaly-row:focus-visible,.anomaly-status-toggle:focus-visible{outline:2px solid var(--gm-accent);outline-offset:-2px}
 .anomaly-score{display:flex;flex-direction:column;align-items:center;font-variant-numeric:tabular-nums}.anomaly-score strong{font-size:19px;line-height:1.2;font-weight:600}.anomaly-score small{font-size:10px;color:var(--gm-muted)}
-.theft>.anomaly-row{box-shadow:inset 3px 0 var(--gm-danger)}.theft-label{color:var(--gm-danger);font-size:12px;white-space:nowrap}
 .anomaly-description,.anomaly-meta{min-width:0}.anomaly-title{display:flex;gap:8px;align-items:center;min-width:0}
 .anomaly-title code{font-family:var(--gm-mono);font-size:13px;color:var(--gm-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hidden-label{font-size:11px;color:var(--gm-muted)}
 .anomaly-reason-preview{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gm-muted);font-size:12px;margin-top:3px}
 .anomaly-meta{display:flex;flex-direction:column;gap:3px;color:var(--gm-muted);font-size:12px}.anomaly-meta>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.anomaly-chevron{color:var(--gm-muted)}
-.anomaly.alerted:not(.theft)>.anomaly-row{box-shadow:inset 3px 0 var(--gm-warning)}
+.anomaly.alerted>.anomaly-row{box-shadow:inset 3px 0 var(--gm-warning)}
 .anomaly-member-controls,.anomaly-pagination{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--gm-muted);margin:8px 0}
 .anomaly-detail{padding:12px 16px 12px 76px;border-top:1px solid var(--gm-border)}
 .anomaly-detail-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px}

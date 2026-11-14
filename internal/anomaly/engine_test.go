@@ -3,7 +3,7 @@ package anomaly
 import (
 	"fmt"
 	"math/rand"
-	"strings"
+	"reflect"
 	"testing"
 	"time"
 
@@ -174,28 +174,40 @@ func TestMassAssignmentAndEnum(t *testing.T) {
 	}
 }
 
-func TestFlagProvenance(t *testing.T) {
-	h := newHarness(t)
-	train(h, 150)
-	user, pass := token(8), token(12)
-	put := h.session(80, request("POST", "/api/login", "username="+user+"&password="+pass), response("200 OK", "ok", "Set-Cookie: session="+token(24)),
-		request("POST", "/api/notes", "text="+flag), response("200 OK", "saved"))
-	if h.e.services[80].stats.FlagsPut != 1 {
-		t.Fatalf("flag placement not seen")
+func TestPatternMatchesDoNotAffectScores(t *testing.T) {
+	with := newHarness(t)
+	without := newHarness(t)
+	if err := without.e.catalog.Replace([]model.Service{{Port: 80, HTTP: true}, {Port: 9000}}, nil); err != nil {
+		t.Fatal(err)
 	}
-	get := h.session(80, request("POST", "/api/login", "username="+user+"&password="+pass), response("200 OK", "ok", "Set-Cookie: session="+token(24)),
-		request("GET", "/api/notes/"+token(12), ""), response("200 OK", flag))
-	if r, ok := h.result(get); ok && r.Kind == "theft" {
-		t.Fatalf("checker retrieval reported as theft: %+v", r)
+	session := func(packets ...model.Packet) {
+		id := with.session(80, packets...)
+		without.session(80, packets...)
+		a, aok := with.result(id)
+		b, bok := without.result(id)
+		a.UpdatedMs, b.UpdatedMs = 0, 0
+		if aok != bok || !reflect.DeepEqual(a, b) {
+			t.Fatalf("pattern changed score: %+v / %+v", a, b)
+		}
 	}
-	steal := h.session(80, request("GET", "/api/notes/"+token(12)+"?user="+user, ""), response("200 OK", flag))
-	r, ok := h.result(steal)
-	if !ok || r.Kind != "theft" || r.Score < theftBits || !strings.Contains(r.Reasons[0].Text, fmt.Sprintf("#%d", put)) {
-		t.Fatalf("theft not reported: %+v", r)
+	for i := 0; i < 200; i++ {
+		session(request("GET", "/notes", ""), response("200 OK", "ordinary note"))
 	}
-	s := h.e.services[80].stats
-	if s.FlagsGot != 1 || s.FlagsStole != 1 {
-		t.Fatalf("stats %+v", s)
+	session(request("POST", "/notes", "text="+flag), response("200 OK", "saved"))
+	session(request("GET", "/notes", ""), response("200 OK", flag))
+	// Retrieval before placement used to retroactively create a theft result.
+	other := "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ="
+	session(request("GET", "/notes", ""), response("200 OK", other))
+	session(request("POST", "/notes", "text="+other), response("200 OK", "saved"))
+	for id, a := range with.e.pending {
+		b, ok := without.result(id)
+		a.UpdatedMs, b.UpdatedMs = 0, 0
+		if !ok || !reflect.DeepEqual(a, b) {
+			t.Fatalf("retroactive pattern score: %+v / %+v", a, b)
+		}
+	}
+	if len(with.e.pending) != len(without.e.pending) {
+		t.Fatal("patterns created extra alerts")
 	}
 }
 
@@ -236,26 +248,6 @@ func BenchmarkLoginSession(b *testing.B) {
 		if len(h.e.pending) > 1000 {
 			clear(h.e.pending)
 		}
-	}
-}
-
-func TestFlagRetrievedBeforePlacementIsProcessed(t *testing.T) {
-	h := newHarness(t)
-	train(h, 150)
-	user, pass := token(8), token(12)
-	steal := h.session(80, request("GET", "/api/notes/"+token(12), ""), response("200 OK", flag))
-	get := h.session(80, request("POST", "/api/login", "username="+user+"&password="+pass), response("200 OK", "ok"),
-		request("GET", "/api/notes/"+token(12), ""), response("200 OK", flag))
-	h.session(80, request("POST", "/api/login", "username="+user+"&password="+pass), response("200 OK", "ok"),
-		request("POST", "/api/notes", "text="+flag), response("200 OK", "saved"))
-	if r, ok := h.result(steal); !ok || r.Kind != "theft" {
-		t.Fatalf("late placement did not resolve theft: %+v", r)
-	}
-	if r, ok := h.result(get); ok && r.Kind == "theft" {
-		t.Fatalf("checker retrieval reported as theft: %+v", r)
-	}
-	if s := h.e.services[80].stats; s.FlagsOther != 0 || s.FlagsGot != 1 || s.FlagsStole != 1 {
-		t.Fatalf("stats %+v", s)
 	}
 }
 

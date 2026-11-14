@@ -1,0 +1,16 @@
+{
+  "at": "2026-11-14T23:38:56.581257+00:00",
+  "passed": true,
+  "counts": {
+    "checked": 80,
+    "removed": 74,
+    "retained": 6,
+    "expiredSessions": 8
+  },
+  "stats": {
+    "remainingTheft": 0,
+    "anomalies": 282,
+    "schemaVersion": 10,
+    "sessions": 3047
+  }
+}

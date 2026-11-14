@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"testing"
 	"time"
 
@@ -21,11 +22,13 @@ func TestTrafficGroupsIncludeUnreportedSessionsAndPaginate(t *testing.T) {
 	_, err := s.Pool.Exec(ctx, `INSERT INTO gomate_streams(flow_key,service,protocol,start_ms,end_ms,ttl,client,server,first_request_method,first_request_path)
  SELECT 'group-'||i,8080,'TCP',1000+i,2000+i,0,'client','server','GET','/items?q='||i FROM generate_series(1,260) i;
  INSERT INTO gomate_anomalies(stream_id,service,score,kind,summary,reasons,dismissed,updated_ms)
- VALUES (1,8080,40,'theft','GET /items','[]',false,1000),(2,8080,90,'anomaly','GET /items','[]',true,1000);
+ VALUES (1,8080,40,'','GET /items','[]',false,1000),(2,8080,90,'anomaly','GET /items','[]',true,1000);
  INSERT INTO gomate_streams(flow_key,service,protocol,start_ms,end_ms,ttl,client,server,first_request_method,first_request_path)
  SELECT 'other-'||i,8080,'TCP',5000+i,6000+i,0,'client','server','POST','/other/'||i FROM generate_series(1,105) i;
  INSERT INTO gomate_streams(flow_key,service,protocol,start_ms,end_ms,ttl,client,server)
- VALUES ('raw',9000,'TCP',9000,9000,0,'client','server');`)
+ VALUES ('raw',9000,'TCP',9000,9000,0,'client','server');
+ UPDATE gomate_streams SET pattern_ids=ARRAY[1,2] WHERE id=1;
+ UPDATE gomate_streams SET pattern_ids=ARRAY[2,3] WHERE id=260;`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +52,7 @@ func TestTrafficGroupsIncludeUnreportedSessionsAndPaginate(t *testing.T) {
 		t.Fatalf("bad totals: %+v", page)
 	}
 	g := page.Groups[0]
-	if g.Path != "/items" || g.Count != 260 || g.AnomalyCount != 1 || g.DismissedCount != 1 || g.Score != 40 || g.TheftCount != 1 {
+	if g.Path != "/items" || g.Count != 260 || g.AnomalyCount != 1 || g.DismissedCount != 1 || g.Score != 40 || !reflect.DeepEqual(g.Patterns, []int{1, 2, 3}) {
 		t.Fatalf("bad group: %+v", g)
 	}
 	get("groups?limit=100&offset=100", &page)
@@ -108,12 +111,12 @@ func TestTrafficGroupsIncludeUnreportedSessionsAndPaginate(t *testing.T) {
 		t.Fatal(err)
 	}
 	get(base, &members)
-	if !members.Items[0].PayloadPurged {
+	if !members.Items[0].PayloadPurged || !reflect.DeepEqual(members.Items[0].Patterns, []int{2, 3}) {
 		t.Fatal("payload retention marker lost")
 	}
 	get("groups?service=8080&limit=200", &page)
 	for _, v := range page.Groups {
-		if v.Path == "/items" && (v.Count != 259 || v.AnomalyCount != 0 || v.Score != 0) {
+		if v.Path == "/items" && (v.Count != 259 || v.AnomalyCount != 0 || v.Score != 0 || !reflect.DeepEqual(v.Patterns, []int{2, 3})) {
 			t.Fatal("deleted session still counted", v)
 		}
 	}
