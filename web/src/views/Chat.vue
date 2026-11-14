@@ -3,6 +3,7 @@
   <header class="chat-room-heading">
    <div class="chat-room-name"><span class="chat-room-symbol" aria-hidden="true">#</span><h1 class="gm-page-title">общий</h1></div>
    <div class="chat-room-actions">
+    <b-button class="chat-game-button" size="sm" variant="outline-secondary" aria-label="Открыть мини-шутер" @click="arenaOpen=true"><i class="fas fa-gamepad" aria-hidden="true"/><span class="chat-game-label"> Арена</span></b-button>
     <b-button class="chat-history-button" size="sm" variant="link" :disabled="loading||!hasOlder||messages.length>=500" @click="older"><i class="fas fa-history" aria-hidden="true"/> История</b-button>
     <b-dropdown right no-caret variant="link" class="chat-info-menu" :toggle-attrs="{'aria-label':'О канале'}">
      <template #button-content><i class="fas fa-info-circle" aria-hidden="true"/></template>
@@ -37,6 +38,7 @@
    </div>
    <p v-if="sendError" class="chat-send-error text-danger" role="alert">{{ sendError }} Текст сохранён, можно повторить отправку.</p>
   </b-form>
+  <ArenaGame v-if="arenaOpen" @close="arenaOpen=false"/>
  </section>
 </template>
 <script>
@@ -47,7 +49,7 @@ const formats=[{kind:'bold',label:'Жирный',hint:'**текст**'},{kind:'i
 const message=e=>e.response?.data?.error||e.message;
 const key=()=>{const b=new Uint8Array(16);crypto.getRandomValues(b);return [...b].map(x=>x.toString(16).padStart(2,'0')).join('')};
 export default {
- components:{VirtualList,ChatMarkdown},data:()=>({formats,preview:false,messages:[],author:'',loading:false,sending:false,error:'',sendError:'',draft:'',pendingText:'',pendingKey:'',timer:null,controller:null,destroyed:false,hasOlder:false,browsing:false,atBottom:true,unseen:0}),
+ components:{VirtualList,ChatMarkdown,ArenaGame:()=>import('@/components/ArenaGame.vue')},data:()=>({arenaOpen:false,formats,preview:false,messages:[],author:'',loading:false,sending:false,error:'',sendError:'',draft:'',pendingText:'',pendingKey:'',timer:null,controller:null,destroyed:false,hasOlder:false,browsing:false,atBottom:true,unseen:0}),
  watch:{draft(){this.$nextTick(this.resizeEditor)}},
  mounted(){window.addEventListener('resize',this.resizeEditor);this.resizeEditor();this.latest();this.timer=setInterval(()=>{if(!document.hidden&&!this.browsing)this.fetch()},2000);document.addEventListener('visibilitychange',this.visibility)},
  beforeDestroy(){window.removeEventListener('resize',this.resizeEditor);this.destroyed=true;clearInterval(this.timer);this.controller?.abort();document.removeEventListener('visibilitychange',this.visibility)},

@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "checks": [
+    "two clients connected to deployed Go arena with their chat identities",
+    "movement accepted by deployed server",
+    "capture running and readiness healthy after game"
+  ],
+  "errors": []
+}

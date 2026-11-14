@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "realMultiplayer": true,
+  "checks": [
+    "two authenticated browsers share authoritative arena with distinct anonymous identities",
+    "WASD movement replicated to other browser",
+    "three server-confirmed hits, score and automatic respawn replicated",
+    "Escape pauses movement and releases mouse",
+    "mobile modal stays within viewport",
+    "closing game disconnects player and preserves chat draft",
+    "chat composer and arena button fit five viewports in both themes"
+  ],
+  "errors": []
+}

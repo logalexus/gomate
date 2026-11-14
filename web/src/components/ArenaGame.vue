@@ -1,0 +1,70 @@
+<template>
+ <b-modal visible title="Пакетная арена" hide-footer modal-class="arena-modal" :no-close-on-esc="active" @hidden="$emit('close')" @shown="setup">
+  <div class="arena-toolbar"><span><i class="fas fa-circle" :class="connected?'arena-online':''" aria-hidden="true"/> {{ connected?players.length+' / 16 игроков':status }}</span><div><button type="button" class="btn btn-sm btn-outline-secondary" @click="showScores=!showScores" :aria-pressed="String(showScores)">Счёт</button><button v-if="connected" type="button" class="btn btn-sm btn-outline-secondary" @click="pause">Пауза</button></div></div>
+  <div class="arena-layout" :class="{'arena-with-scores':showScores}">
+   <div class="arena-stage">
+    <canvas ref="canvas" tabindex="0" aria-label="3D-арена. WASD — движение, стрелки — поворот, пробел — выстрел." @click="activate" @contextmenu.prevent @mousemove="mouseMove" @mousedown="mouseDown"/>
+    <div v-if="!connected||!active" class="arena-overlay">
+     <span class="arena-kicker">GOMATE / DEATHMATCH</span><h2>{{ connected?'Передышка':error?'Связь прервана':'Между раундами' }}</h2>
+     <p v-if="error" role="alert">{{ error }}</p><p v-else>Одна арена для всей команды. Три попадания, три секунды на возрождение.</p>
+     <button type="button" class="btn btn-primary" :disabled="connecting" @click="connected?activate():connect()">{{ connecting?'Подключение…':connected?'Продолжить':'Войти на арену' }}</button>
+     <div class="arena-instructions"><span><kbd>W A S D</kbd> движение</span><span>Мышь или <kbd>← →</kbd> прицел</span><span><kbd>ЛКМ</kbd> / <kbd>Space</kbd> огонь</span><span><kbd>Esc</kbd> пауза</span></div>
+     <small>Если захват мыши недоступен — зажмите ПКМ для поворота. Пауза не защищает от попаданий.</small>
+    </div>
+    <div v-if="connected&&active&&me&&me.hp===0" class="arena-respawn" role="status">Возрождение через {{ respawnSeconds }} с</div>
+    <div v-if="connected&&active" class="arena-hud"><strong :class="{'arena-low-hp':me&&me.hp<=34}">{{ me?me.hp:100 }} <small>HP</small></strong><span v-if="players.length===1">Ждём сокомандников</span><span v-else>{{ me?me.kills:0 }} <small>фрагов</small></span><span v-if="hitUntil>clock" class="arena-hit">Попадание</span></div>
+    <div v-if="connected&&active" class="arena-touch" aria-label="Сенсорное управление">
+     <div class="arena-touch-move"><button v-for="control in touchControls" :key="control.code" type="button" :aria-label="control.label" @pointerdown.prevent="touchDown($event,control.code)" @pointerup="touchUp(control.code)" @pointercancel="touchUp(control.code)" @lostpointercapture="touchUp(control.code)">{{ control.text }}</button></div>
+     <button type="button" class="arena-touch-fire" aria-label="Стрелять" @pointerdown.prevent="touchDown($event,'Space')" @pointerup="touchUp('Space')" @pointercancel="touchUp('Space')" @lostpointercapture="touchUp('Space')"><i class="fas fa-crosshairs" aria-hidden="true"/></button>
+    </div>
+   </div>
+   <aside v-if="showScores" class="arena-scores" aria-label="Таблица счёта"><h3>На арене <span>{{ players.length }}</span></h3><div class="arena-score-label"><span>Игрок</span><span>Ф / С</span></div><div v-for="player in ranked" :key="player.id" class="arena-score-row" :class="{'arena-score-self':player.id===id}"><span>{{ player.name }}<small v-if="player.id===id">вы</small></span><strong>{{ player.kills }} / {{ player.deaths }}</strong></div><p v-if="!players.length">Войдите и позовите команду через чат.</p><small class="arena-score-note">Счёт хранится до выхода. Укрытия блокируют выстрелы.</small></aside>
+  </div>
+ </b-modal>
+</template>
+<script>
+import {ArenaRenderer} from '../game/arenaRenderer.mjs';
+const codes=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space']);
+export default {
+ name:'ArenaGame',
+ data:()=>({connected:false,connecting:false,active:false,status:'Командный мини-шутер',error:'',players:[],id:0,showScores:false,clock:0,hitUntil:0,touchControls:[{code:'KeyW',text:'↑',label:'Вперёд'},{code:'KeyS',text:'↓',label:'Назад'},{code:'KeyA',text:'A',label:'Шаг влево'},{code:'KeyD',text:'D',label:'Шаг вправо'},{code:'ArrowLeft',text:'↶',label:'Поворот влево'},{code:'ArrowRight',text:'↷',label:'Поворот вправо'}]}),
+ computed:{me(){return this.players.find(p=>p.id===this.id)},ranked(){return [...this.players].sort((a,b)=>b.kills-a.kills||a.deaths-b.deaths)},respawnSeconds(){return Math.max(0,Math.ceil(((this.me?.respawnAt||0)-this.serverTime-(this.clock-this.receivedAt))/1000))}},
+ created(){this.keys=new Set();this.angle=0;this.map=null;this.socket=null;this.frame=0;this.lastFrame=0;this.lastSent=0;this.serverTime=0;this.receivedAt=0;this.closed=false;this.renderer=null},
+ beforeDestroy(){this.closed=true;this.disconnect();cancelAnimationFrame(this.frame);this.resizeObserver?.disconnect();window.removeEventListener('keydown',this.keyDown);window.removeEventListener('keyup',this.keyUp);window.removeEventListener('mouseup',this.mouseUp);window.removeEventListener('blur',this.pause);document.removeEventListener('visibilitychange',this.visibility);document.removeEventListener('pointerlockchange',this.pointerLock);document.removeEventListener('mousemove',this.lockedMove)},
+ methods:{
+  setup(){if(this.renderer)return;const canvas=this.$refs.canvas;this.renderer=new ArenaRenderer(canvas);this.resizeObserver=new ResizeObserver(()=>{const r=canvas.getBoundingClientRect(),scale=Math.min(1,960/r.width);canvas.width=Math.max(1,Math.round(r.width*scale));canvas.height=Math.max(1,Math.round(r.height*scale))});this.resizeObserver.observe(canvas);window.addEventListener('keydown',this.keyDown);window.addEventListener('keyup',this.keyUp);window.addEventListener('mouseup',this.mouseUp);window.addEventListener('blur',this.pause);document.addEventListener('visibilitychange',this.visibility);document.addEventListener('pointerlockchange',this.pointerLock);document.addEventListener('mousemove',this.lockedMove);this.frame=requestAnimationFrame(this.render)},
+  connect(){if(this.connecting||this.connected)return;if(!this.renderer)this.setup();this.error='';this.connecting=true;this.players=[];this.id=0;this.map=null;const ws=new WebSocket(`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/api/v2/chat/arena`);this.socket=ws;this.connectTimer=setTimeout(()=>{if(!this.connected){this.error='Сервер не ответил. Попробуйте ещё раз.';ws.close()}},8000);
+   ws.onmessage=e=>{if(this.closed||this.socket!==ws)return;let data;try{data=JSON.parse(e.data)}catch{return}
+    if(data.type==='welcome'){clearTimeout(this.connectTimer);this.id=data.id;this.map=data.map;this.angle=data.angle;this.connected=true;this.connecting=false;this.status='На арене';this.active=true;this.renderer.camera=null;this.$nextTick(()=>this.$refs.canvas?.focus())}
+    if(data.type==='state'){const old=this.me,me=data.players.find(p=>p.id===this.id);if(old&&me&&me.hits>old.hits)this.hitUntil=performance.now()+450;if(old&&me&&old.hp===0&&me.hp>0)this.angle=me.angle;this.players=data.players;this.serverTime=data.time;this.receivedAt=performance.now()}
+   };ws.onclose=()=>{if(this.closed||this.socket!==ws)return;clearTimeout(this.connectTimer);this.connected=false;this.connecting=false;this.pause();this.error=this.error||'Соединение закрыто. Арена может быть заполнена или уже открыта в другой вкладке. Можно войти снова.'};ws.onerror=()=>{this.error='Не удалось подключиться к арене. Проверьте соединение или закройте игру в другой вкладке.'}},
+  disconnect(){clearTimeout(this.connectTimer);this.pause();this.socket?.close();this.socket=null;this.connected=false;this.connecting=false},
+  activate(){if(!this.connected)return;this.active=true;this.$refs.canvas.focus();try{const result=this.$refs.canvas.requestPointerLock?.();result?.catch(()=>{})}catch{}},
+  pause(){this.active=false;this.keys.clear();this.fire=false;this.sendInput();if(document.pointerLockElement===this.$refs.canvas)document.exitPointerLock()},
+  visibility(){if(document.hidden){this.disconnect();this.error='Игра отключена, пока вкладка скрыта. Войдите снова, когда будете готовы.'}},
+  pointerLock(){if(document.pointerLockElement!==this.$refs.canvas)this.pause()},
+  keyDown(e){if(e.code==='Escape'){this.pause();return}if(!this.active||!codes.has(e.code)||e.ctrlKey||e.metaKey||e.altKey)return;e.preventDefault();this.keys.add(e.code)},
+  keyUp(e){this.keys.delete(e.code)},
+  lockedMove(e){if(this.active&&document.pointerLockElement===this.$refs.canvas)this.angle+=e.movementX*.003},
+  mouseMove(e){if(this.active&&document.pointerLockElement!==this.$refs.canvas&&(e.buttons&2))this.angle+=e.movementX*.004},
+  mouseDown(e){if(this.active&&e.button===0)this.fire=true},mouseUp(){this.fire=false},
+  touchDown(e,code){e.target.setPointerCapture(e.pointerId);this.keys.add(code)},touchUp(code){this.keys.delete(code)},
+  sendInput(){if(this.socket?.readyState!==WebSocket.OPEN||!this.connected||this.socket.bufferedAmount>4096)return;const k=this.keys,on=this.active;this.angle=Math.atan2(Math.sin(this.angle),Math.cos(this.angle));this.socket.send(JSON.stringify({forward:on?(Number(k.has('KeyW')||k.has('ArrowUp'))-Number(k.has('KeyS')||k.has('ArrowDown'))):0,strafe:on?(Number(k.has('KeyD'))-Number(k.has('KeyA'))):0,angle:this.angle,fire:!!(on&&(this.fire||k.has('Space')))}))},
+  render(now){if(this.closed)return;const dt=Math.min(.05,(now-this.lastFrame)/1000||.016);this.lastFrame=now;if(now-this.clock>=100)this.clock=now;if(this.active)this.angle+=(Number(this.keys.has('ArrowRight'))-Number(this.keys.has('ArrowLeft')))*dt*2.2;if(now-this.lastSent>=50){this.sendInput();this.lastSent=now}if(this.connected&&!document.hidden)this.renderer?.draw(this.map,this.players,this.id,this.angle,dt,now);this.frame=requestAnimationFrame(this.render)}
+ }
+}
+</script>
+<style>
+.arena-modal .modal-dialog{width:calc(100% - 32px);max-width:1240px;margin:24px auto}.arena-modal .modal-content{height:min(850px,calc(100dvh - 48px));min-height:320px}.arena-modal .modal-header{padding:12px 18px}.arena-modal .modal-title{font-size:16px}.arena-modal .modal-body{padding:0;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+</style>
+<style scoped>
+.arena-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 14px;flex:none;font-size:12px}.arena-toolbar>div{display:flex;gap:8px}.arena-toolbar .fa-circle{font-size:8px;margin-right:6px;color:var(--gm-muted)}.arena-toolbar .arena-online{color:var(--gm-accent)}
+.arena-layout{display:flex;flex:1;min-height:0}.arena-stage{position:relative;flex:1;min-width:0;min-height:0;background:radial-gradient(ellipse at 70% 60%,#183947,#0b1220 70%);overflow:hidden}.arena-stage canvas{display:block;width:100%;height:100%;outline-offset:-3px;touch-action:none}
+.arena-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;padding:24px;background:#0a1223dc;color:#e9f5ff;text-align:center;overflow:auto}.arena-kicker{font:11px var(--gm-mono);letter-spacing:3px;color:#7bf1d0}.arena-overlay h2{font-size:clamp(25px,4vw,44px);letter-spacing:-1px;margin:0}.arena-overlay p{max-width:430px;font-size:14px;color:#b9c9d9;margin:0}.arena-overlay>.btn{padding:11px 28px;font-size:14px}.arena-instructions{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;font-size:12px;color:#cad8e5}.arena-instructions kbd{background:#26364d;padding:3px 5px}.arena-overlay small{max-width:460px;font-size:11px;color:#9caec3}
+.arena-hud{position:absolute;bottom:20px;left:20px;right:20px;display:flex;align-items:baseline;gap:24px;pointer-events:none;color:#e5fff7;text-shadow:0 2px 6px #000;font-family:var(--gm-mono)}.arena-hud strong{font-size:32px}.arena-hud small{font-size:12px}.arena-hud>span{font-size:13px}.arena-hud .arena-low-hp{color:#ff8da3}.arena-hit{margin-left:auto;color:#7bf1d0}.arena-respawn{position:absolute;inset:40% 0 auto;text-align:center;color:#fff;background:#09121dcc;padding:16px;font-size:22px;pointer-events:none}
+.arena-scores{width:220px;flex:none;padding:16px;background:var(--gm-panel);overflow:auto;font-size:12px}.arena-scores h3{font-size:14px;display:flex;justify-content:space-between;margin:0 0 20px}.arena-score-label,.arena-score-row{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--gm-border)}.arena-score-label{color:var(--gm-muted);font-size:11px}.arena-score-row>span{min-width:0;overflow-wrap:anywhere}.arena-score-row strong{white-space:nowrap}.arena-score-row small{display:block;font-size:10px}.arena-score-self{color:var(--gm-accent)}.arena-score-note{display:block;margin-top:20px;color:var(--gm-muted)}
+.arena-touch{display:none;position:absolute;bottom:12px;left:12px;right:12px;justify-content:space-between;align-items:flex-end;pointer-events:none}.arena-touch-move{display:grid;grid-template-columns:repeat(3,44px);gap:6px}.arena-touch button{pointer-events:auto;touch-action:none;border:1px solid #7693ad;border-radius:9px;background:#14283bdb;color:#f1fbff;min-width:44px;min-height:44px}.arena-touch .arena-touch-fire{width:60px;height:60px;border-radius:50%;font-size:24px}
+@media(pointer:coarse){.arena-touch{display:flex}.arena-hud{bottom:125px}.arena-instructions{display:none}}
+@media(max-width:650px){.arena-scores{position:absolute;right:0;top:46px;bottom:0;z-index:2;width:210px;border-left:1px solid var(--gm-border)}.arena-overlay{padding:16px;gap:14px}.arena-hud{left:12px;right:12px;gap:12px}.arena-hud strong{font-size:24px}}
+@media(max-height:500px){.arena-overlay{gap:8px}.arena-overlay h2{font-size:24px}.arena-overlay small{display:none}}
+</style>

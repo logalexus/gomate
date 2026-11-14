@@ -20,6 +20,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"gomate/internal/analyze"
 	"gomate/internal/anomaly"
+	"gomate/internal/arena"
 	"gomate/internal/config"
 	"gomate/internal/control"
 	"gomate/internal/events"
@@ -29,6 +30,7 @@ import (
 )
 
 type Server struct {
+	arenaGame     arena.Hub
 	chatLimit     chatLimiter
 	behaviorPages behaviorPageCache
 	Control       *control.Manager
@@ -72,6 +74,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid origin", 403)
 			return
 		}
+	}
+	if r.URL.Path == "/api/v2/chat/arena" {
+		s.arenaGame.Serve(w, r, s.chatAuthor(w, r))
+		return
 	}
 	if r.URL.Path == "/api/v2/events" {
 		s.Hub.ServeHTTP(w, r)
