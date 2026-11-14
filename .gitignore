@@ -1,0 +1,11 @@
+.tools/
+.cache/
+.env
+web/node_modules/
+web/dist/
+/bin/
+/data/
+*.test
+coverage.out
+__pycache__/
+*.pyc
