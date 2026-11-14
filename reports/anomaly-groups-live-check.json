@@ -1,0 +1,201 @@
+{
+  "passed": true,
+  "live": true,
+  "preview": false,
+  "url": "http://192.168.56.103:65000/#/anomalies",
+  "at": "2026-11-14T22:15:31.415Z",
+  "viewport": {
+    "width": 1366,
+    "height": 768
+  },
+  "firstRowTop": 278.796875,
+  "rowHeight": 58.5,
+  "visibleRows": 7,
+  "groups": 14,
+  "documentWidth": 1366,
+  "detail": {
+    "sessionLink": "#/18080/154339",
+    "reasons": 0
+  },
+  "normalLink": "#/19090/154353",
+  "traffic": {
+    "groups": [
+      {
+        "service": 18080,
+        "protocol": "TCP",
+        "method": "GET",
+        "path": "/api/items",
+        "count": 1131,
+        "anomalyCount": 20,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 21.7,
+        "startTimestamp": 1794694532509
+      },
+      {
+        "service": 18080,
+        "protocol": "TCP",
+        "method": "POST",
+        "path": "/api/items",
+        "count": 1312,
+        "anomalyCount": 16,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 15.2,
+        "startTimestamp": 1794694532337
+      },
+      {
+        "service": 18080,
+        "protocol": "TCP",
+        "method": "GET",
+        "path": "/gzip",
+        "count": 102,
+        "anomalyCount": 4,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 14,
+        "startTimestamp": 1794694532586
+      },
+      {
+        "service": 18080,
+        "protocol": "TCP",
+        "method": "GET",
+        "path": "/",
+        "count": 114,
+        "anomalyCount": 1,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 13,
+        "startTimestamp": 1794694531920
+      },
+      {
+        "service": 18080,
+        "protocol": "TCP",
+        "method": "OPTIONS",
+        "path": "/api/items",
+        "count": 103,
+        "anomalyCount": 3,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 12.8,
+        "startTimestamp": 1794694531590
+      },
+      {
+        "service": 18080,
+        "protocol": "TCP",
+        "method": "GET",
+        "path": "/ws",
+        "count": 806,
+        "anomalyCount": 49,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 11.6,
+        "startTimestamp": 1794694532221
+      },
+      {
+        "service": 18080,
+        "protocol": "TCP",
+        "method": "DELETE",
+        "path": "/api/items",
+        "count": 124,
+        "anomalyCount": 1,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 11.6,
+        "startTimestamp": 1794694532089
+      },
+      {
+        "service": 19090,
+        "protocol": "TCP",
+        "method": "",
+        "path": "",
+        "count": 831,
+        "anomalyCount": 0,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 0,
+        "startTimestamp": 1794694532683
+      },
+      {
+        "service": 18080,
+        "protocol": "TCP",
+        "method": "PUT",
+        "path": "/api/items",
+        "count": 153,
+        "anomalyCount": 0,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 0,
+        "startTimestamp": 1794694530589
+      },
+      {
+        "service": 18080,
+        "protocol": "TCP",
+        "method": "PATCH",
+        "path": "/api/items",
+        "count": 139,
+        "anomalyCount": 0,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 0,
+        "startTimestamp": 1794694530262
+      },
+      {
+        "service": 15051,
+        "protocol": "TCP",
+        "method": "POST",
+        "path": "/gomate.mock.Echo/Echo",
+        "count": 82,
+        "anomalyCount": 0,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 0,
+        "startTimestamp": 1794694529253
+      },
+      {
+        "service": 18080,
+        "protocol": "TCP",
+        "method": "HEAD",
+        "path": "/api/items",
+        "count": 123,
+        "anomalyCount": 0,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 0,
+        "startTimestamp": 1794694523591
+      },
+      {
+        "service": 15051,
+        "protocol": "TCP",
+        "method": "POST",
+        "path": "/gomate.mock.Echo/Watch",
+        "count": 36,
+        "anomalyCount": 0,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 0,
+        "startTimestamp": 1794694523260
+      },
+      {
+        "service": 15051,
+        "protocol": "TCP",
+        "method": "",
+        "path": "",
+        "count": 4,
+        "anomalyCount": 0,
+        "theftCount": 0,
+        "dismissedCount": 0,
+        "score": 0,
+        "startTimestamp": 1794694465447
+      }
+    ],
+    "totalGroups": 14,
+    "totalSessions": 5060,
+    "totalAnomalies": 94
+  },
+  "groupLatencyMs": 28,
+  "pageErrors": [],
+  "apiWrites": [],
+  "captureStartedBefore": "2026-11-14T22:14:25.104427655Z",
+  "captureStartedAfter": "2026-11-14T22:14:25.104427655Z"
+}

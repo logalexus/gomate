@@ -14,6 +14,9 @@ import (
 // POST /api/v2/anomalies/{streamId}/normal   learn the reasons and hide the row
 // POST /api/v2/anomalies/{streamId}/restore  show the row again
 func (s *Server) anomalies(w http.ResponseWriter, r *http.Request, p []string) error {
+	if len(p) == 4 && (p[3] == "groups" || p[3] == "sessions") && r.Method == "GET" {
+		return s.trafficGroups(w, r, p[3] == "sessions")
+	}
 	if len(p) == 4 && p[3] == "stats" && r.Method == "GET" {
 		st := anomaly.Stats{Services: []anomaly.ServiceStats{}}
 		if s.Anomaly != nil {

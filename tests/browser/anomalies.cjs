@@ -32,6 +32,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
   await page.route('**/api/**',async route => {
    const req=route.request(), u=new URL(req.url()); let data=[];
    if (u.pathname==='/api/v2/snapshot') data={services:[{port:8080,name:'HTTP mock'},{port:9000,name:'TCP mock'}], patterns:[], metrics:{},captureRunning:true};
+   if (u.pathname==='/api/v2/anomalies/groups') data={groups:[],totalGroups:0,totalSessions:0,totalAnomalies:0};
    if (u.pathname==='/api/v2/anomalies/stats') data={services:[{port:8080,messages:3000,reported:800,warm:true},{port:9000,messages:80,reported:0,warm:false}],drops:0,flagPattern:false,warmAfter:100};
    if (u.pathname==='/api/v2/anomalies') {
     queries.push(Object.fromEntries(u.searchParams));
@@ -46,7 +47,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
    }
    await route.fulfill({json:data});
   });
-  await page.goto(base+'/#/anomalies');await page.locator('.anomaly-row').first().waitFor();
+  await page.goto(base+'/#/anomalies');await page.getByLabel('Показать',{exact:true}).selectOption('alerts');await page.locator('.anomaly-row').first().waitFor();
   assert.equal(await page.locator('.anomaly-detail').count(),0);
   assert.equal(await page.locator('.anomaly').count(),26);
   await page.getByRole('button',{name:'Пауза',exact:true}).click();

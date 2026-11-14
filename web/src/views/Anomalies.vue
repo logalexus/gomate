@@ -1,7 +1,7 @@
 <template>
  <section class="workspace-page anomalies">
   <header class="anomaly-header">
-   <div><h1>Аномалии</h1><p>Раскройте строку → проверьте причины → откройте сессию с трафиком.</p></div>
+   <div><h1>Аномалии</h1><p>Все сохранённые сессии в группах. Раскройте группу → выберите сессию → проверьте трафик.</p></div>
    <div class="anomaly-actions">
     <b-button size="sm" variant="outline-secondary" :aria-expanded="String(help)" aria-controls="anomaly-help" @click="help=!help">Как работать</b-button>
     <b-button size="sm" variant="outline-secondary" :aria-pressed="String(paused)" :aria-label="paused ? 'Продолжить автообновление' : 'Пауза'" @click="paused=!paused">{{ paused ? 'Продолжить' : 'Пауза' }}</b-button>
@@ -11,6 +11,7 @@
 
   <div v-if="help" id="anomaly-help" class="gm-panel anomaly-help">
    <ol>
+    <li><b>«Все сессии»</b> показывает и обычный трафик, и срабатывания. Группы: сервис, протокол и метод/путь первого запроса без query-параметров. Тела запросов не сравниваются, переменные части пути не объединяются; без пути группировка только по сервису и протоколу. Очистка сессий уменьшает список, обучение модели его не скрывает.</li>
     <li><b>Выберите сервис и период.</b> По умолчанию выше сессии с большей необычностью. Баллы — сумма отличий от изученного трафика, а не вероятность атаки.</li>
     <li><b>Раскройте строку.</b> Посмотрите, какое поле отличается и почему. В группе можно выбрать конкретную сессию. Пока причины открыты, список не обновляется.</li>
     <li><b>Откройте сессию</b> и проверьте запрос и ответ. Высокая оценка сама по себе не подтверждает атаку; повторяющиеся атаки могут стать привычными для модели.</li>
@@ -23,14 +24,16 @@
 
   <div class="anomaly-toolbar">
    <div class="anomaly-filters">
+    <b-form-group label="Показать" label-for="anomaly-scope"><b-form-select id="anomaly-scope" v-model="scope" size="sm" :options="[{value: 'all', text: 'Все сессии'}, {value: 'alerts', text: 'Только аномалии'}]"/></b-form-group>
     <b-form-group label="Сервис" label-for="anomaly-service"><b-form-select id="anomaly-service" v-model="service" size="sm" :options="serviceOptions"/></b-form-group>
     <b-form-group label="Период" label-for="anomaly-period"><b-form-select id="anomaly-period" v-model="period" size="sm" :options="periods"/></b-form-group>
-    <b-form-group label="Минимум баллов" label-for="anomaly-level"><b-form-select id="anomaly-level" v-model="level" size="sm" :options="levels"/></b-form-group>
+    <b-form-group v-if="scope==='alerts'" label="Минимум баллов" label-for="anomaly-level"><b-form-select id="anomaly-level" v-model="level" size="sm" :options="levels"/></b-form-group>
     <b-form-group label="Порядок" label-for="anomaly-sort"><b-form-select id="anomaly-sort" v-model="sort" size="sm" :options="sorts"/></b-form-group>
    </div>
    <div class="anomaly-view-options">
-    <b-form-checkbox v-model="group">Группировать похожие</b-form-checkbox>
-    <b-form-checkbox v-model="showDismissed">Включая скрытые</b-form-checkbox>
+    <span v-if="scope==='all'">Группы по первому запросу · включая скрытые срабатывания · до очистки сессий</span>
+    <b-form-checkbox v-if="scope==='alerts'" v-model="group">Группировать похожие</b-form-checkbox>
+    <b-form-checkbox v-if="scope==='alerts'" v-model="showDismissed">Включая скрытые</b-form-checkbox>
     <b-button v-if="service||period!==3600||level!==6||showDismissed||sort!=='score'" size="sm" variant="link" @click="resetFilters">Сбросить фильтры</b-button>
     <button type="button" class="anomaly-status-toggle" :aria-expanded="String(modelInfo)" aria-controls="anomaly-model" @click="modelInfo=!modelInfo">Модель: {{ stats.services.filter(s=>s.warm).length }}/{{ serviceCards.length }} сервисов прогрето<span v-if="!stats.flagPattern"> · кража флагов не проверяется</span> {{ modelInfo ? '▴' : '▾' }}</button>
    </div>
@@ -45,44 +48,63 @@
    <span role="status">{{ loading ? 'Загрузка…' : expanded ? 'Пауза на время просмотра' : paused ? 'Автообновление на паузе' : 'Автообновление' }}</span>
   </div>
   <div v-if="!groups.length && !loading" class="gm-panel anomaly-empty">
-   <h2>{{ error ? 'Результаты недоступны' : 'Нет срабатываний по этим фильтрам' }}</h2>
+   <h2>{{ error ? 'Результаты недоступны' : scope==='all' ? 'Нет сохранённых сессий по этим фильтрам' : 'Нет срабатываний по этим фильтрам' }}</h2>
    <p v-if="error">Повторите загрузку кнопкой «Обновить».</p>
+   <p v-else-if="scope==='all'">Проверьте сервис, период и захват. Удалённые очисткой сессии здесь не отображаются.</p>
    <p v-else-if="!stats.services.some(s => s.warm)">Модель ещё учится: нужно хотя бы {{ stats.warmAfter }} сообщений в сервисе.</p>
    <p v-else>Увеличьте период или снизьте порог. Отсутствие срабатываний не означает отсутствие атак.</p>
   </div>
 
   <div class="anomaly-list">
-   <article v-for="(g, index) in groups" :key="g.key" class="anomaly" :class="{expanded:expanded===g.key, theft:g.top.kind==='theft', dismissed:g.top.dismissed}">
+   <article v-for="(g, index) in groups" :key="g.key" class="anomaly" :class="{expanded:expanded===g.key, theft:g.top.kind==='theft', dismissed:g.top.dismissed, alerted:g.anomalyCount>0}">
     <button type="button" class="anomaly-row" :aria-expanded="String(expanded===g.key)" :aria-controls="'anomaly-detail-'+index" @click="toggle(g)">
-     <span class="anomaly-score"><strong>{{ Math.round(g.top.score) }}</strong><small>баллов</small></span>
+     <span class="anomaly-score"><strong>{{ g.top.score ? Math.round(g.top.score) : '—' }}</strong><small>{{ scope==='all' && g.top.score ? 'макс.' : 'баллов' }}</small></span>
      <span class="anomaly-description">
       <span class="anomaly-title"><b v-if="g.top.kind==='theft'" class="theft-label">Кража флага</b><code :title="g.top.summary">{{ endpoint(g.top) }}</code><span v-if="g.top.dismissed" class="hidden-label">Скрыто</span></span>
-      <span class="anomaly-reason-preview">{{ reasonPreview(g.top) }}</span>
+      <span class="anomaly-reason-preview">{{ scope==='all' ? `${g.anomalyCount} со срабатыванием · ${g.count-g.anomalyCount-g.dismissedCount} без срабатывания${g.dismissedCount ? ' · '+g.dismissedCount+' скрытых' : ''}` : reasonPreview(g.top) }}</span>
      </span>
-     <span class="anomaly-meta"><span>{{ serviceName(g.top.service) }}</span><span>{{ time(g.top.startTimestamp) }} · {{ g.items.length>1 ? g.items.length+' сессий' : '#'+g.top.streamId }}</span></span>
+     <span class="anomaly-meta"><span>{{ serviceName(g.top.service) }}</span><span>{{ time(g.top.startTimestamp) }} · {{ scope==='all' ? g.count+' сессий' : g.items.length>1 ? g.items.length+' сессий' : '#'+g.top.streamId }}</span></span>
      <span class="anomaly-chevron" aria-hidden="true">{{ expanded===g.key ? '▴' : '▾' }}</span>
     </button>
     <div v-if="expanded===g.key" :id="'anomaly-detail-'+index" class="anomaly-detail">
+     <div v-if="scope==='all'" class="anomaly-member-controls">
+      <b-form-checkbox v-if="g.anomalyCount" v-model="memberAlerts" @change="loadMembers(g)">Только со срабатыванием</b-form-checkbox>
+      <span v-if="membersLoading" role="status">Загрузка сессий…</span>
+      <span v-if="membersError" role="alert">{{ membersError }} <button type="button" class="btn btn-sm btn-link" @click="loadMembers(g, !!g.items.length)">Повторить</button></span>
+      <span v-if="!membersLoading && !membersError && !g.items.length">Сессий больше нет: они могли попасть под очистку. Обновите список.</span>
+      <b-button v-if="g.nextBefore" size="sm" variant="outline-secondary" :disabled="membersLoading" @click="loadMembers(g, true)">Ещё сессии (загружено {{ g.items.length }})</b-button>
+     </div>
+     <template v-if="scope!=='all' || g.items.length">
      <div class="anomaly-detail-toolbar">
       <label v-if="g.items.length>1" class="anomaly-session-picker">Сессия в группе
-       <select v-model="selectedId" class="custom-select custom-select-sm"><option v-for="a in g.items" :key="a.streamId" :value="a.streamId">#{{ a.streamId }} · {{ time(a.startTimestamp) }} · {{ Math.round(a.score) }} баллов</option></select>
+       <select v-model="selectedId" class="custom-select custom-select-sm"><option v-for="a in g.items" :key="a.streamId" :value="a.streamId">#{{ a.streamId }} · {{ time(a.startTimestamp) }} · {{ a.hasAnomaly===false ? 'нет срабатывания' : Math.round(a.score)+' баллов'+(a.dismissed ? ' · скрыто' : '') }}</option></select>
       </label>
       <span v-else class="anomaly-session-label">Сессия #{{ selected(g).streamId }} · {{ time(selected(g).startTimestamp) }}</span>
       <div class="anomaly-actions">
        <b-button size="sm" variant="primary" :to="streamLink(selected(g))">Открыть сессию</b-button>
-       <b-button size="sm" variant="outline-secondary" :disabled="busy" :title="selected(g).dismissed ? 'Отменить скрытие этой сессии; обучение сохранится' : 'Скрыть эту сессию и обучить модель на её отличиях'" @click="mark(selected(g))">{{ selected(g).dismissed ? 'Вернуть в список' : 'Это норма' }}</b-button>
+       <b-button v-if="selected(g).hasAnomaly!==false" size="sm" variant="outline-secondary" :disabled="busy" :title="selected(g).dismissed ? 'Отменить скрытие этой сессии; обучение сохранится' : 'Скрыть эту сессию и обучить модель на её отличиях'" @click="mark(selected(g))">{{ selected(g).dismissed ? 'Вернуть в список' : 'Это норма' }}</b-button>
       </div>
      </div>
-     <code class="anomaly-full-summary">{{ selected(g).summary }}</code>
+     <code class="anomaly-full-summary">{{ selected(g).request || selected(g).summary || g.top.summary }}</code>
+     <p v-if="selected(g).hasAnomaly===false" class="anomaly-detail-note">Нет сохранённого срабатывания. Это не подтверждение безопасности: модель могла ещё учиться или привыкнуть к таким запросам.</p>
+     <p v-if="selected(g).payloadPurged" class="anomaly-detail-note">Содержимое пакетов удалено очисткой; метаданные сессии сохранены.</p>
+     <p v-if="scope==='all' && selected(g).hasAnomaly" class="anomaly-detail-note">Сохранённое срабатывание: {{ Math.round(selected(g).score) }} баллов<span v-if="selected(g).kind==='theft'"> · Кража флага</span>. Оценка старой сессии не пересчитывается при обучении.</p>
+     <p v-if="selected(g).dismissed" class="anomaly-detail-note">Срабатывание этой сессии скрыто вручную.</p>
      <ul class="anomaly-reasons">
       <li v-for="(r, i) in selected(g).reasons" :key="i">
        <span class="anomaly-bits">+{{ r.bits.toFixed(1) }}</span>
        <div><b>{{ detectors[r.detector] || r.detector }}</b> <code v-if="r.field">{{ r.field }}</code><p>{{ r.text }}</p><small v-if="r.template && r.template!==selected(g).summary">{{ r.template }}</small></div>
       </li>
      </ul>
-     <p class="anomaly-detail-note">Баллы показывают необычность, а не вероятность атаки. «Это норма» действует только на сессию #{{ selected(g).streamId }}.</p>
+     <p v-if="selected(g).hasAnomaly!==false" class="anomaly-detail-note">Баллы показывают необычность, а не вероятность атаки. «Это норма» действует только на сессию #{{ selected(g).streamId }}.</p>
+    </template>
     </div>
    </article>
+  </div>
+  <div v-if="scope==='all' && trafficPage.totalGroups>100" class="anomaly-pagination">
+   <b-button size="sm" variant="outline-secondary" :disabled="loading || groupOffset===0" @click="changePage(-100)">Предыдущие группы</b-button>
+   <span>{{ groupOffset+1 }}–{{ Math.min(groupOffset+100, trafficPage.totalGroups) }} из {{ trafficPage.totalGroups }}</span>
+   <b-button size="sm" variant="outline-secondary" :disabled="loading || groupOffset+100>=trafficPage.totalGroups" @click="changePage(100)">Следующие группы</b-button>
   </div>
  </section>
 </template>
@@ -91,6 +113,8 @@
 const message = e => e.response?.data?.error || e.message;
 export default {
  data: () => ({
+  scope: 'all', trafficPage: {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}, groupOffset: 0,
+  membersLoading: false, membersError: '', memberAlerts: false, memberRequestId: 0,
   items: [], stats: {services: [], drops: 0, flagPattern: true, warmAfter: 100},
   loading: false, busy: false, error: '', help: false, modelInfo: false, expanded: '', selectedId: null,
   paused: false, timer: null, loadedAt: 0, destroyed: false, requestId: 0,
@@ -113,6 +137,7 @@ export default {
    });
   },
   groups() {
+   if (this.scope==='all') return this.trafficPage.groups;
    if (!this.group) return this.items.map(a => ({key: String(a.streamId), top: a, items: [a]}));
    const out = new Map();
    for (const a of this.items) {
@@ -123,38 +148,48 @@ export default {
    return [...out.values()];
   },
   summaryLine() {
+   if (this.scope==='all') return `${this.trafficPage.totalSessions} сохранённых сессий · ${this.trafficPage.totalGroups} групп · ${this.trafficPage.totalAnomalies} со срабатыванием`;
    const n = this.items.length;
    const theft = this.items.filter(a => a.kind === 'theft').length;
    return `${n} сессий${this.group ? ` · ${this.groups.length} групп` : ''}${theft ? ` · краж флагов: ${theft}` : ''}${n>=200 ? ' · лимит 200, сузьте фильтры' : ''}`;
   },
  },
  watch: {
-  service: 'reloadFilters', period: 'reloadFilters', level: 'reloadFilters', sort: 'reloadFilters', showDismissed: 'reloadFilters',
+  scope: 'reloadFilters', service: 'reloadFilters', period: 'reloadFilters', level: 'reloadFilters', sort: 'reloadFilters', showDismissed: 'reloadFilters',
   group() { this.expanded = ''; },
  },
  mounted() { this.load(); this.timer = setInterval(this.refreshLive, 1000); },
  beforeDestroy() { this.destroyed = true; clearInterval(this.timer); },
  methods: {
   resetFilters() { this.service=0; this.period=3600; this.level=6; this.showDismissed=false; this.sort='score'; },
-  reloadFilters() { this.items = []; return this.load(); },
+  reloadFilters() { this.items = []; this.trafficPage = {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}; this.groupOffset=0; return this.load(); },
+  changePage(delta) { this.groupOffset=Math.max(0,this.groupOffset+delta); return this.load(); },
   refreshLive() {
    if (!document.hidden && !this.paused && !this.expanded && !this.busy && !this.loading && Date.now()-this.loadedAt>3000) return this.load(false);
   },
   async load(closeDetails = true) {
-   if (closeDetails) this.expanded = '';
+   if (closeDetails) { this.expanded = ''; ++this.memberRequestId; }
    const id = ++this.requestId;
    this.loading = true;
    try {
     const params = {minScore: this.level, period: this.period, sort: this.sort};
     if (this.service) params.service = this.service;
     if (this.showDismissed) params.dismissed = 1;
-    const [list, stats] = await Promise.all([this.$http.get('/v2/anomalies', {params}), this.$http.get('/v2/anomalies/stats')]);
+    const [list, stats] = await Promise.all([this.$http.get(this.scope==='all' ? '/v2/anomalies/groups' : '/v2/anomalies', {params: this.scope==='all' ? {service: this.service, period: this.period, sort: this.sort, limit: 100, offset: this.groupOffset} : params}), this.$http.get('/v2/anomalies/stats')]);
     if (this.destroyed || id !== this.requestId) return;
-    this.items = list.data;
+    if (this.scope==='all') {
+     this.trafficPage = {...list.data, groups: list.data.groups.map(g => ({...g,
+      key: JSON.stringify([g.service, g.protocol, g.method, g.path]), items: [], nextBefore: 0,
+      top: {kind: g.theftCount ? 'theft' : '', service: g.service, protocol: g.protocol, score: g.score, startTimestamp: g.startTimestamp, reasons: [], summary: g.path ? `${g.method} ${g.path}`.trim() : `${g.protocol} · без пути запроса`},
+     }))};
+     if (this.groupOffset && !this.trafficPage.groups.length && this.trafficPage.totalGroups<=this.groupOffset) {
+      this.groupOffset=0; return this.load();
+     }
+    } else this.items = list.data;
     this.stats = stats.data;
     this.error = '';
    } catch (e) {
-    if (!this.destroyed && id === this.requestId) this.error = 'Не удалось загрузить аномалии: ' + message(e);
+    if (!this.destroyed && id === this.requestId) this.error = 'Не удалось загрузить список: ' + message(e);
    } finally {
     if (id === this.requestId) { this.loading = false; this.loadedAt = Date.now(); }
    }
@@ -180,6 +215,24 @@ export default {
    this.loading = false;
    this.expanded = this.expanded === g.key ? '' : g.key;
    this.selectedId = g.top.streamId;
+   ++this.memberRequestId;
+   this.membersLoading=false;
+   this.membersError='';
+   this.memberAlerts=false;
+   if (this.scope==='all' && this.expanded) this.loadMembers(g);
+  },
+  async loadMembers(g, more = false) {
+   const id=++this.memberRequestId;
+   this.membersLoading=true; this.membersError='';
+   if (!more) { g.items=[]; g.nextBefore=0; this.selectedId=null; }
+   try {
+    const {data}=await this.$http.get('/v2/anomalies/sessions', {params: {service:g.service, protocol:g.protocol, method:g.method, path:g.path, period:this.period, limit:50, before:more ? g.nextBefore : 0, alerts:this.memberAlerts ? 1 : 0}});
+    if (this.destroyed || id!==this.memberRequestId || this.expanded!==g.key) return;
+    g.items=more ? [...g.items, ...data.items] : data.items; g.nextBefore=data.nextBefore;
+    if (!more) this.selectedId=g.items[0]?.streamId;
+   } catch(e) {
+    if (!this.destroyed && id===this.memberRequestId) this.membersError='Не удалось загрузить сессии: '+message(e);
+   } finally { if (id===this.memberRequestId) this.membersLoading=false; }
   },
   selected(g) { return g.items.find(a => a.streamId === this.selectedId) || g.top; },
   endpoint(a) { return a.reasons.find(r => r.template)?.template || a.summary.split('?')[0]; },
@@ -206,7 +259,7 @@ export default {
 .anomaly-notice{padding:8px 12px;margin:8px 0;background:var(--gm-warning-soft);border:1px solid var(--gm-warning);border-radius:6px;font-size:13px;overflow-wrap:anywhere}
 .anomaly-notice.error{background:var(--gm-danger-soft);border-color:var(--gm-danger)}
 .anomaly-toolbar{border:1px solid var(--gm-border);border-radius:8px;padding:10px 12px;background:var(--gm-panel)}
-.anomaly-filters{display:grid;grid-template-columns:1.2fr .7fr .8fr 1fr;gap:12px}
+.anomaly-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:12px}
 .anomaly-filters .form-group{margin:0}.anomaly-filters ::v-deep label{padding:0;margin:0 0 3px;font-size:12px}
 .anomaly-filters ::v-deep select{font-size:13px;height:32px;padding-top:4px;padding-bottom:4px}
 .anomaly-view-options{display:flex;align-items:center;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:12px}
@@ -227,6 +280,8 @@ export default {
 .hidden-label{font-size:11px;color:var(--gm-muted)}
 .anomaly-reason-preview{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gm-muted);font-size:12px;margin-top:3px}
 .anomaly-meta{display:flex;flex-direction:column;gap:3px;color:var(--gm-muted);font-size:12px}.anomaly-meta>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.anomaly-chevron{color:var(--gm-muted)}
+.anomaly.alerted:not(.theft)>.anomaly-row{box-shadow:inset 3px 0 var(--gm-warning)}
+.anomaly-member-controls,.anomaly-pagination{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--gm-muted);margin:8px 0}
 .anomaly-detail{padding:12px 16px 12px 76px;border-top:1px solid var(--gm-border)}
 .anomaly-detail-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px}
 .anomaly-session-picker{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0;font-size:12px;color:var(--gm-muted)}.anomaly-session-picker select{width:auto;max-width:100%;font-size:12px}.anomaly-session-label{color:var(--gm-muted);font-size:12px}

@@ -1,0 +1,98 @@
+{
+  "passed": true,
+  "mocked": true,
+  "checks": [
+    "all traffic default with full totals",
+    "normal session link without learning action",
+    "member cursor paging",
+    "alert selection inside group",
+    "purged payload indication",
+    "group pagination preserves global totals",
+    "stale member response cannot replace another group",
+    "member failure and retry",
+    "retention during inspection"
+  ],
+  "layouts": [
+    {
+      "width": 1366,
+      "theme": "dark",
+      "docWidth": 1366,
+      "mainWidth": 1366,
+      "firstRowTop": 278.796875,
+      "rowHeight": 58.5
+    },
+    {
+      "width": 1366,
+      "theme": "light",
+      "docWidth": 1366,
+      "mainWidth": 1366,
+      "firstRowTop": 278.796875,
+      "rowHeight": 58.5
+    },
+    {
+      "width": 1920,
+      "theme": "dark",
+      "docWidth": 1920,
+      "mainWidth": 1920,
+      "firstRowTop": 278.796875,
+      "rowHeight": 58.5
+    },
+    {
+      "width": 1920,
+      "theme": "light",
+      "docWidth": 1920,
+      "mainWidth": 1920,
+      "firstRowTop": 278.796875,
+      "rowHeight": 58.5
+    },
+    {
+      "width": 800,
+      "theme": "dark",
+      "docWidth": 800,
+      "mainWidth": 800,
+      "firstRowTop": 386.28125,
+      "rowHeight": 58.5
+    },
+    {
+      "width": 800,
+      "theme": "light",
+      "docWidth": 800,
+      "mainWidth": 800,
+      "firstRowTop": 386.28125,
+      "rowHeight": 58.5
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "docWidth": 375,
+      "mainWidth": 375,
+      "firstRowTop": 538.09375,
+      "rowHeight": 78.5
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "docWidth": 375,
+      "mainWidth": 375,
+      "firstRowTop": 538.09375,
+      "rowHeight": 78.5
+    },
+    {
+      "width": 667,
+      "theme": "dark",
+      "docWidth": 667,
+      "mainWidth": 667,
+      "firstRowTop": 405.78125,
+      "rowHeight": 58.5
+    },
+    {
+      "width": 667,
+      "theme": "light",
+      "docWidth": 667,
+      "mainWidth": 667,
+      "firstRowTop": 405.78125,
+      "rowHeight": 58.5
+    }
+  ],
+  "pageErrors": []
+}

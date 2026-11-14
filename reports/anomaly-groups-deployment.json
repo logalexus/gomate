@@ -1,0 +1,58 @@
+{
+  "at": "2026-11-14T22:14:22.035510+00:00",
+  "image": "gomate-app:all-traffic-20261114t221403z",
+  "rollbackImage": "gomate-app:before-all-traffic-20261114t221403z",
+  "staging": "/home/kali/gomate-test/.all-traffic-20261114t221403z",
+  "before": {
+    "/gomate-lab-app-1": {
+      "image": "sha256:05302fa76197abaef25bc8f228ed661e5113d5a6afeb53224b67a13482453513",
+      "startedAt": "2026-11-14T21:51:27.011772502Z"
+    },
+    "/gomate-lab-db-1": {
+      "image": "sha256:d497921489a8ea214abea27476c836b8ce19966d08f96feba3d7ca8f21ccf89a",
+      "startedAt": "2026-11-14T19:00:29.613587276Z"
+    },
+    "/gomate-lab-discovery-1": {
+      "image": "sha256:68aaeabe4065a1c41691f68f1735da9a1517611ab115ed11a4104124ef296990",
+      "startedAt": "2026-11-14T21:24:51.222827747Z"
+    },
+    "/gomate-lab-http-1": {
+      "image": "sha256:d1fc44d29303e0e6c73968092b5d5c463dfd31fc1678d231756f2b5515d229ec",
+      "startedAt": "2026-11-14T16:45:46.44292604Z"
+    },
+    "/gomate-lab-tcp-1": {
+      "image": "sha256:d1fc44d29303e0e6c73968092b5d5c463dfd31fc1678d231756f2b5515d229ec",
+      "startedAt": "2026-11-14T16:45:46.453692309Z"
+    },
+    "/gomate-lab-grpc-1": {
+      "image": "sha256:d1fc44d29303e0e6c73968092b5d5c463dfd31fc1678d231756f2b5515d229ec",
+      "startedAt": "2026-11-14T16:45:46.440043046Z"
+    }
+  },
+  "after": {
+    "/gomate-lab-app-1": {
+      "image": "sha256:1651aae51bab82689c0ba0c6a8484615d9a1276d9a2b566b7e276f8e061995aa",
+      "startedAt": "2026-11-14T22:14:24.842829072Z"
+    },
+    "/gomate-lab-db-1": {
+      "image": "sha256:d497921489a8ea214abea27476c836b8ce19966d08f96feba3d7ca8f21ccf89a",
+      "startedAt": "2026-11-14T19:00:29.613587276Z"
+    },
+    "/gomate-lab-discovery-1": {
+      "image": "sha256:68aaeabe4065a1c41691f68f1735da9a1517611ab115ed11a4104124ef296990",
+      "startedAt": "2026-11-14T21:24:51.222827747Z"
+    },
+    "/gomate-lab-http-1": {
+      "image": "sha256:d1fc44d29303e0e6c73968092b5d5c463dfd31fc1678d231756f2b5515d229ec",
+      "startedAt": "2026-11-14T16:45:46.44292604Z"
+    },
+    "/gomate-lab-tcp-1": {
+      "image": "sha256:d1fc44d29303e0e6c73968092b5d5c463dfd31fc1678d231756f2b5515d229ec",
+      "startedAt": "2026-11-14T16:45:46.453692309Z"
+    },
+    "/gomate-lab-grpc-1": {
+      "image": "sha256:d1fc44d29303e0e6c73968092b5d5c463dfd31fc1678d231756f2b5515d229ec",
+      "startedAt": "2026-11-14T16:45:46.440043046Z"
+    }
+  }
+}
