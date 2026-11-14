@@ -5,7 +5,8 @@
   "widths": [
     1440,
     375,
-    1100
+    1100,
+    1920
   ],
   "viewports": [
     {
@@ -19,19 +20,83 @@
     {
       "width": 1100,
       "height": 760
+    },
+    {
+      "width": 375,
+      "height": 640
+    },
+    {
+      "width": 1920,
+      "height": 1080
     }
   ],
   "composerVisibility": [
+    {
+      "theme": "dark",
+      "width": 1440,
+      "height": 1000,
+      "mainTop": 56,
+      "mainBottom": 974,
+      "editorTop": 914,
+      "editorBottom": 954,
+      "sendBottom": 954,
+      "timelineHeight": 794,
+      "scrollHeight": 918,
+      "clientHeight": 918,
+      "scrollTop": 0
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "height": 1000,
+      "mainTop": 56,
+      "mainBottom": 974,
+      "editorTop": 914,
+      "editorBottom": 954,
+      "sendBottom": 954,
+      "timelineHeight": 794,
+      "scrollHeight": 918,
+      "clientHeight": 918,
+      "scrollTop": 0
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "height": 1000,
+      "mainTop": 95,
+      "mainBottom": 969,
+      "editorTop": 911,
+      "editorBottom": 955,
+      "sendBottom": 955,
+      "timelineHeight": 754,
+      "scrollHeight": 874,
+      "clientHeight": 874,
+      "scrollTop": 0
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "height": 1000,
+      "mainTop": 95,
+      "mainBottom": 969,
+      "editorTop": 911,
+      "editorBottom": 955,
+      "sendBottom": 955,
+      "timelineHeight": 754,
+      "scrollHeight": 874,
+      "clientHeight": 874,
+      "scrollTop": 0
+    },
     {
       "theme": "dark",
       "width": 1100,
       "height": 760,
       "mainTop": 56,
       "mainBottom": 734,
-      "editorTop": 549.9375,
-      "editorBottom": 626.9375,
-      "sendBottom": 672.0625,
-      "timelineHeight": 169,
+      "editorTop": 674,
+      "editorBottom": 714,
+      "sendBottom": 714,
+      "timelineHeight": 554,
       "scrollHeight": 678,
       "clientHeight": 678,
       "scrollTop": 0
@@ -42,12 +107,68 @@
       "height": 760,
       "mainTop": 56,
       "mainBottom": 734,
-      "editorTop": 549.9375,
-      "editorBottom": 626.9375,
-      "sendBottom": 672.0625,
-      "timelineHeight": 169,
+      "editorTop": 674,
+      "editorBottom": 714,
+      "sendBottom": 714,
+      "timelineHeight": 554,
       "scrollHeight": 678,
       "clientHeight": 678,
+      "scrollTop": 0
+    },
+    {
+      "theme": "dark",
+      "width": 375,
+      "height": 640,
+      "mainTop": 95,
+      "mainBottom": 609,
+      "editorTop": 551,
+      "editorBottom": 595,
+      "sendBottom": 595,
+      "timelineHeight": 394,
+      "scrollHeight": 514,
+      "clientHeight": 514,
+      "scrollTop": 0
+    },
+    {
+      "theme": "light",
+      "width": 375,
+      "height": 640,
+      "mainTop": 95,
+      "mainBottom": 609,
+      "editorTop": 551,
+      "editorBottom": 595,
+      "sendBottom": 595,
+      "timelineHeight": 394,
+      "scrollHeight": 514,
+      "clientHeight": 514,
+      "scrollTop": 0
+    },
+    {
+      "theme": "dark",
+      "width": 1920,
+      "height": 1080,
+      "mainTop": 56,
+      "mainBottom": 1054,
+      "editorTop": 994,
+      "editorBottom": 1034,
+      "sendBottom": 1034,
+      "timelineHeight": 874,
+      "scrollHeight": 998,
+      "clientHeight": 998,
+      "scrollTop": 0
+    },
+    {
+      "theme": "light",
+      "width": 1920,
+      "height": 1080,
+      "mainTop": 56,
+      "mainBottom": 1054,
+      "editorTop": 994,
+      "editorBottom": 1034,
+      "sendBottom": 1034,
+      "timelineHeight": 874,
+      "scrollHeight": 998,
+      "clientHeight": 998,
       "scrollTop": 0
     }
   ],
@@ -199,6 +320,102 @@
       "documentWidth": 1100,
       "mainWidth": 1100,
       "mainClientWidth": 1100
+    },
+    {
+      "route": "containers",
+      "theme": "dark",
+      "width": 375,
+      "documentWidth": 375,
+      "mainWidth": 375,
+      "mainClientWidth": 375
+    },
+    {
+      "route": "chat",
+      "theme": "dark",
+      "width": 375,
+      "documentWidth": 375,
+      "mainWidth": 375,
+      "mainClientWidth": 375
+    },
+    {
+      "route": "anomalies",
+      "theme": "dark",
+      "width": 375,
+      "documentWidth": 375,
+      "mainWidth": 375,
+      "mainClientWidth": 375
+    },
+    {
+      "route": "containers",
+      "theme": "light",
+      "width": 375,
+      "documentWidth": 375,
+      "mainWidth": 375,
+      "mainClientWidth": 375
+    },
+    {
+      "route": "chat",
+      "theme": "light",
+      "width": 375,
+      "documentWidth": 375,
+      "mainWidth": 375,
+      "mainClientWidth": 375
+    },
+    {
+      "route": "anomalies",
+      "theme": "light",
+      "width": 375,
+      "documentWidth": 375,
+      "mainWidth": 375,
+      "mainClientWidth": 375
+    },
+    {
+      "route": "containers",
+      "theme": "dark",
+      "width": 1920,
+      "documentWidth": 1920,
+      "mainWidth": 1920,
+      "mainClientWidth": 1920
+    },
+    {
+      "route": "chat",
+      "theme": "dark",
+      "width": 1920,
+      "documentWidth": 1920,
+      "mainWidth": 1920,
+      "mainClientWidth": 1920
+    },
+    {
+      "route": "anomalies",
+      "theme": "dark",
+      "width": 1920,
+      "documentWidth": 1920,
+      "mainWidth": 1920,
+      "mainClientWidth": 1920
+    },
+    {
+      "route": "containers",
+      "theme": "light",
+      "width": 1920,
+      "documentWidth": 1920,
+      "mainWidth": 1920,
+      "mainClientWidth": 1920
+    },
+    {
+      "route": "chat",
+      "theme": "light",
+      "width": 1920,
+      "documentWidth": 1920,
+      "mainWidth": 1920,
+      "mainClientWidth": 1920
+    },
+    {
+      "route": "anomalies",
+      "theme": "light",
+      "width": 1920,
+      "documentWidth": 1920,
+      "mainWidth": 1920,
+      "mainClientWidth": 1920
     }
   ],
   "logDOMRows": [
@@ -237,6 +454,30 @@
       "theme": "light",
       "loaded": 2000,
       "rendered": 17
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "loaded": 2000,
+      "rendered": 19
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "loaded": 2000,
+      "rendered": 19
+    },
+    {
+      "width": 1920,
+      "theme": "dark",
+      "loaded": 2000,
+      "rendered": 30
+    },
+    {
+      "width": 1920,
+      "theme": "light",
+      "loaded": 2000,
+      "rendered": 30
     }
   ],
   "chatDOMRows": [
@@ -244,37 +485,61 @@
       "width": 1440,
       "theme": "dark",
       "loaded": 100,
-      "rendered": 7
+      "rendered": 15
     },
     {
       "width": 1440,
       "theme": "light",
       "loaded": 100,
-      "rendered": 7
+      "rendered": 15
     },
     {
       "width": 375,
       "theme": "dark",
       "loaded": 100,
-      "rendered": 6
+      "rendered": 15
     },
     {
       "width": 375,
       "theme": "light",
       "loaded": 100,
-      "rendered": 6
+      "rendered": 15
     },
     {
       "width": 1100,
       "theme": "dark",
       "loaded": 100,
-      "rendered": 4
+      "rendered": 11
     },
     {
       "width": 1100,
       "theme": "light",
       "loaded": 100,
-      "rendered": 4
+      "rendered": 11
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "loaded": 100,
+      "rendered": 9
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "loaded": 100,
+      "rendered": 9
+    },
+    {
+      "width": 1920,
+      "theme": "dark",
+      "loaded": 100,
+      "rendered": 16
+    },
+    {
+      "width": 1920,
+      "theme": "light",
+      "loaded": 100,
+      "rendered": 16
     }
   ],
   "pageErrors": [],
@@ -284,6 +549,9 @@
     "virtualized filtered logs",
     "Markdown preview preserves draft",
     "virtualized chat",
-    "keyboard service selection"
+    "keyboard service selection",
+    "compact composer in all 5 viewports and both themes",
+    "format selection and code blocks through menu",
+    "Enter, Shift+Enter, Ctrl+Enter and restored editor focus"
   ]
 }

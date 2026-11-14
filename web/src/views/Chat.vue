@@ -1,30 +1,42 @@
 <template>
- <section class="chat-page">
-  <header class="gm-page-header"><div><div class="gm-eyebrow">Командная работа</div><h1 class="gm-page-title">Общий чат</h1><p class="gm-page-description">Обсуждайте находки, делитесь кодом и держите команду в курсе.</p></div><b-badge :variant="error?'warning':'success'">{{ error?'Переподключение':'LIVE · каждые 2 с' }}</b-badge></header>
-  <div class="chat-workspace gm-panel">
-   <div class="chat-room-heading"><div class="chat-room-name"><span class="chat-room-symbol" aria-hidden="true">#</span><div><strong>Команда gomate</strong><span>Общий канал · без регистрации</span></div></div><details class="chat-room-info"><summary>О канале</summary><p>Сообщения видят все с доступом к gomate. История хранится 7 дней, до 10 000 сообщений. Анонимное имя закрепляется за этим браузером.</p></details></div>
-   <b-alert :show="!!error" variant="danger" class="chat-error">{{ error }}</b-alert>
-   <div class="chat-history-toolbar"><div class="chat-history-actions"><b-button size="sm" variant="outline-secondary" :disabled="loading||!hasOlder||messages.length>=500" @click="older">Предыдущие сообщения</b-button><b-button size="sm" variant="outline-primary" @click="latest">{{ browsing?'Вернуться к новым сообщениям':'К последним сообщениям' }}</b-button></div><span v-if="browsing" class="chat-history-state">Просмотр истории · LIVE приостановлен</span><span v-else-if="unseen" class="chat-history-state" role="status">Новых сообщений: {{ unseen }}</span><span v-else class="chat-history-count">{{ messages.length }} сообщений загружено</span></div>
-   <p v-if="messages.length>=500&&browsing" class="chat-history-limit">Загружено 500 сообщений. Вернитесь к новым сообщениям, чтобы продолжить LIVE.</p>
-   <div class="chat-timeline">
-    <VirtualList ref="list" :items="messages" class="chat-list" role="region" tabindex="0" aria-label="Сообщения команды" @scroll.native.passive="onScroll"><template #default="{item}"><article class="chat-message" :class="{'chat-own':item.author===author}" :data-message-id="item.id"><span class="chat-avatar" aria-hidden="true">{{ item.author.slice(-2).toUpperCase() }}</span><div class="chat-message-body"><div class="chat-message-meta"><strong>{{ item.author }}<span v-if="item.author===author" class="chat-you">вы</span></strong><time :datetime="item.createdAt">{{ time(item.createdAt) }}</time></div><ChatMarkdown :text="item.text"/></div></article></template></VirtualList>
-    <div v-if="!messages.length" class="chat-empty"><span class="chat-empty-mark" aria-hidden="true">#</span><strong>{{ loading?'Загружаем историю…':'Здесь начинается работа команды' }}</strong><p v-if="!loading">Напишите первое сообщение. Можно добавить код, ссылку или цитату — Markdown уже включён.</p></div>
+ <section class="chat-page" aria-label="Общий чат">
+  <header class="chat-room-heading">
+   <div class="chat-room-name"><span class="chat-room-symbol" aria-hidden="true">#</span><h1 class="gm-page-title">общий</h1></div>
+   <div class="chat-room-actions">
+    <b-button class="chat-history-button" size="sm" variant="link" :disabled="loading||!hasOlder||messages.length>=500" @click="older"><i class="fas fa-history" aria-hidden="true"/> История</b-button>
+    <b-dropdown right no-caret variant="link" class="chat-info-menu" :toggle-attrs="{'aria-label':'О канале'}">
+     <template #button-content><i class="fas fa-info-circle" aria-hidden="true"/></template>
+     <b-dropdown-text><strong>{{ author || 'Подключение…' }}</strong><p>Ваше анонимное имя в этом браузере.</p><p>Общий канал для всех с доступом к gomate. История хранится 7 дней, до 10 000 сообщений.</p></b-dropdown-text>
+    </b-dropdown>
    </div>
-  <b-form @submit.prevent="send" class="chat-composer">
-   <div class="composer-heading"><label for="chat-editor">Сообщение команде</label><span>{{ author || 'Подключение…' }}</span></div>
-   <div class="chat-formatting mb-2" role="toolbar" aria-label="Форматирование сообщения">
-    <b-button v-for="format in formats" :key="format.kind" type="button" size="sm" variant="outline-secondary" :disabled="sending||preview" :title="format.hint" @mousedown.prevent @click="formatDraft(format.kind)">{{ format.label }}</b-button>
-    <b-button type="button" size="sm" variant="outline-primary" :aria-pressed="String(preview)" @click="preview=!preview">{{ preview?'Редактировать':'Предпросмотр' }}</b-button>
-   </div>
-   <div v-if="preview" class="chat-preview" aria-label="Предпросмотр сообщения"><ChatMarkdown v-if="draft.trim()" :text="draft"/><span v-else class="text-muted">Напишите сообщение, чтобы увидеть форматирование.</span></div>
-   <b-form-textarea v-show="!preview" id="chat-editor" ref="editor" v-model="draft" :disabled="sending" rows="3" max-rows="6" maxlength="2000" placeholder="Сообщение команде… Markdown поддерживается" aria-label="Сообщение в чат" aria-describedby="chat-input-help" @keydown="onKey"/>
-   <div class="composer-footer"><span id="chat-input-help" class="text-muted small">{{ [...draft].length }}/2000 · Enter — отправить · Shift+Enter — новая строка<br>В блоке кода Enter — новая строка · Ctrl/⌘+Enter — отправить</span><b-button type="submit" variant="primary" :disabled="sending||!author||!draft.trim()">{{ sending?'Отправка…':'Отправить' }}</b-button></div>
-   <details class="chat-format-help"><summary>Как форматировать сообщение</summary><p class="mt-2 mb-1"><code>**жирный**</code> · <code>*курсив*</code> · <code>~~зачёркнутый~~</code> · <code>`код`</code> · <code>[ссылка](https://example.com)</code></p><p class="mb-1">Список: <code>- пункт</code> · Цитата: <code>&gt; текст</code>. Блок кода — три обратные кавычки на отдельных строках; после открывающих можно указать язык.</p><pre class="mb-0">```go
-fmt.Println("hello")
-```</pre></details>
-   <p v-if="sendError" class="text-danger mt-2" role="alert">{{ sendError }} Текст сохранён, можно повторить отправку.</p>
-  </b-form>
+  </header>
+  <b-alert :show="!!error" variant="danger" class="chat-error">{{ error }}</b-alert>
+  <div v-if="browsing" class="chat-history-banner" role="status"><span>{{ messages.length>=500?'Загружено 500 сообщений':'Просмотр истории' }}</span><b-button size="sm" variant="link" :disabled="loading" @click="latest">К новым сообщениям <i class="fas fa-arrow-down" aria-hidden="true"/></b-button></div>
+  <div class="chat-timeline">
+   <VirtualList ref="list" :items="messages" class="chat-list" role="region" tabindex="0" aria-label="Сообщения команды" @scroll.native.passive="onScroll">
+    <template #default="{item}"><article class="chat-message" :class="{'chat-own':item.author===author}" :data-message-id="item.id">
+     <span class="chat-avatar" aria-hidden="true">{{ item.author.slice(-2).toUpperCase() }}</span>
+     <div class="chat-message-body"><div class="chat-message-meta"><strong>{{ item.author }}<span v-if="item.author===author" class="chat-you">вы</span></strong><time :datetime="item.createdAt" :title="new Date(item.createdAt).toLocaleString()">{{ time(item.createdAt) }}</time></div><ChatMarkdown :text="item.text"/></div>
+    </article></template>
+   </VirtualList>
+   <div v-if="!messages.length" class="chat-empty"><span class="chat-empty-mark" aria-hidden="true">#</span><strong>{{ loading?'Загружаем историю…':'Начало #общий' }}</strong></div>
+   <b-button v-if="!browsing&&!atBottom" class="chat-jump" size="sm" variant="primary" @click="bottom"><span role="status">{{ unseen?'Новых сообщений: '+unseen:'К последним сообщениям' }}</span> <i class="fas fa-arrow-down" aria-hidden="true"/></b-button>
   </div>
+  <b-form @submit.prevent="send" class="chat-composer">
+   <div class="chat-input-shell">
+    <b-dropdown dropup no-caret variant="link" class="chat-format-menu" :toggle-attrs="{'aria-label':'Форматирование сообщения'}">
+     <template #button-content><i class="fas fa-plus" aria-hidden="true"/></template>
+     <b-dropdown-item-button v-for="format in formats" :key="format.kind" :disabled="sending||preview" @mousedown.native.prevent @click="formatDraft(format.kind)">{{ format.label }}</b-dropdown-item-button>
+     <b-dropdown-divider/>
+     <b-dropdown-item-button @click="togglePreview">{{ preview?'Редактировать':'Предпросмотр' }}</b-dropdown-item-button>
+    </b-dropdown>
+    <label class="sr-only" for="chat-editor">Сообщение в чат</label>
+    <div v-if="preview" class="chat-preview" aria-label="Предпросмотр сообщения"><ChatMarkdown v-if="draft.trim()" :text="draft"/><span v-else class="text-muted">Пустое сообщение</span><b-button type="button" size="sm" variant="link" @click="togglePreview">Редактировать</b-button></div>
+    <textarea v-show="!preview" id="chat-editor" ref="editor" v-model="draft" :disabled="sending" rows="1" maxlength="2000" placeholder="Написать в #общий" aria-label="Сообщение в чат" @keydown="onKey"></textarea>
+    <b-button class="chat-send" type="submit" variant="link" :disabled="sending||!author||!draft.trim()" :aria-label="sending?'Отправка…':'Отправить'"><i :class="sending?'fas fa-circle-notch fa-spin':'fas fa-paper-plane'" aria-hidden="true"/></b-button>
+   </div>
+   <p v-if="sendError" class="chat-send-error text-danger" role="alert">{{ sendError }} Текст сохранён, можно повторить отправку.</p>
+  </b-form>
  </section>
 </template>
 <script>
@@ -36,10 +48,13 @@ const message=e=>e.response?.data?.error||e.message;
 const key=()=>{const b=new Uint8Array(16);crypto.getRandomValues(b);return [...b].map(x=>x.toString(16).padStart(2,'0')).join('')};
 export default {
  components:{VirtualList,ChatMarkdown},data:()=>({formats,preview:false,messages:[],author:'',loading:false,sending:false,error:'',sendError:'',draft:'',pendingText:'',pendingKey:'',timer:null,controller:null,destroyed:false,hasOlder:false,browsing:false,atBottom:true,unseen:0}),
- mounted(){this.latest();this.timer=setInterval(()=>{if(!document.hidden&&!this.browsing)this.fetch()},2000);document.addEventListener('visibilitychange',this.visibility)},
- beforeDestroy(){this.destroyed=true;clearInterval(this.timer);this.controller?.abort();document.removeEventListener('visibilitychange',this.visibility)},
+ watch:{draft(){this.$nextTick(this.resizeEditor)}},
+ mounted(){window.addEventListener('resize',this.resizeEditor);this.resizeEditor();this.latest();this.timer=setInterval(()=>{if(!document.hidden&&!this.browsing)this.fetch()},2000);document.addEventListener('visibilitychange',this.visibility)},
+ beforeDestroy(){window.removeEventListener('resize',this.resizeEditor);this.destroyed=true;clearInterval(this.timer);this.controller?.abort();document.removeEventListener('visibilitychange',this.visibility)},
  methods:{
-  time(t){return new Date(t).toLocaleString()},visibility(){if(document.hidden)this.controller?.abort();else if(!this.browsing)this.fetch()},
+  resizeEditor(){const editor=this.$refs.editor;if(editor&&!this.preview){editor.style.height='auto';editor.style.height=editor.scrollHeight+'px'}},
+  time(t){const date=new Date(t);return date.toLocaleDateString()===new Date().toLocaleDateString()?date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):date.toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})},
+  togglePreview(){this.preview=!this.preview;if(!this.preview)this.$nextTick(()=>{this.resizeEditor();this.$refs.editor?.focus()})},visibility(){if(document.hidden)this.controller?.abort();else if(!this.browsing)this.fetch()},
   onScroll(){const el=this.$refs.list?.$el;if(el){this.atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<70;if(this.atBottom)this.unseen=0}},
   bottom(){this.$nextTick(()=>{this.$refs.list?.scrollToIndex(Math.max(0,this.messages.length-1));this.unseen=0;this.atBottom=true})},
   async fetch(mode='new'){
@@ -53,7 +68,7 @@ export default {
   },
   async latest(){if(this.loading)return;this.browsing=false;await this.fetch('latest')},async older(){if(this.loading)return;this.browsing=true;await this.fetch('older')},
   formatDraft(kind){
-   const editor=this.$refs.editor.$el,start=editor.selectionStart,end=editor.selectionEnd;
+   const editor=this.$refs.editor,start=editor.selectionStart,end=editor.selectionEnd;
    const selected=this.draft.slice(start,end),body=selected||(kind==='block'||kind==='inline'?'код':'текст');
    let before='',after='',content=body;
    if(kind==='bold'){before='**';after='**'}else if(kind==='italic'){before='*';after='*'}
@@ -68,31 +83,45 @@ export default {
    if(e.ctrlKey||e.metaKey){e.preventDefault();this.send();return}
    if(!e.shiftKey&&!insideCodeFence(this.draft,e.target.selectionStart)){e.preventDefault();this.send()}
   },
-  async send(){const text=this.draft.trim();if(!text||this.sending||!this.author)return;if(text!==this.pendingText){this.pendingText=text;this.pendingKey=key()}this.sending=true;this.sendError='';try{await this.$http.post('/v2/chat',{text,key:this.pendingKey});this.draft='';this.preview=false;this.pendingText='';this.pendingKey='';if(this.browsing){this.browsing=false;await this.fetch('latest')}else await this.fetch();this.bottom()}catch(e){this.sendError=message(e)}finally{this.sending=false}},
+  async send(){const text=this.draft.trim();if(!text||this.sending||!this.author)return;if(text!==this.pendingText){this.pendingText=text;this.pendingKey=key()}this.sending=true;this.sendError='';try{await this.$http.post('/v2/chat',{text,key:this.pendingKey});this.draft='';this.preview=false;this.pendingText='';this.pendingKey='';if(this.browsing){this.browsing=false;await this.fetch('latest')}else await this.fetch();this.bottom()}catch(e){this.sendError=message(e)}finally{this.sending=false;this.$nextTick(()=>this.$refs.editor?.focus())}},
  }
 }
 </script>
 <style scoped>
-.chat-page{max-width:1180px;margin:auto;padding-bottom:28px}.chat-workspace{overflow:hidden}.chat-room-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 24px;border-bottom:1px solid var(--gm-border)}.chat-room-name{display:flex;align-items:center;gap:12px;min-width:0}.chat-room-name>div{display:flex;flex-direction:column;gap:2px}.chat-room-name strong{font-size:.9rem}.chat-room-name span:not(.chat-room-symbol){font-size:.75rem;color:var(--gm-muted)}.chat-room-symbol,.chat-empty-mark{font-size:1.5rem;font-family:var(--gm-mono);font-weight:700;color:var(--gm-accent);background:var(--gm-accent-soft);border:1px solid var(--gm-border);border-radius:12px;padding:5px 14px}.chat-room-info{max-width:400px;font-size:.8rem;color:var(--gm-muted)}.chat-room-info summary{cursor:pointer;color:var(--gm-text);text-align:right}.chat-room-info p{margin:8px 0 0;line-height:1.6}.chat-error{margin:16px 20px 0}.chat-history-toolbar{padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--gm-panel-alt);border-bottom:1px solid var(--gm-border)}.chat-history-actions{display:flex;gap:8px;flex-wrap:wrap}.chat-history-count,.chat-history-state,.chat-history-limit{font-size:.75rem;color:var(--gm-muted)}.chat-history-state{color:var(--gm-accent)}.chat-history-limit{margin:0;padding:10px 20px;background:var(--gm-panel-alt)}.chat-timeline{position:relative}.chat-list{height:clamp(300px,calc(100vh - 470px),660px);min-height:300px;background:var(--gm-panel);border:0}.chat-message{display:flex;align-items:flex-start;gap:14px;padding:17px 24px;border-bottom:1px solid var(--gm-border);min-width:0}.chat-own{background:var(--gm-accent-soft)}.chat-avatar{display:grid;place-items:center;flex:0 0 32px;height:32px;border-radius:9px;background:var(--gm-panel-alt);border:1px solid var(--gm-border);color:var(--gm-muted);font-family:var(--gm-mono);font-size:.7rem;font-weight:600}.chat-own .chat-avatar{color:var(--gm-accent);border-color:var(--gm-accent)}.chat-message-body{min-width:0;flex:1}.chat-message-meta{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:6px}.chat-message-meta strong{font-size:.8rem;display:flex;gap:8px;align-items:center}.chat-message-meta time{font-size:.7rem;color:var(--gm-muted);font-variant-numeric:tabular-nums}.chat-you{font-size:.65rem;line-height:1.5;padding:0 5px;border-radius:4px;border:1px solid var(--gm-border);color:var(--gm-accent);font-weight:500}.chat-empty{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;flex-direction:column;gap:14px;padding:24px;pointer-events:none}.chat-empty strong{font-size:1rem}.chat-empty p{max-width:420px;text-align:center;font-size:.85rem;color:var(--gm-muted);line-height:1.7;margin:0}.chat-empty-mark{font-size:2rem;padding:8px 20px}.chat-composer{padding:20px 24px;border-top:1px solid var(--gm-border);background:var(--gm-panel-alt)}.composer-heading{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}.composer-heading label{font-size:.85rem;font-weight:600;margin:0}.composer-heading>span{font-size:.75rem;color:var(--gm-muted)}.chat-formatting{display:flex;flex-wrap:wrap;gap:6px}.chat-formatting .btn{font-size:.75rem}.chat-formatting .btn:last-child{margin-left:auto}.chat-preview{min-height:100px;max-height:260px;overflow:auto;padding:14px;border:1px solid var(--gm-border);border-radius:var(--gm-radius);background:var(--gm-panel)}.composer-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px}.composer-footer>span{font-size:.7rem;line-height:1.7}.composer-footer>.btn{min-width:110px;flex-shrink:0}.chat-format-help{font-size:.75rem;color:var(--gm-muted);margin-top:12px}.chat-format-help summary{cursor:pointer}.chat-format-help pre{font-family:var(--gm-mono);color:var(--gm-text)}
-@media(max-width:600px){.chat-room-heading{padding:16px;align-items:flex-start;flex-wrap:wrap;gap:12px}.chat-room-info{max-width:none;width:100%}.chat-room-info summary{text-align:left}.chat-history-toolbar{padding:12px}.chat-history-actions{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px}.chat-history-actions .btn{font-size:.7rem;padding:7px;white-space:normal}.chat-message{padding:14px 12px;gap:9px}.chat-avatar{flex-basis:25px;height:25px;font-size:.6rem;border-radius:7px}.chat-message-meta{gap:4px}.chat-message-meta strong{font-size:.75rem}.chat-message-meta time{font-size:.65rem}.chat-composer{padding:14px 12px}.composer-footer{align-items:flex-start;flex-wrap:wrap}.composer-footer .btn{margin-left:auto}.chat-formatting .btn:last-child{margin-left:0}.chat-list{height:340px}.chat-empty{padding:20px}}
-/* Keep the editor anchored while only the message timeline scrolls. */
-.chat-page{height:100%;min-height:0;display:flex;flex-direction:column;padding-bottom:0}
-.chat-page>.gm-page-header{flex:none;margin-bottom:16px}
-.chat-workspace{padding:0;flex:1;min-height:0;display:flex;flex-direction:column}
-.chat-room-heading,.chat-history-toolbar,.chat-history-limit,.chat-error,.chat-composer{flex:none}
-.chat-room-heading{padding:12px 20px}
-.chat-history-toolbar{padding:8px 16px}
-.chat-timeline{flex:1;min-height:120px}
-.chat-list{height:100%;min-height:0}
-.chat-empty{overflow:auto;gap:8px;padding:12px}
-.chat-empty-mark{font-size:1.25rem;padding:3px 12px}
-.chat-empty p{font-size:.8rem;line-height:1.5}
-.chat-composer{padding:12px 20px}
-.composer-heading{margin-bottom:8px}
-.chat-composer #chat-editor{max-height:100px;overflow-y:auto!important}
-.chat-preview{min-height:72px;max-height:100px}
-.composer-footer{margin-top:8px}
-.chat-format-help{margin-top:8px}
-.chat-format-help[open]{max-height:100px;overflow:auto}
-@media(max-width:800px),(max-height:700px){.chat-page{height:auto;min-height:100%}.chat-workspace{flex:none}.chat-timeline{flex:none;height:260px;min-height:260px}.chat-list{height:100%;min-height:0}.chat-composer{padding:14px 12px}}
+.chat-page{height:100%;min-height:0;display:flex;flex-direction:column;background:var(--gm-panel)}
+.chat-room-heading{display:flex;flex:none;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:4px 20px;border-bottom:1px solid var(--gm-border)}
+.chat-room-name,.chat-room-actions{display:flex;align-items:center;gap:12px;min-width:0}
+.chat-room-symbol{font-size:26px;color:var(--gm-muted);font-weight:500}
+.chat-room-name .gm-page-title{font-size:16px;margin:0;font-weight:700;letter-spacing:0}
+.chat-room-actions{gap:4px}.chat-history-button{font-size:12px;color:var(--gm-muted)}
+.chat-info-menu ::v-deep .dropdown-toggle{width:40px;height:40px;color:var(--gm-muted)}
+.chat-info-menu ::v-deep .dropdown-menu{width:280px;max-width:calc(100vw - 24px);font-size:13px}
+.chat-info-menu p{margin:6px 0;color:var(--gm-muted);line-height:1.5}
+.chat-error{flex:none;margin:8px 16px;padding:8px 12px;font-size:13px}
+.chat-history-banner{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 16px;background:var(--gm-accent-soft);font-size:12px}.chat-history-banner .btn{font-size:12px}
+.chat-timeline{position:relative;flex:1;min-height:0}
+.chat-list{height:100%;min-height:0;scrollbar-gutter:stable}
+.chat-message{display:flex;align-items:flex-start;gap:14px;padding:9px 24px;min-width:0}
+.chat-message:hover{background:var(--gm-panel-alt)}
+.chat-avatar{display:grid;place-items:center;flex:0 0 36px;height:36px;border-radius:50%;background:var(--gm-panel-alt);color:var(--gm-muted);font-family:var(--gm-mono);font-size:12px;font-weight:600}
+.chat-own .chat-avatar{color:var(--gm-accent);background:var(--gm-accent-soft)}
+.chat-message-body{min-width:0;flex:1}.chat-message-meta{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:2px}
+.chat-message-meta strong{font-size:13px;display:flex;gap:8px;align-items:center}.chat-message-meta time{font-size:11px;color:var(--gm-muted);font-variant-numeric:tabular-nums}.chat-you{font-size:10px;color:var(--gm-muted);font-weight:400}
+.chat-message ::v-deep .chat-markdown{font-size:14px;line-height:1.5}
+.chat-empty{position:absolute;inset:0;display:flex;justify-content:flex-end;align-items:flex-start;flex-direction:column;gap:12px;padding:28px;pointer-events:none;overflow:hidden}
+.chat-empty-mark{display:grid;place-items:center;width:64px;height:64px;flex:none;border-radius:50%;font-size:40px;background:var(--gm-panel-alt);color:var(--gm-muted)}.chat-empty strong{font-size:22px}
+.chat-jump{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);border-radius:20px;max-width:calc(100% - 32px);font-size:12px;white-space:normal;box-shadow:0 2px 8px #0002}
+.chat-composer{flex:none;padding:8px 20px 16px}
+.chat-input-shell{display:flex;align-items:flex-end;gap:4px;border:1px solid var(--gm-border);border-radius:10px;padding:3px;background:var(--gm-panel-alt)}
+.chat-input-shell:focus-within{border-color:var(--gm-accent);outline:2px solid var(--gm-accent);outline-offset:1px}
+.chat-format-menu,.chat-send{flex:none}.chat-format-menu ::v-deep .dropdown-toggle,.chat-send{display:grid;place-items:center;width:40px;height:40px;padding:0;color:var(--gm-muted);border-radius:7px}
+.chat-format-menu ::v-deep .dropdown-menu{min-width:190px;max-height:min(320px,55dvh);overflow-y:auto;font-size:13px}
+.chat-format-menu ::v-deep .dropdown-item{padding:8px 16px}
+.chat-composer #chat-editor{flex:1;min-width:0;border:0;box-shadow:none;background:transparent;color:var(--gm-text);font-size:14px;line-height:22px;padding:9px 4px;min-height:40px;max-height:128px;overflow-y:auto!important;resize:none}
+.chat-composer #chat-editor:focus-visible{outline:none!important}
+.chat-composer #chat-editor::placeholder{color:var(--gm-muted)}
+.chat-send:not(:disabled){color:var(--gm-accent)}.chat-send:disabled{opacity:.4}
+.chat-preview{flex:1;min-width:0;padding:8px 4px;max-height:160px;overflow:auto;font-size:14px}.chat-preview>.btn{font-size:12px;padding:4px 0}
+.chat-send-error{font-size:12px;margin:6px 4px 0;max-height:70px;overflow:auto}
+@media(max-width:600px){.chat-room-heading{padding:4px 12px}.chat-message{padding:8px 12px;gap:10px}.chat-avatar{flex-basis:32px;height:32px}.chat-message-meta{gap:6px}.chat-message-meta strong{font-size:12px}.chat-composer{padding:6px 10px 10px}.chat-format-menu ::v-deep .dropdown-toggle,.chat-send{width:44px;height:44px}.chat-composer #chat-editor{padding-top:11px;padding-bottom:11px;min-height:44px}.chat-history-banner{padding:4px 12px}}
 </style>

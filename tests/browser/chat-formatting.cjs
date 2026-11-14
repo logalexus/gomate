@@ -14,12 +14,12 @@ process.chdir(path.resolve(__dirname,'../..'));
   await page.goto(base+'/#/chat');await peer.goto(base+'/#/chat');
   const editor=page.getByRole('textbox',{name:'Сообщение в чат'});
   await editor.waitFor();await page.waitForFunction(()=>!document.querySelector('.chat-page').textContent.includes('Подключение…'));
-  await editor.fill('selected');await editor.evaluate(el=>el.select());await page.getByRole('button',{name:'Жирный',exact:true}).click();assert.equal(await editor.inputValue(),'**selected**');
-  await editor.fill('');await page.getByRole('button',{name:'Блок кода',exact:true}).click();assert.equal(await editor.inputValue(),'```\nкод\n```');
+  await editor.fill('selected');await editor.evaluate(el=>el.select());await page.getByRole('button',{name:'Форматирование сообщения',exact:true}).click();await page.getByRole('menuitem',{name:'Жирный',exact:true}).click();assert.equal(await editor.inputValue(),'**selected**');
+  await editor.fill('');await page.getByRole('button',{name:'Форматирование сообщения',exact:true}).click();await page.getByRole('menuitem',{name:'Блок кода',exact:true}).click();assert.equal(await editor.inputValue(),'```\nкод\n```');
   await editor.press('ArrowRight');await editor.press('Enter');assert.equal(await editor.inputValue(),'```\nкод\n\n```'); // newline, not accidental send
   const code='  if a < b {\n\tfmt.Println("<script>")\n  }\n';
   const text=run+' **жирный** *курсив* ~~удалён~~ `inline`\n\n- первый\n- второй\n\n> цитата\n\n[документация](https://example.com)\n\n```go\n'+code+'```\n\n<img src=x onerror=window.chatXSS=1>\n[x](javascript:alert%281%29)\n![image](https://example.com/pixel)';
-  await editor.fill(text);await page.getByRole('button',{name:'Предпросмотр',exact:true}).click();
+  await editor.fill(text);await page.getByRole('button',{name:'Форматирование сообщения',exact:true}).click();await page.getByRole('menuitem',{name:'Предпросмотр',exact:true}).click();
   const preview=page.getByLabel('Предпросмотр сообщения');await preview.locator('strong').waitFor();assert.equal(await preview.locator('pre code').textContent(),code);assert.equal(await preview.locator('img,script,svg').count(),0);
   await page.getByRole('button',{name:'Редактировать',exact:true}).click();assert.equal(await editor.inputValue(),text);
   const posted=page.waitForResponse(r=>r.url().endsWith('/api/v2/chat')&&r.request().method()==='POST');await editor.press('Control+Enter');assert((await posted).ok());
@@ -35,7 +35,7 @@ process.chdir(path.resolve(__dirname,'../..'));
   await editor.fill(run+' plain');await editor.press('Shift+Enter');assert.equal(await editor.inputValue(),run+' plain\n');
   const plainPosted=page.waitForResponse(r=>r.url().endsWith('/api/v2/chat')&&r.request().method()==='POST');await editor.press('Enter');assert((await plainPosted).ok());
   await peer.locator('.chat-message').filter({hasText:run+' plain'}).waitFor();
-  await page.setViewportSize({width:390,height:844});await editor.fill('```\n'+'long_code_'.repeat(150)+'\n```');await page.getByRole('button',{name:'Предпросмотр',exact:true}).click();
+  await page.setViewportSize({width:390,height:844});await editor.fill('```\n'+'long_code_'.repeat(150)+'\n```');await page.getByRole('button',{name:'Форматирование сообщения',exact:true}).click();await page.getByRole('menuitem',{name:'Предпросмотр',exact:true}).click();
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'mobile horizontal overflow');
   assert.deepEqual(errors,[]);Object.assign(report,{passed:true,pageErrors:errors,checks:['toolbar selection','Enter inside fenced code','preview matches sent content','Ctrl+Enter and Shift+Enter','cross-client formatted messages','copy preserves whitespace over HTTP','HTML and unsafe URLs inert','raw Markdown stored and survives reload','390px layout with long code']});
  }finally{fs.writeFileSync('reports/ui-chat-formatting.json',JSON.stringify(report,null,2)+'\n');await browser.close()}
