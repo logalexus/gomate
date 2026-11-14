@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "mocked": true,
+  "submittedRuns": 3,
+  "cancelledRuns": 2,
+  "checks": [
+    "editable generated requests/curl/pwntools",
+    "captured target defaults",
+    "manual edits survive generator settings",
+    "exact edited code copied and submitted",
+    "stdout/stderr rendered as text",
+    "run/stop/close lifecycle",
+    "script limit",
+    "copy without runner",
+    "375px stacked layout",
+    "Python/Bash syntax highlighting",
+    "800/1100/1440px split layout, larger editor",
+    "light/dark themes",
+    "undo and Tab escape",
+    "4000-line script virtualization and visible Run button"
+  ],
+  "pageErrors": []
+}

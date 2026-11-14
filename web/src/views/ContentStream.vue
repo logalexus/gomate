@@ -12,22 +12,24 @@
    <div v-if="error" class="packet-error" role="alert">{{ error }} <button class="btn btn-sm btn-outline-secondary" @click="load">Повторить</button></div>
    <div v-if="loading&&!packets.length" class="packet-empty" role="status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"/><h2>Загружаем содержимое</h2><p>Получаем выбранную страницу сессии.</p></div>
    <div v-else-if="!packetsWithOffsets.length" class="packet-empty"><i class="fas fa-filter" aria-hidden="true"/><h2>{{ packets.length?'Нет блоков этого направления':'Нет доступных блоков' }}</h2><p>{{ packets.length?'Измените направление или перейдите на следующую страницу.':'Попробуйте другое представление. Содержимое также могло быть удалено по сроку хранения.' }}</p><button v-if="representation||direction" class="btn btn-sm btn-outline-primary" @click="clearView">Показать все блоки</button></div>
-   <div class="packet-list"><Packet v-for="packetWithOffset in packetsWithOffsets" :key="packetWithOffset.packet.id" :packet="packetWithOffset.packet" :offset="packetWithOffset.offset" @decode="openDecoder"/></div>
+   <div class="packet-list"><Packet v-for="packetWithOffset in packetsWithOffsets" :key="packetWithOffset.packet.id" :packet="packetWithOffset.packet" :offset="packetWithOffset.offset" @decode="openDecoder" @export="openWorkbench"/></div>
    <footer class="packet-pagination"><button class="btn btn-sm btn-outline-secondary" :disabled="!history.length||loading" aria-label="Предыдущие блоки" @click="previousPage"><i class="fas fa-arrow-left" aria-hidden="true"/> Назад</button><span>Страница {{ history.length+1 }}</span><button class="btn btn-sm btn-outline-secondary" :disabled="!hasMore||loading" aria-label="Следующие блоки" @click="nextPage">Далее <i class="fas fa-arrow-right" aria-hidden="true"/></button></footer>
   </template>
   <div v-else class="traffic-welcome"><i class="fas fa-stream" aria-hidden="true"/><h2>Выберите сессию</h2><p>Откройте сессию в списке, чтобы увидеть её содержимое.</p></div>
-  <TrafficDecoder ref="decoder"/>
+  <TrafficDecoder ref="decoder"/><RequestWorkbench ref="workbench"/>
  </section>
 </template>
 <script>
+import RequestWorkbench from '../components/RequestWorkbench.vue';
 import Packet from '../components/Packet';
 import TrafficDecoder from '@/components/TrafficDecoder.vue';
 export default {
- name:'ContentStream',components:{Packet,TrafficDecoder},props:['servicePort','streamId'],
+ name:'ContentStream',components:{Packet,TrafficDecoder,RequestWorkbench},props:['servicePort','streamId'],
  data:()=>({packets:[],cursor:null,history:[],loading:false,hasMore:false,generation:0,error:'',representation:'',direction:''}),
  computed:{currentId(){return this.$route.params.streamId},packetsWithOffsets(){return this.packets.map((packet,i)=>({packet,offset:i?packet.timestamp-this.packets[i-1].timestamp:null})).filter(({packet})=>!this.direction||packet.incoming===(this.direction==='incoming'))}},
  mounted(){this.reset()},beforeDestroy(){this.generation++},watch:{'$route.params.streamId':'reset'},
  methods:{
+  openWorkbench(value){this.$refs.workbench.open({...value,streamId:this.currentId})},
   openDecoder(value){this.$refs.decoder.open(value)},setHex(value){if(this.$store.state.hexdumpMode!==value)this.$store.commit('toggleHexdumpMode')},
   clearView(){this.representation='';this.direction='';this.reset()},
   reset(){this.packets=[];this.cursor=null;this.history=[];this.error='';this.load()},
