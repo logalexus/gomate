@@ -105,6 +105,26 @@ func TestNearestPlayerAndDeadPlayer(t *testing.T) {
 		t.Fatal("dead player fired")
 	}
 }
+func TestVerticalAim(t *testing.T) {
+	now := time.Now()
+	for _, pitch := range []float64{.7, -1, 0} {
+		h, shooter, target := fixture(now)
+		shooter.input = Input{Fire: true, Pitch: pitch}
+		h.advance(now)
+		want := 100
+		if pitch == 0 {
+			want = 66
+		}
+		if target.HP != want {
+			t.Fatalf("pitch=%v hp=%d want=%d", pitch, target.HP, want)
+		}
+	}
+	for _, pitch := range []float64{1.31, -1.31, math.NaN(), math.Inf(1)} {
+		if (Input{Pitch: pitch}).valid() {
+			t.Fatalf("invalid pitch accepted: %v", pitch)
+		}
+	}
+}
 func TestWebSocketRoomBoundedAndStops(t *testing.T) {
 	var h Hub
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { h.Serve(w, r, r.URL.Query().Get("name")) }))

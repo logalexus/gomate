@@ -1,44 +1,122 @@
-// Small software 3D raycaster. No assets, WebGL context or game libraries in the chat bundle.
-const colors=['#73fbd3','#ffb86b','#a99bff','#ff7caa'];
-const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+// Real WebGL scene: triangle meshes, perspective camera, depth testing and lighting.
+// No external assets or runtime downloads; the game remains a lazy-loaded module.
+const COLORS = [[.35,.95,.77],[1,.61,.29],[.65,.53,1],[1,.35,.57]];
+const vertexSource = `
+attribute vec3 aPosition;
+attribute vec3 aNormal;
+uniform mat4 uProjection, uView, uModel;
+varying mediump vec3 vWorld, vNormal;
+void main() {
+ vec4 world = uModel * vec4(aPosition, 1.0);
+ vWorld = world.xyz;
+ vNormal = normalize(mat3(uModel) * aNormal);
+ gl_Position = uProjection * uView * world;
+}`;
+const fragmentSource = `
+precision mediump float;
+uniform vec3 uColor, uCamera;
+uniform float uEmission, uGrid;
+varying mediump vec3 vWorld, vNormal;
+void main() {
+ float light = .32 + .68 * max(0.0, dot(normalize(vNormal), normalize(vec3(-.4, 1., .3))));
+ vec3 color = uColor * mix(light, 1., uEmission);
+ if (uGrid > .5) {
+  vec2 cell = fract(vWorld.xz);
+  float line = 1. - step(.018, min(min(cell.x, 1.-cell.x), min(cell.y, 1.-cell.y)));
+  color += vec3(.015, .06, .075) * line;
+ }
+ float fog = smoothstep(10., 32., distance(uCamera, vWorld));
+ gl_FragColor = vec4(mix(color, vec3(.025, .04, .07), fog), 1.);
+}`;
+function perspective(aspect) {
+ const f = 1 / Math.tan(Math.PI * 63 / 360), near = .04, far = 60;
+ return new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,(far+near)/(near-far),-1, 0,0,2*far*near/(near-far),0]);
+}
+function view(x,y,z,angle,pitch) {
+ const c=Math.cos(angle),s=Math.sin(angle),cp=Math.cos(pitch),sp=Math.sin(pitch);
+ const r=[-s,0,c],u=[-c*sp,cp,-s*sp],f=[c*cp,sp,s*cp];
+ return new Float32Array([r[0],u[0],-f[0],0, r[1],u[1],-f[1],0, r[2],u[2],-f[2],0,
+  -(r[0]*x+r[1]*y+r[2]*z),-(u[0]*x+u[1]*y+u[2]*z),f[0]*x+f[1]*y+f[2]*z,1]);
+}
+const identity=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
+function cubeVertices() {
+ const result=[];
+ const faces=[
+  [[1,0,0],[[.5,-.5,-.5],[.5,.5,-.5],[.5,.5,.5],[.5,-.5,.5]]],
+  [[-1,0,0],[[-.5,-.5,.5],[-.5,.5,.5],[-.5,.5,-.5],[-.5,-.5,-.5]]],
+  [[0,1,0],[[-.5,.5,-.5],[-.5,.5,.5],[.5,.5,.5],[.5,.5,-.5]]],
+  [[0,-1,0],[[-.5,-.5,.5],[-.5,-.5,-.5],[.5,-.5,-.5],[.5,-.5,.5]]],
+  [[0,0,1],[[.5,-.5,.5],[.5,.5,.5],[-.5,.5,.5],[-.5,-.5,.5]]],
+  [[0,0,-1],[[-.5,-.5,-.5],[-.5,.5,-.5],[.5,.5,-.5],[.5,-.5,-.5]]]
+ ];
+ for(const [normal,points] of faces) for(const i of [0,1,2,0,2,3]) result.push(...points[i],...normal);
+ return new Float32Array(result);
+}
 export class ArenaRenderer {
- constructor(canvas){this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:false});this.camera=null;this.sprites=colors.map(c=>this.robot(c));this.depth=[];this.lastShot=0;this.flashUntil=0;this.lastHP=100;this.hurtUntil=0;this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches}
- robot(color){const c=document.createElement('canvas');c.width=64;c.height=96;const g=c.getContext('2d');g.fillStyle='#080f1c';g.fillRect(12,25,40,48);g.fillStyle=color;g.fillRect(17,8,30,25);g.fillRect(15,37,34,31);g.fillRect(6,38,7,32);g.fillRect(51,38,7,32);g.fillStyle='#203246';g.fillRect(18,70,10,24);g.fillRect(36,70,10,24);g.fillStyle='#f0ffff';g.fillRect(22,17,20,5);g.fillStyle='#26384b';g.fillRect(28,40,8,22);g.fillStyle='#d5e6f2';g.fillRect(45,52,14,8);return c}
- draw(map,players,id,angle,dt,now){
-  const c=this.canvas,g=this.ctx,w=c.width,h=c.height,me=players.find(p=>p.id===id);if(!map||!me)return;
+ constructor(canvas) {
+  this.canvas=canvas;
+  const gl=canvas.getContext('webgl',{alpha:false,antialias:false,powerPreference:'low-power'});
+  if(!gl) throw Error('Для 3D-арены нужен WebGL. Включите аппаратное ускорение в браузере.');
+  this.gl=gl;this.camera=null;this.lastShot=0;this.flashUntil=0;this.model=new Float32Array(16);
+  this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const shader=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const error=gl.getShaderInfoLog(s);gl.deleteShader(s);throw Error(error)}return s};
+  const vs=shader(gl.VERTEX_SHADER,vertexSource),fs=shader(gl.FRAGMENT_SHADER,fragmentSource);
+  this.program=gl.createProgram();gl.attachShader(this.program,vs);gl.attachShader(this.program,fs);gl.linkProgram(this.program);gl.deleteShader(vs);gl.deleteShader(fs);
+  if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw Error('Не удалось запустить 3D-рендер.');
+  gl.useProgram(this.program);this.uniform={};
+  for(const name of ['Projection','View','Model','Color','Camera','Emission','Grid'])this.uniform[name]=gl.getUniformLocation(this.program,'u'+name);
+  this.buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);gl.bufferData(gl.ARRAY_BUFFER,cubeVertices(),gl.STATIC_DRAW);
+  for(const [name,offset] of [['aPosition',0],['aNormal',12]]){const loc=gl.getAttribLocation(this.program,name);gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,3,gl.FLOAT,false,24,offset)}
+  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.clearColor(.025,.04,.07,1);
+ }
+ box(x,y,z,sx,sy,sz,color,yaw=0,pitch=0,emission=0,grid=0) {
+  const gl=this.gl,m=this.model,c=Math.cos(yaw),s=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+  m.set([c*sx,0,-s*sx,0, s*sp*sy,cp*sy,c*sp*sy,0, s*cp*sz,-sp*sz,c*cp*sz,0, x,y,z,1]);
+  gl.uniformMatrix4fv(this.uniform.Model,false,m);gl.uniform3fv(this.uniform.Color,color);
+  gl.uniform1f(this.uniform.Emission,emission);gl.uniform1f(this.uniform.Grid,grid);gl.drawArrays(gl.TRIANGLES,0,36);
+ }
+ draw(map,players,id,angle,pitch,dt,now) {
+  const gl=this.gl,w=this.canvas.width,h=this.canvas.height,me=players.find(p=>p.id===id);
+  if(!map||!me||gl.isContextLost())return;
   if(!this.camera||Math.hypot(this.camera.x-me.x,this.camera.y-me.y)>2)this.camera={x:me.x,y:me.y};
   const smooth=1-Math.exp(-dt*22);this.camera.x+=(me.x-this.camera.x)*smooth;this.camera.y+=(me.y-this.camera.y)*smooth;
-  const {x,y}=this.camera,fov=Math.PI/2.8,plane=w/(2*Math.tan(fov/2));
-  if(me.shot!==this.lastShot){this.lastShot=me.shot;this.flashUntil=now+90}if(me.hp<this.lastHP)this.hurtUntil=now+160;this.lastHP=me.hp;
-  let gradient=g.createLinearGradient(0,0,0,h);gradient.addColorStop(0,'#080e1a');gradient.addColorStop(.5,'#22354b');gradient.addColorStop(.51,'#182331');gradient.addColorStop(1,'#090f1a');g.fillStyle=gradient;g.fillRect(0,0,w,h);
-  // Floor perspective lines make depth and movement legible without expensive per-pixel textures.
-  g.strokeStyle='#294355';g.lineWidth=1;g.beginPath();for(let d=1;d<22;d+=1){const sy=h/2+plane*.5/d;g.moveTo(0,sy);g.lineTo(w,sy)}for(let i=-8;i<=8;i++){g.moveTo(w/2+i*18,h/2);g.lineTo(w/2+i*w/5,h)}g.stroke();
-  const stride=2;this.depth.length=Math.ceil(w/stride);
-  for(let sx=0;sx<w;sx+=stride){
-   const offset=Math.atan((sx-w/2)/plane),a=angle+offset,dx=Math.cos(a),dy=Math.sin(a);let mx=Math.floor(x),my=Math.floor(y);
-   const ddx=Math.abs(1/dx),ddy=Math.abs(1/dy),stepX=dx<0?-1:1,stepY=dy<0?-1:1;
-   let sideX=(dx<0?x-mx:mx+1-x)*ddx,sideY=(dy<0?y-my:my+1-y)*ddy,side=0,tile='1';
-   for(let n=0;n<64;n++){if(sideX<sideY){sideX+=ddx;mx+=stepX;side=0}else{sideY+=ddy;my+=stepY;side=1}tile=map[my]?.[mx]||'1';if(tile!=='0')break}
-   const distance=Math.max(.05,(side?sideY-ddy:sideX-ddx)*Math.cos(offset));this.depth[sx/stride]=distance;
-   const height=plane/distance,top=(h-height)/2,texture=((side?x+(sideY-ddy)*dx:y+(sideX-ddx)*dy)%1+1)%1;
-   const base=tile==='2'?[54,126,135]:tile==='3'?[102,75,145]:[53,74,96];let shade=Math.max(.18,1-distance/22)*(side?.72:1);if(texture<.035||texture>.965)shade*=.45;
-   g.fillStyle=`rgb(${base.map(v=>Math.round(v*shade)).join(',')})`;g.fillRect(sx,top,stride,height);
-   g.fillStyle=tile==='3'?'#b09bff':tile==='2'?'#71e6d2':'#4b879d';g.globalAlpha=Math.max(.15,1-distance/20);g.fillRect(sx,top+height*.13,stride,Math.max(1,height*.025));g.globalAlpha=1;
-   g.fillStyle='#0c1725';g.fillRect(sx,top+height*.76,stride,Math.max(1,height*.015));
+  const x=this.camera.x,z=this.camera.y,eye=me.hp>0?1.25:.45;
+  gl.viewport(0,0,w,h);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.uniformMatrix4fv(this.uniform.Projection,false,perspective(w/h));gl.uniformMatrix4fv(this.uniform.View,false,view(x,eye,z,angle,pitch));gl.uniform3f(this.uniform.Camera,x,eye,z);
+  this.box(8,-.1,7,16,.2,14,[.09,.13,.18],0,0,0,1);
+  for(let iy=0;iy<map.length;iy++)for(let ix=0;ix<map[iy].length;ix++){
+   const tile=map[iy][ix];if(tile==='0')continue;
+   const color=tile==='2'?[.13,.32,.36]:tile==='3'?[.27,.19,.39]:[.13,.19,.26];
+   this.box(ix+.5,1.25,iy+.5,.99,2.5,.99,color);
+   this.box(ix+.5,2.51,iy+.5,1.01,.08,1.01,[.22,.29,.36]);
+   this.box(ix+.5,.22,iy+.5,1.01,.11,1.01,[.04,.07,.11]);
+   this.box(ix+.5,1.95,iy+.5,1.012,.045,1.012,tile==='3'?[.67,.48,1]:[.24,.8,.77],0,0,1);
   }
-  const enemies=players.filter(p=>p.id!==id&&p.hp>0).map(p=>{const a=wrap(Math.atan2(p.y-y,p.x-x)-angle);return {p,a,dist:Math.hypot(p.x-x,p.y-y)*Math.cos(a)}}).filter(v=>v.dist>.15&&Math.abs(v.a)<fov).sort((a,b)=>b.dist-a.dist);
-  for(const {p,a,dist} of enemies){const height=plane*.85/dist,width=height*2/3,center=w/2+Math.tan(a)*plane,top=h/2+plane*.5/dist-height,left=center-width/2,sprite=this.sprites[p.id%4];
-   for(let sx=Math.max(0,Math.floor(left/stride)*stride);sx<Math.min(w,left+width);sx+=stride){if(dist>=this.depth[Math.floor(sx/stride)])continue;const src=Math.max(0,Math.min(63,(sx-left)/width*64));g.drawImage(sprite,src,0,Math.min(64-src,64*stride/width),96,sx,top,stride,height)}
-   if(center>0&&center<w&&dist<this.depth[Math.floor(center/stride)]){g.font='12px monospace';g.textAlign='center';g.fillStyle=colors[p.id%4];g.fillText(p.name,center,top-8);if(p.shieldUntil>Date.now()){g.strokeStyle='#c5eeff';g.strokeRect(left,top,width,height)}}
+  // Volumetric central fixtures give the room visible height and overhead geometry.
+  this.box(8,3.7,7,.22,.2,12,[.16,.23,.3]);
+  this.box(8,3.58,7,.08,.04,10,[.4,.85,1],0,0,1);
+  for(const p of players){
+   if(p.id===id||p.hp<=0)continue;
+   const yaw=Math.PI/2-p.angle,color=COLORS[p.id%COLORS.length];
+   const part=(lx,ly,lz,sx,sy,sz,c,emission=0)=>this.box(p.x+Math.cos(yaw)*lx+Math.sin(yaw)*lz,ly,p.y-Math.sin(yaw)*lx+Math.cos(yaw)*lz,sx,sy,sz,c,yaw,0,emission);
+   part(-.14,.32,0,.17,.64,.24,[.1,.15,.21]);part(.14,.32,0,.17,.64,.24,[.1,.15,.21]);
+   part(0,.94,0,.48,.58,.3,color);part(0,1.42,0,.37,.34,.34,[.16,.23,.29]);
+   part(0,1.44,.18,.3,.075,.035,p.shieldUntil>Date.now()?[.8,1,1]:color,1);
+   part(-.32,.96,0,.13,.5,.17,color);part(.32,.96,.04,.13,.5,.17,color);
+   this.box(p.x+Math.cos(p.angle)*.38,1.13,p.y+Math.sin(p.angle)*.38,.14,.13,.5,[.19,.25,.3],yaw,-(p.pitch||0));
   }
-  // View model, animated only on a confirmed server shot.
-  const recoil=!this.reduced&&now<this.flashUntil?12:0,gx=w*.58,gy=h+recoil;
-  g.fillStyle='#162536';g.beginPath();g.moveTo(gx-65,gy);g.lineTo(gx-26,gy-95);g.lineTo(gx+28,gy-95);g.lineTo(gx+78,gy);g.fill();g.fillStyle='#3c5368';g.fillRect(gx-19,gy-112,38,76);g.fillStyle='#78f4ce';g.fillRect(gx-11,gy-100,22,4);g.fillStyle='#0a111d';g.fillRect(gx-12,gy-120,24,18);
-  if(now<this.flashUntil&&!this.reduced){g.fillStyle='#ddfff2';g.beginPath();g.moveTo(gx-15,gy-125);g.lineTo(gx-27,gy-155);g.lineTo(gx,gy-140);g.lineTo(gx+24,gy-155);g.lineTo(gx+14,gy-125);g.fill()}
-  if(now<this.hurtUntil&&!this.reduced){g.strokeStyle='#ff587988';g.lineWidth=14;g.strokeRect(0,0,w,h)}
-  g.strokeStyle='#e7fff5';g.lineWidth=1.5;g.beginPath();g.moveTo(w/2-9,h/2);g.lineTo(w/2-3,h/2);g.moveTo(w/2+3,h/2);g.lineTo(w/2+9,h/2);g.moveTo(w/2,h/2-9);g.lineTo(w/2,h/2-3);g.moveTo(w/2,h/2+3);g.lineTo(w/2,h/2+9);g.stroke();
-  // A small minimap shows geometry and self only; opponents still need to be found.
-  const scale=5,ox=w-16-map[0].length*scale,oy=16;g.fillStyle='#07101bdd';g.fillRect(ox-5,oy-5,map[0].length*scale+10,map.length*scale+10);
-  map.forEach((row,iy)=>[...row].forEach((v,ix)=>{if(v!=='0'){g.fillStyle='#456077';g.fillRect(ox+ix*scale,oy+iy*scale,scale-1,scale-1)}}));g.fillStyle='#78f4ce';g.beginPath();g.arc(ox+x*scale,oy+y*scale,2,0,Math.PI*2);g.fill();g.strokeStyle='#78f4ce';g.beginPath();g.moveTo(ox+x*scale,oy+y*scale);g.lineTo(ox+(x+Math.cos(angle)*1.5)*scale,oy+(y+Math.sin(angle)*1.5)*scale);g.stroke();
+  // The weapon is itself a set of 3D meshes in camera space, with its own depth pass.
+  if(me.hp>0){
+   if(me.shot!==this.lastShot){this.lastShot=me.shot;this.flashUntil=now+90}
+   const recoil=!this.reduced&&now<this.flashUntil?.04:0;
+   gl.clear(gl.DEPTH_BUFFER_BIT);gl.uniformMatrix4fv(this.uniform.View,false,identity);gl.uniform3f(this.uniform.Camera,0,0,0);
+   this.box(.23,-.28+recoil,-.48,.12,.14,.38,[.2,.28,.36]);
+   this.box(.23,-.37+recoil,-.35,.09,.19,.12,[.08,.12,.17],0,-.2);
+   this.box(.23,-.255+recoil,-.74,.065,.07,.18,[.1,.15,.2]);
+   this.box(.23,-.202+recoil,-.55,.045,.015,.2,[.35,.96,.75],0,0,1);
+   this.box(.23,-.19+recoil,-.68,.04,.045,.04,[.08,.12,.17]);
+   if(now<this.flashUntil&&!this.reduced)this.box(.23,-.255+recoil,-.86,.09,.09,.12,[1,.89,.46],0,Math.PI/4,1);
+  }
  }
+ dispose(){const gl=this.gl;gl.deleteBuffer(this.buffer);gl.deleteProgram(this.program)}
 }

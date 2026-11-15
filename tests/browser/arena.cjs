@@ -17,6 +17,10 @@ process.chdir(path.resolve(__dirname,'../..'));
    await page.getByRole('button',{name:'Открыть мини-шутер'}).click();await page.getByRole('button',{name:'Войти на арену',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.chat-page').__vue__.$children.find(c=>c.$options.name==='ArenaGame')?.me?.hp===100);
   }
   const [a,b]=pages;
+  const renderer=await a.evaluate(()=>{const g=document.querySelector('.chat-page').__vue__.$children.find(c=>c.$options.name==='ArenaGame'),gl=g.renderer.gl;return {webgl:gl instanceof WebGLRenderingContext,depth:gl.isEnabled(gl.DEPTH_TEST),error:gl.getError()}});assert(renderer.webgl&&renderer.depth&&renderer.error===0,JSON.stringify(renderer));report.checks.push('real WebGL triangle renderer with perspective camera and depth buffer');
+  await a.evaluate(()=>{const g=document.querySelector('.chat-page').__vue__.$children.find(c=>c.$options.name==='ArenaGame');g.look(0,-100,.003);g.sendInput()});
+  await b.waitForFunction(()=>document.querySelector('.chat-page').__vue__.$children.find(c=>c.$options.name==='ArenaGame').players.some(p=>p.pitch>.2));
+  await a.evaluate(()=>document.querySelector('.chat-page').__vue__.$children.find(c=>c.$options.name==='ArenaGame').pitch=0);report.checks.push('vertical mouse look replicated by server');
   for(const page of pages)await page.waitForFunction(()=>document.querySelector('.chat-page').__vue__.$children.find(c=>c.$options.name==='ArenaGame').players.length===2);
   const initial=await a.evaluate(()=>{const g=document.querySelector('.chat-page').__vue__.$children.find(c=>c.$options.name==='ArenaGame');return {id:g.id,players:g.players}});assert.notEqual(initial.players[0].name,initial.players[1].name);report.checks.push('two authenticated browsers share authoritative arena with distinct anonymous identities');
   // Keyboard-only controls work without pointer lock, including HTTP deployments.

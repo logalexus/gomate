@@ -34,11 +34,13 @@ type Input struct {
 	Forward float64 `json:"forward"`
 	Strafe  float64 `json:"strafe"`
 	Angle   float64 `json:"angle"`
+	Pitch   float64 `json:"pitch"`
 	Fire    bool    `json:"fire"`
 }
 
 func (i Input) valid() bool {
 	return !math.IsNaN(i.Angle) && !math.IsInf(i.Angle, 0) && math.Abs(i.Angle) < 1e6 &&
+		!math.IsNaN(i.Pitch) && math.Abs(i.Pitch) <= 1.3 &&
 		!math.IsNaN(i.Forward) && math.Abs(i.Forward) <= 1 && !math.IsNaN(i.Strafe) && math.Abs(i.Strafe) <= 1
 }
 
@@ -48,6 +50,7 @@ type Player struct {
 	X           float64 `json:"x"`
 	Y           float64 `json:"y"`
 	Angle       float64 `json:"angle"`
+	Pitch       float64 `json:"pitch"`
 	HP          int     `json:"hp"`
 	Kills       int     `json:"kills"`
 	Deaths      int     `json:"deaths"`
@@ -100,6 +103,7 @@ func (h *Hub) spawn(p *Player, now time.Time) {
 	}
 	s := spawns[best]
 	p.X, p.Y, p.Angle = s[0], s[1], s[2]
+	p.Pitch = 0
 	p.HP = 100
 	p.RespawnAt = 0
 	p.ShieldUntil = now.Add(time.Second).UnixMilli()
@@ -123,6 +127,7 @@ func (h *Hub) advance(now time.Time) {
 			continue
 		}
 		p.Angle = math.Remainder(p.input.Angle, 2*math.Pi)
+		p.Pitch = p.input.Pitch
 		f, s := p.input.Forward, p.input.Strafe
 		if length := math.Hypot(f, s); length > 1 {
 			f /= length
@@ -157,8 +162,16 @@ func (h *Hub) advance(now time.Time) {
 			along := dx*math.Cos(p.Angle) + dy*math.Sin(p.Angle)
 			across := math.Abs(-dx*math.Sin(p.Angle) + dy*math.Cos(p.Angle))
 			if along > 0 && across < .32 {
-				hit := along - math.Sqrt(.32*.32-across*across)
-				if hit >= 0 && hit < closest {
+				root := math.Sqrt(.32*.32 - across*across)
+				hit, end := math.Max(0, along-root), along+root
+				// Intersect the horizontal circle with the player's vertical cylinder.
+				// Eye height is 1.25m, target height 1.6m; looking over a head must miss.
+				if slope := math.Tan(p.Pitch); math.Abs(slope) > 1e-8 {
+					lo, hi := -1.25/slope, (1.6-1.25)/slope
+					hit = math.Max(hit, math.Min(lo, hi))
+					end = math.Min(end, math.Max(lo, hi))
+				}
+				if hit <= end && hit < closest {
 					closest = hit
 					victim = q
 				}
