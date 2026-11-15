@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """GoMate farm client. Python 3.9+, standard library only.
-GOMATE_USER / GOMATE_PASSWORD contain the GoMate login.
-Usage: python3 gomate_client.py --server http://host:65000 --name demo -- python3 sploit.py
+Usage: python3 gomate_client.py --server http://host:65000 --user packmate --password secret --name demo -- python3 sploit.py
 The target IP is appended as the last argument to each exploit invocation.
 """
 import argparse
@@ -19,7 +18,7 @@ import urllib.request
 
 
 def api(args, path, body=None):
-    credentials = (os.environ.get('GOMATE_USER', 'packmate') + ':' + os.environ.get('GOMATE_PASSWORD', '')).encode()
+    credentials = (args.user + ':' + args.password).encode()
     headers = {'Authorization': 'Basic ' + base64.b64encode(credentials).decode(), 'Content-Type': 'application/json'}
     request = urllib.request.Request(args.server.rstrip('/') + '/api/v2/farm/' + path,
                                     data=None if body is None else json.dumps(body).encode(), headers=headers)
@@ -55,6 +54,8 @@ def attack(command, target, config):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--server', required=True)
+    parser.add_argument('--user', default=os.environ.get('GOMATE_USER', 'packmate'))
+    parser.add_argument('--password', default=os.environ.get('GOMATE_PASSWORD', ''))
     parser.add_argument('--name', required=True)
     parser.add_argument('--spool', default='gomate-flags.sqlite3')
     parser.add_argument('--once', action='store_true')

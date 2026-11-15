@@ -1,12 +1,12 @@
 {
-  "at": "2026-11-15T17:53:05.759794+00:00",
-  "image": "gomate-app:farm-client-20261115t175248z",
-  "rollbackImage": "gomate-app:before-farm-client-20261115t175248z",
-  "staging": "/home/kali/gomate-test/.farm-20261115t175248z",
+  "at": "2026-11-15T17:56:42.421154+00:00",
+  "image": "gomate-app:farm-client-20261115t175622z",
+  "rollbackImage": "gomate-app:before-farm-client-20261115t175622z",
+  "staging": "/home/kali/gomate-test/.farm-20261115t175622z",
   "before": {
     "/gomate-lab-app-1": {
-      "image": "sha256:0d28a7e072b9e9a5e295a637fbb20953d0f190a4663e0f80e96ebbb8af694c3e",
-      "startedAt": "2026-11-15T17:38:41.040992491Z"
+      "image": "sha256:7ae45d216e4cf9a21ad99fcc6bc793e25bc7fbfc11be61fc0bb42cb991bd9bf1",
+      "startedAt": "2026-11-15T17:53:04.255506344Z"
     },
     "/gomate-lab-discovery-1": {
       "image": "sha256:ed795c839cc507c19ca670af4573f333a5f0c817f8ab488f9d1485d072d87ed1",
@@ -83,8 +83,8 @@
   },
   "after": {
     "/gomate-lab-app-1": {
-      "image": "sha256:7ae45d216e4cf9a21ad99fcc6bc793e25bc7fbfc11be61fc0bb42cb991bd9bf1",
-      "startedAt": "2026-11-15T17:53:04.255506344Z"
+      "image": "sha256:4c2710d890c6831a280faaf23b21c76bc9926a7ab3b157806a5f4920960ca22f",
+      "startedAt": "2026-11-15T17:56:40.364753486Z"
     },
     "/gomate-lab-discovery-1": {
       "image": "sha256:ed795c839cc507c19ca670af4573f333a5f0c817f8ab488f9d1485d072d87ed1",

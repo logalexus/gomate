@@ -18,10 +18,11 @@ class ClientTest(unittest.TestCase):
         class Handler(BaseHTTPRequestHandler):
             def log_message(self, *_): pass
             def do_GET(self):
-                case.assertEqual(self.headers['Authorization'], 'Basic ' + base64.b64encode(b'test:pass').decode())
+                case.assertEqual(self.headers['Authorization'], 'Basic ' + base64.b64encode(b"test:--pass'$(literal)").decode())
                 data = {'targets': [{'name': 'mock', 'host': '127.0.0.1'}], 'flagFormat': '[A-Z0-9]{31}=', 'interval': 1, 'workers': 2, 'timeout': 2}
                 self.send_response(200); self.end_headers(); self.wfile.write(json.dumps(data).encode())
             def do_POST(self):
+                case.assertEqual(self.headers['Authorization'], 'Basic ' + base64.b64encode(b"test:--pass'$(literal)").decode())
                 posted.append(json.loads(self.rfile.read(int(self.headers['Content-Length']))))
                 self.send_response(200); self.end_headers(); self.wfile.write(b'{"inserted":1}')
         server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
@@ -30,7 +31,7 @@ class ClientTest(unittest.TestCase):
             with tempfile.TemporaryDirectory() as folder:
                 exploit = Path(folder) / 'sploit.py'
                 exploit.write_text('print("response prefix " + "A" * 31 + "= and more response text", flush=True)\n')
-                result = subprocess.run([sys.executable, str(CLIENT), '--server', f'http://127.0.0.1:{server.server_port}', '--name', 'test', '--once', '--spool', str(Path(folder)/'outbox.db'), '--', sys.executable, str(exploit)], env={**os.environ, 'GOMATE_USER': 'test', 'GOMATE_PASSWORD': 'pass'}, capture_output=True, timeout=15)
+                result = subprocess.run([sys.executable, str(CLIENT), '--server', f'http://127.0.0.1:{server.server_port}', '--user=test', "--password=--pass'$(literal)", '--name', 'test', '--once', '--spool', str(Path(folder)/'outbox.db'), '--', sys.executable, str(exploit)], env={**os.environ, 'GOMATE_USER': 'ignored', 'GOMATE_PASSWORD': 'ignored'}, capture_output=True, timeout=15)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(posted, [{'flags': ['A'*31+'='], 'team': 'mock', 'sploit': 'test'}])
         finally:
