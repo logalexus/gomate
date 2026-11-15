@@ -6,6 +6,17 @@ export function formatMetric(value, unit = 'bytes') {
  while (value >= 1024 && index < units.length-1) {value /= 1024;index++;}
  return `${value.toLocaleString('ru-RU', {maximumFractionDigits:index ? 1 : 0})} ${units[index]}${unit === 'rate' ? '/с' : ''}`;
 }
+// CPU capacity is 100 for the host and 100 × host CPUs for Docker's per-core metric.
+// Unknown limits and missing samples must never appear as healthy zero usage.
+export function resourceLoad(value, capacity) {
+ if (!Number.isFinite(value) || value < 0 || !Number.isFinite(capacity) || capacity <= 0) {
+  return {level:'unknown', label:'Нет данных', percent:null, width:0};
+ }
+ const percent = value / capacity * 100;
+ const level = percent >= 90 ? 'danger' : percent >= 70 ? 'warning' : 'normal';
+ return {level, label:{normal:'Норма', warning:'Повышенная', danger:'Высокая'}[level], percent, width:Math.min(100,percent)};
+}
+
 export function chartPath(points, key, start, end, maximum) {
  let path = '', previous = null;
  for (const p of points) {

@@ -54,6 +54,11 @@ body .page-link{background:var(--gm-panel);color:var(--gm-text);border-color:var
 @media(max-width:800px){.gm-topbar{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;padding:6px 12px}.gm-navigation{grid-column:1/-1;grid-row:2;overflow-x:auto;gap:4px}.gm-navigation>a{flex:1;justify-content:center;padding:6px 9px}.gm-nav-tools{grid-column:2;grid-row:1}.gm-brand{font-size:21px}.gm-status-metrics{display:none}.gm-statusbar{padding:4px 12px}.gm-traffic-workspace{display:block;overflow:auto}.gm-main-traffic{min-height:100%;overflow:visible}.gm-main{padding:10px 12px}.gm-page-title{font-size:20px}.gm-page-header{margin-bottom:12px}}
 @media(max-width:420px){.gm-topbar{padding:6px 10px;column-gap:8px}.gm-brand-mark{width:29px;height:29px}.gm-brand{font-size:21px;gap:7px}.gm-nav-tools{gap:5px}.gm-nav-tools .btn{padding:5px 7px;font-size:12px}.gm-navigation>a{padding:6px 7px;font-size:12px;gap:5px}.gm-navigation i{display:none}.gm-main{padding:10px 12px}body .modal-body{padding:12px}body .modal-header,body .modal-footer{padding:10px 12px}.gm-panel{padding:10px}.gm-page-title{font-size:20px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+/* Resource load colors share the accessible status palette in both themes. */
+.gm-load-normal{--gm-load-color:var(--gm-success);--gm-load-soft:var(--gm-success-soft)}
+.gm-load-warning{--gm-load-color:var(--gm-warning);--gm-load-soft:var(--gm-warning-soft)}
+.gm-load-danger{--gm-load-color:var(--gm-danger);--gm-load-soft:var(--gm-danger-soft)}
+.gm-load-unknown{--gm-load-color:var(--gm-muted);--gm-load-soft:var(--gm-panel-alt)}
 /* Bootstrap's disabled selectors are more specific than base variant rules. */
 body .btn-primary:disabled,body .btn-primary.disabled{background:var(--gm-accent);border-color:var(--gm-accent);color:var(--gm-on-accent)}
 body .btn-outline-primary:disabled,body .btn-outline-primary.disabled{background:transparent;border-color:var(--gm-accent);color:var(--gm-accent)}

@@ -14,7 +14,13 @@ process.chdir(require('node:path').resolve(__dirname,'../..'));
   const get=async path=>{const r=await page.request.get(base+path);assert.equal(r.status(),200,path);return r.json()};
   report.captureBefore=(await get('/api/v2/snapshot')).capture;
   assert.equal((await fetch(base+'/api/v2/monitor')).status,401);
-  const first=await get('/api/v2/monitor?minutes=60');
+  // Rates need two samples after deploying/restarting the gateway.
+  let first;
+  for(let i=0;i<20;i++){
+   first=await get('/api/v2/monitor?minutes=60');
+   if(first.hostHistory?.length>=2&&first.containers?.some(c=>c.name==='gomate-lab-app-1'&&c.point.cpu!=null))break;
+   await page.waitForTimeout(1000);
+  }
   assert(!first.error&&!first.host.error&&!first.host.diskError&&!first.host.networkError,JSON.stringify(first.host));
   assert(first.host.cpu>=0&&first.host.cpu<=100);assert(first.host.memoryUsed>0&&first.host.memoryLimit>first.host.memoryUsed);assert(first.host.diskUsed>0&&first.host.diskTotal>first.host.diskUsed);
   assert(first.containers.length>=4&&!first.truncated);assert(first.containers.filter(c=>c.state==='running').every(c=>!c.error&&c.point.memoryUsed!=null));
@@ -26,6 +32,15 @@ process.chdir(require('node:path').resolve(__dirname,'../..'));
   await page.getByLabel('Поиск контейнеров',{exact:true}).fill(app.name);
   await page.getByRole('button',{name:app.name,exact:true}).click();await page.locator('.monitor-detail svg').first().waitFor();
   assert.equal(await page.locator('.monitor-detail .resource-chart').count(),4);
+  assert.equal(await page.locator('.monitor-kpis [role="meter"]').count(),3);
+  for(const meter of await page.locator('.monitor-kpis [role="meter"], .monitor-table [role="meter"]').all()){
+   const percent=Number(await meter.getAttribute('aria-valuenow'));
+   const level=percent>=90?'danger':percent>=70?'warning':'normal';
+   assert.match(await meter.locator('..').getAttribute('class'),new RegExp('gm-load-'+level));
+  }
+  assert.equal(await page.locator('.resource-chart.is-load').count(),5);
+  const gradientIds=await page.locator('linearGradient').evaluateAll(elements=>elements.map(e=>e.id));
+  assert.equal(gradientIds.length,5);assert.equal(new Set(gradientIds).size,5);
   await page.locator('.monitor-detail').scrollIntoViewIfNeeded();
   await page.screenshot({path:'reports/monitoring-live.jpg',type:'jpeg',quality:35});
   const history=await get('/api/v2/monitor?minutes=60&container='+app.id);
@@ -39,7 +54,7 @@ process.chdir(require('node:path').resolve(__dirname,'../..'));
   report.historyPoints={host:history.hostHistory.length,container:history.containerHistory.length};
   report.captureAfter=(await get('/api/v2/snapshot')).capture;
   assert(report.captureAfter.running);assert.equal(report.captureAfter.startedAt,report.captureBefore.startedAt);assert.deepEqual(report.errors,[]);
-  report.checks=['authentication','host metrics match actual host RAM, CPU count and root filesystem','running containers have metrics','real charts and container selection','history advances while UI paused','20 shared snapshot reads with 4 clients','capture remains running'];report.passed=true;
+  report.checks=['authentication','host metrics match actual host RAM, CPU count and root filesystem','running containers have metrics','real charts and container selection','load colors and meter levels match the displayed usage','host and container charts have unique load gradients','history advances while UI paused','20 shared snapshot reads with 4 clients','capture remains running'];report.passed=true;
  }finally{await browser.close();fs.writeFileSync('reports/monitoring-live-check.json',JSON.stringify(report,null,2)+'\n')}
  console.log(JSON.stringify(report));
 })().catch(e=>{console.error(e);process.exitCode=1});
