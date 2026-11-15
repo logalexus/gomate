@@ -1,0 +1,72 @@
+{
+  "passed": true,
+  "mocked": true,
+  "checks": [
+    "CPU and RAM sorting, search, pagination",
+    "container selection and history period",
+    "chart gaps and keyboard values",
+    "late responses cannot replace the selected container",
+    "pause and resume",
+    "8 viewport/theme combinations without page overflow",
+    "API errors retain data, stale warning, unavailable metrics and empty states",
+    "polling stops on route exit"
+  ],
+  "layouts": [
+    {
+      "width": 1366,
+      "theme": "dark",
+      "document": 1366,
+      "main": 1366,
+      "charts": 8
+    },
+    {
+      "width": 1366,
+      "theme": "light",
+      "document": 1366,
+      "main": 1366,
+      "charts": 8
+    },
+    {
+      "width": 1920,
+      "theme": "dark",
+      "document": 1920,
+      "main": 1920,
+      "charts": 8
+    },
+    {
+      "width": 1920,
+      "theme": "light",
+      "document": 1920,
+      "main": 1920,
+      "charts": 8
+    },
+    {
+      "width": 800,
+      "theme": "dark",
+      "document": 800,
+      "main": 800,
+      "charts": 8
+    },
+    {
+      "width": 800,
+      "theme": "light",
+      "document": 800,
+      "main": 800,
+      "charts": 8
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "document": 375,
+      "main": 375,
+      "charts": 8
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "document": 375,
+      "main": 375,
+      "charts": 8
+    }
+  ]
+}

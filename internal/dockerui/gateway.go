@@ -17,6 +17,7 @@ func Gateway(engine *Engine, token string, services http.Handler) http.Handler {
 	want := sha256.Sum256([]byte("Bearer " + token))
 	mux := http.NewServeMux()
 	mux.Handle("GET /services", services)
+	mux.Handle("GET /monitor", services)
 	mux.Handle("/runner", services)
 	mux.Handle("/runner/", services)
 	mux.HandleFunc("GET /containers", func(w http.ResponseWriter, r *http.Request) {

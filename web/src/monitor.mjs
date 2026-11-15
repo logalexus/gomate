@@ -1,0 +1,20 @@
+export function formatMetric(value, unit = 'bytes') {
+ if (value == null || !Number.isFinite(value)) return '—';
+ if (unit === 'percent') return `${value.toLocaleString('ru-RU', {maximumFractionDigits:1})}%`;
+ const units = ['Б', 'КиБ', 'МиБ', 'ГиБ', 'ТиБ'];
+ let index = 0;
+ while (value >= 1024 && index < units.length-1) {value /= 1024;index++;}
+ return `${value.toLocaleString('ru-RU', {maximumFractionDigits:index ? 1 : 0})} ${units[index]}${unit === 'rate' ? '/с' : ''}`;
+}
+export function chartPath(points, key, start, end, maximum) {
+ let path = '', previous = null;
+ for (const p of points) {
+  const value = p[key];
+  if (value == null || !Number.isFinite(value)) {previous = null;continue;}
+  const x = 48 + 494 * (p.time - start) / Math.max(1,end-start);
+  const y = 106 - 96 * Math.max(0,Math.min(1,value/maximum));
+  path += `${previous === null || p.time-previous > 15000 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)} `;
+  previous = p.time;
+ }
+ return path.trim();
+}

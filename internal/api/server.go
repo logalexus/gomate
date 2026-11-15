@@ -102,6 +102,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	ctx = storage.WithRequestBudget(ctx)
 	r = r.WithContext(ctx)
+	if r.URL.Path == "/api/v2/monitor" {
+		if e := s.monitor(w, r); e != nil {
+			s.fail(w, e)
+		}
+		return
+	}
 	// Script execution limits are separate; their HTTP control requests share the API budget.
 	if r.URL.Path == "/api/v2/runner" || strings.HasPrefix(r.URL.Path, "/api/v2/runner/") {
 		if e := s.runner(w, r); e != nil {

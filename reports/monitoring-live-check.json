@@ -1,0 +1,211 @@
+{
+  "passed": true,
+  "at": "2026-11-15T15:44:22.032Z",
+  "readOnly": true,
+  "errors": [],
+  "checks": [
+    "authentication",
+    "host metrics match actual host RAM, CPU count and root filesystem",
+    "running containers have metrics",
+    "real charts and container selection",
+    "history advances while UI paused",
+    "20 shared snapshot reads with 4 clients",
+    "capture remains running"
+  ],
+  "captureBefore": {
+    "running": true,
+    "interface": "eth1",
+    "localIPs": [
+      "192.168.56.103"
+    ],
+    "startedAt": "2026-11-15T15:44:04.38399586Z"
+  },
+  "hostReference": {
+    "memoryTotal": 25061773312,
+    "diskTotal": 84053143552,
+    "cpus": 12
+  },
+  "snapshotReads": {
+    "count": 20,
+    "concurrency": 4,
+    "minMs": 18,
+    "maxMs": 71,
+    "meanMs": 38
+  },
+  "host": {
+    "time": 1794757469960,
+    "cpu": 13.250851712390176,
+    "memoryUsed": 2369765376,
+    "memoryLimit": 25061773312,
+    "rx": 12137.486242000334,
+    "tx": 368012.9985176669,
+    "read": null,
+    "write": null,
+    "diskUsed": 76251475968,
+    "diskTotal": 84053143552,
+    "diskAvailable": 3484946432,
+    "pids": 0,
+    "cpus": 12,
+    "load1": 3.77,
+    "uptimeSeconds": 1337.81,
+    "interfaces": [
+      "eth0",
+      "eth1"
+    ]
+  },
+  "containerCount": 20,
+  "containers": [
+    {
+      "name": "codex-lb",
+      "state": "exited",
+      "error": "",
+      "cpu": null,
+      "memoryUsed": null
+    },
+    {
+      "name": "gomate-ad-arena-cleaner-1",
+      "state": "running",
+      "error": "",
+      "cpu": 0,
+      "memoryUsed": 524288
+    },
+    {
+      "name": "gomate-ad-bimba-1",
+      "state": "running",
+      "error": "",
+      "cpu": 0.43363922942206656,
+      "memoryUsed": 540581888
+    },
+    {
+      "name": "gomate-ad-bimba-cleaner-1",
+      "state": "running",
+      "error": "",
+      "cpu": 0,
+      "memoryUsed": 1880064
+    },
+    {
+      "name": "gomate-ad-bimba-db-1",
+      "state": "running",
+      "error": "",
+      "cpu": 0.95163083377032,
+      "memoryUsed": 64233472
+    },
+    {
+      "name": "gomate-ad-caddy-1",
+      "state": "running",
+      "error": "",
+      "cpu": 1.692785164450665,
+      "memoryUsed": 59486208
+    },
+    {
+      "name": "gomate-ad-files-cleaner-1",
+      "state": "running",
+      "error": "",
+      "cpu": 0,
+      "memoryUsed": 2408448
+    },
+    {
+      "name": "gomate-ad-filestorage-1",
+      "state": "running",
+      "error": "",
+      "cpu": 2.792342836904551,
+      "memoryUsed": 63799296
+    },
+    {
+      "name": "gomate-ad-magazinchik-1",
+      "state": "running",
+      "error": "",
+      "cpu": 1.9019883864156255,
+      "memoryUsed": 6852608
+    },
+    {
+      "name": "gomate-ad-orders-cleaner-1",
+      "state": "running",
+      "error": "",
+      "cpu": 0,
+      "memoryUsed": 1003520
+    },
+    {
+      "name": "gomate-ad-raas-1",
+      "state": "running",
+      "error": "",
+      "cpu": 7.362052173913044,
+      "memoryUsed": 36859904
+    },
+    {
+      "name": "gomate-ad-raas-cleaner-1",
+      "state": "running",
+      "error": "",
+      "cpu": 0,
+      "memoryUsed": 1916928
+    },
+    {
+      "name": "gomate-ad-shpagodrach-1",
+      "state": "running",
+      "error": "",
+      "cpu": 1.8687828078210325,
+      "memoryUsed": 12832768
+    },
+    {
+      "name": "gomate-ad-valkey-1",
+      "state": "running",
+      "error": "",
+      "cpu": 3.788222066057625,
+      "memoryUsed": 20348928
+    },
+    {
+      "name": "gomate-lab-app-1",
+      "state": "running",
+      "error": "",
+      "cpu": 19.135247108307045,
+      "memoryUsed": 36306944
+    },
+    {
+      "name": "gomate-lab-db-1",
+      "state": "running",
+      "error": "",
+      "cpu": 7.729942693409743,
+      "memoryUsed": 177876992
+    },
+    {
+      "name": "gomate-lab-discovery-1",
+      "state": "running",
+      "error": "",
+      "cpu": 4.060681576144836,
+      "memoryUsed": 9699328
+    },
+    {
+      "name": "gomate-lab-grpc-1",
+      "state": "running",
+      "error": "",
+      "cpu": 0,
+      "memoryUsed": 5124096
+    },
+    {
+      "name": "gomate-lab-http-1",
+      "state": "running",
+      "error": "",
+      "cpu": 0,
+      "memoryUsed": 19095552
+    },
+    {
+      "name": "gomate-lab-tcp-1",
+      "state": "running",
+      "error": "",
+      "cpu": 0,
+      "memoryUsed": 5083136
+    }
+  ],
+  "historyPoints": {
+    "host": 5,
+    "container": 5
+  },
+  "captureAfter": {
+    "running": true,
+    "interface": "eth1",
+    "localIPs": [
+      "192.168.56.103"
+    ],
+    "startedAt": "2026-11-15T15:44:04.38399586Z"
+  }
+}

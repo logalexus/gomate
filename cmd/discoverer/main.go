@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"gomate/internal/discovery"
 	"gomate/internal/dockerui"
+	"gomate/internal/monitor"
 	"gomate/internal/runner"
 	"log"
 	"net/http"
@@ -24,6 +25,17 @@ func main() {
 		socket = "/var/run/docker.sock"
 	}
 	mux := http.NewServeMux()
+	engine := dockerui.New(socket)
+	proc, root := os.Getenv("MONITOR_HOST_PROC"), os.Getenv("MONITOR_HOST_ROOT")
+	if proc == "" {
+		proc = "/host/proc"
+	}
+	if root == "" {
+		root = "/host/root"
+	}
+	resources := monitor.New(engine, proc, root)
+	go resources.Run(context.Background())
+	mux.Handle("GET /monitor", resources)
 	manager := runner.New(socket, os.Getenv("RUNNER_IMAGE"))
 	startup, cancelStartup := context.WithTimeout(context.Background(), 10*time.Second)
 	if err := manager.Initialize(startup); err != nil {
@@ -46,6 +58,6 @@ func main() {
 	if listen == "" {
 		listen = "127.0.0.1:65001"
 	}
-	s := &http.Server{Addr: listen, Handler: dockerui.Gateway(dockerui.New(socket), token, mux), ReadHeaderTimeout: 3 * time.Second, WriteTimeout: 305 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384}
+	s := &http.Server{Addr: listen, Handler: dockerui.Gateway(engine, token, mux), ReadHeaderTimeout: 3 * time.Second, WriteTimeout: 305 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384}
 	log.Fatal(s.ListenAndServe())
 }

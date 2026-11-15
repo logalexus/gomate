@@ -49,6 +49,13 @@ func (s *Server) containers(w http.ResponseWriter, r *http.Request, p []string) 
 			return &httpError{405, "Недопустимое действие"}
 		}
 	}
+	return s.dockerProxy(w, r, path)
+}
+
+func (s *Server) dockerProxy(w http.ResponseWriter, r *http.Request, path string) error {
+	if s.Config.DiscoveryURL == "" {
+		return &httpError{503, "Docker-шлюз не настроен"}
+	}
 	req, e := http.NewRequestWithContext(r.Context(), r.Method, strings.TrimRight(s.Config.DiscoveryURL, "/")+path, nil)
 	if e != nil {
 		return e
