@@ -97,6 +97,7 @@ type Processor struct {
 	MaxBytes, MaxStates int
 	Evictions           int64
 	DecodeErrors        int64
+	Requests            int64
 }
 
 func NewProcessor(c *Catalog) *Processor {
@@ -134,6 +135,12 @@ func (p *Processor) Process(c *model.Chunk) {
 	}
 	svc, _ := p.catalog.Service(c.Stream.Service)
 	c.Decoded = svc.HTTP || svc.WebSockets || svc.URLDecode
+	feed := func(packet model.Packet, eof bool) []model.Packet {
+		before := v.decoder.Requests
+		out := v.decoder.Feed(packet, svc, eof)
+		p.Requests += v.decoder.Requests - before
+		return out
+	}
 	raw := c.Packets
 	if svc.HTTP || svc.WebSockets || svc.URLDecode {
 		decodedBytes := 0
@@ -150,7 +157,7 @@ func (p *Processor) Process(c *model.Chunk) {
 			if packet.Incomplete {
 				v.decoder.Reset()
 			}
-			decoded := v.decoder.Feed(packet, svc, false)
+			decoded := feed(packet, false)
 			for _, x := range decoded {
 				decodedBytes += len(x.Content)
 			}
@@ -158,7 +165,7 @@ func (p *Processor) Process(c *model.Chunk) {
 		}
 		if c.Closed {
 			for _, incoming := range []bool{true, false} {
-				c.Packets = append(c.Packets, v.decoder.Feed(model.Packet{Incoming: incoming, Timestamp: c.Stream.End}, svc, true)...)
+				c.Packets = append(c.Packets, feed(model.Packet{Incoming: incoming, Timestamp: c.Stream.End}, true)...)
 			}
 		}
 		c.Stream.UserAgentHash = v.decoder.UserAgentHash

@@ -94,3 +94,21 @@ func TestQueueOverflowPersistsLossMetadata(t *testing.T) {
 		t.Fatal(sink.tokens, m.Snapshot())
 	}
 }
+
+func TestRequestMetricCountsOnceWhenDatabaseRetries(t *testing.T) {
+	m := &metrics.Metrics{}
+	cat := analyze.NewCatalog()
+	if err := cat.Replace([]model.Service{{Port: 80, HTTP: true}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	sink := &fakeSink{fail: true}
+	w := New(context.Background(), config.Config{WriteBytes: 1 << 20, DBTimeout: time.Second}, m, cat, sink, func() {})
+	request := []byte("GET / HTTP/1.1\r\nHost: lab\r\n\r\n")
+	if !w.Submit(&model.Chunk{Token: "request", Stream: model.Stream{Key: "flow", Service: 80, Protocol: "TCP"}, Bytes: int64(len(request)), Packets: []model.Packet{{Incoming: true, Content: request}}}) {
+		t.Fatal("submit failed")
+	}
+	w.Close()
+	if sink.calls != 3 || m.Requests.Load() != 1 {
+		t.Fatalf("%d retries, %d requests", sink.calls, m.Requests.Load())
+	}
+}

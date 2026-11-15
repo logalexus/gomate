@@ -226,7 +226,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if s.Control != nil {
 				captureStatus = s.Control.Status()
 			}
-			respond(w, 200, map[string]any{"capture": captureStatus, "services": ss, "patterns": ps, "metrics": s.Metrics.Snapshot(), "captureRunning": s.Metrics.CaptureRunning.Load(), "stalled": s.Metrics.Stalled(), "capabilities": map[string]bool{"rawTCP": true, "udp": true, "httpDecode": true, "grpcDecode": true, "lookback": true}})
+			respond(w, 200, map[string]any{"capture": captureStatus, "services": ss, "patterns": ps, "metrics": s.Metrics.Snapshot(), "requestsPerSecond": s.Metrics.RequestRate(), "captureRunning": s.Metrics.CaptureRunning.Load(), "stalled": s.Metrics.Stalled(), "capabilities": map[string]bool{"rawTCP": true, "udp": true, "httpDecode": true, "grpcDecode": true, "lookback": true}})
 			return
 		}
 	case "service":

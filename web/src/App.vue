@@ -10,6 +10,7 @@
   <AnomalyNotifications/>
   <footer class="capture-status gm-statusbar" aria-label="Capture status">
    <span class="gm-capture-state" :class="{'gm-capture-warning':!captureState.startsWith('LIVE')}"><span class="gm-status-dot" aria-hidden="true"/>{{ captureState }}</span>
+   <span class="gm-status-rps" title="Decoded HTTP/1, HTTP/2 and gRPC requests per second · 5-second average · configured services">RPS <strong>{{ rps===null ? '—' : rps.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1}) }}</strong></span>
    <div class="gm-status-metrics"><span>Packets <strong>{{ $store.state.currentPacketsCount.toLocaleString('en-US') }}</strong></span><span>Blocks <strong>{{ $store.state.currentStreamsCount.toLocaleString('en-US') }}</strong></span><span :class="{'text-danger':drops}">Dropped <strong>{{ drops }}</strong></span><span :class="{'text-warning':decodeErrors}">Decode errors <strong>{{ decodeErrors }}</strong></span><span v-if="evictions" class="text-warning">Evictions {{ evictions }}</span></div>
    <span v-if="job&&['queued','running'].includes(job.status)" class="gm-status-job">Search #{{ job.id }} · {{ job.processedPackets }} blocks · {{ job.matchedPackets }} matches <button class="btn btn-sm btn-outline-secondary" @click="cancelJob">Cancel</button></span>
   </footer>
@@ -21,7 +22,7 @@ import Settings from './views/Settings';
 import AnomalyNotifications from './components/AnomalyNotifications.vue';
 export default {
   components: {Navbar, Settings, AnomalyNotifications},
-  data: () => ({socket: null, retry: null, timer: null, stopped: false, dirty: true, refreshing: false, lastRefresh: 0, captureState: 'Connecting…', drops: 0, decodeErrors: 0, evictions: 0, job: null, jobsAt: 0}),
+  data: () => ({socket: null, retry: null, timer: null, stopped: false, dirty: true, refreshing: false, lastRefresh: 0, captureState: 'Connecting…', rps: null, drops: 0, decodeErrors: 0, evictions: 0, job: null, jobsAt: 0}),
   mounted() {
     this.connect();
     this.timer = setInterval(this.refresh, 1000);
@@ -45,7 +46,7 @@ export default {
       this.socket.onopen = () => { this.dirty = true; };
       this.socket.onmessage = () => { this.dirty = true; };
       this.socket.onclose = () => {
-        this.captureState = 'Reconnecting…';
+        this.captureState = 'Reconnecting…'; this.rps = null;
         if (!this.stopped) this.retry = setTimeout(this.connect, 2000);
       };
     },
@@ -54,6 +55,7 @@ export default {
       this.refreshing = true; this.dirty = false;
       try {
         const {data} = await this.$http.get('/v2/snapshot');
+        this.rps = typeof data.requestsPerSecond==='number' && Number.isFinite(data.requestsPerSecond) && data.requestsPerSecond>=0 ? data.requestsPerSecond : null;
         this.decodeErrors = data.metrics.decode_errors_total || 0;
  this.evictions = data.metrics.analysis_evictions_total || 0;
  if (Date.now()-this.jobsAt>5000) {const jobs=await this.$http.get('/v2/jobs');this.job=jobs.data[0] || null;this.jobsAt=Date.now();}
@@ -66,7 +68,7 @@ export default {
         this.captureState = data.capture?.error || (data.stalled ? 'Analysis paused — check storage' : data.captureRunning ? 'LIVE · ' + (data.capture?.interface || '') : 'Capture stopped');
         await Promise.all([this.$refs.sidebar?.refreshLive?.(), this.$refs.content?.refreshLive?.()]);
         this.lastRefresh = Date.now();
-      } catch (e) { this.dirty = true; this.captureState = 'Server disconnected'; }
+      } catch (e) { this.dirty = true; this.captureState = 'Server disconnected'; this.rps = null; }
       finally { this.refreshing = false; }
     },
   },

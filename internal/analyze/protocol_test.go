@@ -111,6 +111,9 @@ func TestH2MultiplexedGRPCSplitCompressionAndTrailers(t *testing.T) {
 		for i := 0; i < len(raw); i += step {
 			out = append(out, d.Feed(model.Packet{Incoming: true, Content: raw[i:min(i+step, len(raw))]}, model.Service{HTTP: true}, false)...)
 		}
+		if d.Requests != 2 {
+			t.Fatalf("step %d: got %d requests, want 2", step, d.Requests)
+		}
 		seen := map[string]string{}
 		for _, q := range out {
 			if q.Kind == "decode-error" {
@@ -220,5 +223,76 @@ func TestHTTP2BodyAcrossFrames(t *testing.T) {
 	}
 	if !found {
 		t.Fatal(out)
+	}
+}
+
+func TestProcessorCountsRequestsAcrossChunksAndGaps(t *testing.T) {
+	cat := NewCatalog()
+	if err := cat.Replace([]model.Service{{Port: 80, HTTP: true}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	p := NewProcessor(cat)
+	sequence := int64(0)
+	feed := func(data string, incoming, gap, closed bool) {
+		sequence++
+		c := model.Chunk{Sequence: sequence, Closed: closed, Stream: model.Stream{Key: "keepalive", Service: 80, Protocol: "TCP"}, Packets: []model.Packet{{Content: []byte(data), Incoming: incoming, Incomplete: gap}}}
+		p.Process(&c)
+	}
+	feed("POST /a HTTP/1.1\r\nHost: lab\r\nContent-Length: 4\r\n\r\nab", true, false, false)
+	if p.Requests != 0 {
+		t.Fatal("counted incomplete request")
+	}
+	feed("cdGET /b HTTP/1.1\r\nHost: lab\r\n\r\n", true, false, false)
+	if p.Requests != 2 {
+		t.Fatalf("got %d requests, want 2", p.Requests)
+	}
+	feed("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\nHTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n", false, false, false)
+	if p.Requests != 2 {
+		t.Fatal("counted responses")
+	}
+	feed("GET /c HTTP/1.1\r\nHost: lab\r\n\r\n", true, true, true)
+	if p.Requests != 3 {
+		t.Fatalf("counter lost across gap/close: %d", p.Requests)
+	}
+}
+
+func TestH2RequestCountExcludesTrailersAndResponses(t *testing.T) {
+	var wire, hb bytes.Buffer
+	wire.WriteString(h2Preface)
+	fr := http2.NewFramer(&wire, nil)
+	enc := hpack.NewEncoder(&hb)
+	headers := func(fields []hpack.HeaderField, end bool) {
+		hb.Reset()
+		for _, h := range fields {
+			if err := enc.WriteField(h); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := fr.WriteHeaders(http2.HeadersFrameParam{StreamID: 1, BlockFragment: hb.Bytes(), EndHeaders: true, EndStream: end}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	headers([]hpack.HeaderField{{Name: ":method", Value: "POST"}, {Name: ":path", Value: "/Echo"}, {Name: "content-type", Value: "application/grpc"}}, false)
+	// Two gRPC messages are one HTTP/2 request.
+	fr.WriteData(1, false, []byte{0, 0, 0, 0, 1, 'a', 0, 0, 0, 0, 1, 'b'})
+	headers([]hpack.HeaderField{{Name: "trailer", Value: "value"}}, true)
+	var d Decoder
+	out := d.Feed(model.Packet{Incoming: true, Content: wire.Bytes()}, model.Service{HTTP: true}, false)
+	for _, p := range out {
+		if p.Kind == "decode-error" {
+			t.Fatal(string(p.Content))
+		}
+	}
+	if d.Requests != 1 {
+		t.Fatalf("trailers/messages double counted: %d", d.Requests)
+	}
+	wire.Reset()
+	hb.Reset()
+	enc = hpack.NewEncoder(&hb)
+	fr.WriteSettings()
+	headers([]hpack.HeaderField{{Name: ":status", Value: "200"}, {Name: "grpc-status", Value: "0"}}, true)
+	d.Feed(model.Packet{Content: wire.Bytes()}, model.Service{HTTP: true}, false)
+	if d.Requests != 1 {
+		t.Fatal("counted response headers")
 	}
 }

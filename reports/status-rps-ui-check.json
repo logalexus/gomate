@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "checks": [
+    "localized one-decimal RPS with definition; visible compact footer in both themes at 1366, 667 and 375 px",
+    "idle sample decays to zero",
+    "request failure clears stale RPS",
+    "recovery and older-server missing metric fallback"
+  ],
+  "layouts": [
+    {
+      "width": 1366,
+      "theme": "dark",
+      "footerHeight": 26
+    },
+    {
+      "width": 1366,
+      "theme": "light",
+      "footerHeight": 26
+    },
+    {
+      "width": 667,
+      "theme": "dark",
+      "footerHeight": 27
+    },
+    {
+      "width": 667,
+      "theme": "light",
+      "footerHeight": 27
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "footerHeight": 27
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "footerHeight": 27
+    }
+  ],
+  "pageErrors": []
+}

@@ -104,12 +104,14 @@ func (w *Writer) run() {
 		}
 		timer.Stop()
 		timerC = nil
+		requestsBefore := processor.Requests
 		for _, c := range batch {
 			processor.Process(c)
 			w.metrics.AnalysisBytes.Store(int64(processor.Size()))
 			w.metrics.AnalysisEvictions.Store(processor.Evictions)
 			w.metrics.DecodeErrors.Store(processor.DecodeErrors)
 		}
+		w.metrics.RecordRequests(processor.Requests - requestsBefore)
 		persist := make([]*model.Chunk, 0, len(batch)+len(losses))
 		persist = append(persist, batch...)
 		persist = append(persist, losses...)

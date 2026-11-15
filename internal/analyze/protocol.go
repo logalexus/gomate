@@ -46,6 +46,7 @@ type rpcStream struct {
 	ended           [2]bool
 }
 type Decoder struct {
+	Requests      int64 // Complete HTTP requests or HTTP/2 request header blocks.
 	dirs          [2]protocolDirection
 	streams       map[uint32]*rpcStream
 	methods       []string
@@ -248,6 +249,9 @@ func (d *Decoder) Feed(p model.Packet, svc model.Service, eof bool) []model.Pack
 				meta["method"] = method
 			}
 			emit("http", b.Bytes(), meta, gz, false, len(data) > 0)
+			if p.Incoming {
+				d.Requests++
+			}
 			x.buf = append([]byte(nil), x.buf[used:]...)
 			if upgrade && svc.WebSockets {
 				x.mode = "ws"
@@ -448,6 +452,7 @@ func (d *Decoder) Feed(p model.Packet, svc model.Service, eof bool) []model.Pack
 				}
 				var hb bytes.Buffer
 				tooLarge := false
+				requestHeaders := false
 				x.hpack.SetEmitFunc(func(h hpack.HeaderField) {
 					if hb.Len()+len(h.Name)+len(h.Value)+4 > HeaderLimit {
 						tooLarge = true
@@ -462,6 +467,7 @@ func (d *Decoder) Feed(p model.Packet, svc model.Service, eof bool) []model.Pack
 					switch h.Name {
 					case ":method":
 						s.method = h.Value
+						requestHeaders = p.Incoming && h.Value != ""
 					case ":path":
 						s.path = h.Value
 					case "content-encoding":
@@ -484,6 +490,9 @@ func (d *Decoder) Feed(p model.Packet, svc model.Service, eof bool) []model.Pack
 				x.hpack.SetEmitFunc(func(hpack.HeaderField) {})
 				if err != nil || tooLarge {
 					return append(out, fail("invalid or oversized HPACK headers")...)
+				}
+				if requestHeaders {
+					d.Requests++
 				}
 				emit("http2-headers", hb.Bytes(), map[string]string{"streamId": fmt.Sprint(id), "path": s.path, "method": s.method}, false, false, false)
 				if x.headerEnd {
