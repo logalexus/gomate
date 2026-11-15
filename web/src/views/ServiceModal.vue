@@ -27,6 +27,7 @@
  </b-modal>
 </template>
 <script>
+import {filterLocation} from '../trafficFilters.mjs';
 const message=e=>e.response?.data?.error||e.message;
 export default {
  props:{creating:Boolean,initialService:Object},
@@ -39,7 +40,18 @@ export default {
   async refresh(){this.$store.commit('setServices',(await this.$http.get('/service/')).data);this.$emit('service-update-needed')},
   async addDocker(c){this.busy=true;this.error='';try{await this.$http.post('/v2/docker-services',{id:c.id});await this.refresh();this.added=`${c.name} · ${c.port}`;}catch(e){this.error=message(e)}finally{this.busy=false}},
   async save(){this.busy=true;this.error='';try{await this.$http.post(this.creating?'/service/':`/service/${this.service.port}`,this.service);await this.refresh();this.$bvModal.hide('serviceModal')}catch(e){this.error=message(e)}finally{this.busy=false}},
-  async remove(){if(!await this.$bvModal.msgBoxConfirm('Сервис перестанет отслеживаться. Сохранённая история останется.',{title:'Удалить сервис?',okTitle:'Удалить',cancelTitle:'Отмена',okVariant:'danger'}))return;this.busy=true;try{await this.$http.delete(`/service/${this.service.port}`);await this.refresh();this.$bvModal.hide('serviceModal')}catch(e){this.error=message(e)}finally{this.busy=false}},
+  async remove(){
+   if(this.busy)return;
+   const {port,name}=this.service;
+   this.busy=true;this.error='';
+   try{
+    if(!await this.$bvModal.msgBoxConfirm(`«${name}» · ${port} перестанет отслеживаться. Сохранённая история останется.`,{title:'Удалить сервис?',okTitle:'Удалить',cancelTitle:'Отмена',okVariant:'danger'}))return;
+    await this.$http.delete(`/service/${port}`);
+    await this.refresh();
+    this.$bvModal.hide('serviceModal');
+    if(this.$route.name==='stream'&&String(this.$route.params.servicePort)===String(port))await this.$router.push(filterLocation(this.$route,{service:''}));
+   }catch(e){this.error=message(e)}finally{this.busy=false}
+  },
  }
 }
 </script>

@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "readOnly": true,
+  "service": {
+    "name": "AD FileStorage",
+    "port": 5000
+  },
+  "servicesUnchanged": true,
+  "captureRunning": true,
+  "blockedWrites": []
+}

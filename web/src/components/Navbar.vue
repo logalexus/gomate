@@ -18,9 +18,9 @@ export default {
  mounted(){this.updateServices();this.$root.$on('gm:add-service',this.showAddService);this.$root.$on('gm:edit-service',this.editService)},
  beforeDestroy(){this.$root.$off('gm:add-service',this.showAddService);this.$root.$off('gm:edit-service',this.editService)},
  methods:{
-  editService(service){this.serviceModalIsCreating=false;this.serviceModalEditingService={};this.$nextTick(()=>{this.serviceModalEditingService=service;this.$bvModal.show('serviceModal')})},
+  async editService(service){this.serviceModalIsCreating=false;this.serviceModalEditingService=service;await this.$nextTick();this.$bvModal.show('serviceModal')},
   showSettings(){this.$bvModal.show('settingsModal')},
-  showAddService(){this.serviceModalIsCreating=true;this.serviceModalEditingService={};this.$bvModal.show('serviceModal')},
+  async showAddService(){this.serviceModalIsCreating=true;this.serviceModalEditingService={};await this.$nextTick();this.$bvModal.show('serviceModal')},
   async updateServices(){try{const {data}=await this.$http.get('service/');this.$store.commit('setServices',data)}catch{this.$bvToast.toast('Не удалось загрузить сервисы. Проверьте соединение.',{title:'Сервисы',variant:'danger'})}},
  },
 };
