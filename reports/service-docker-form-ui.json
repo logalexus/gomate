@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "mockedAPI": true,
+  "deployedUI": false,
+  "checks": [
+    "Docker candidate opens prefilled draft without writes",
+    "published port and editable protocol options",
+    "name receives keyboard focus",
+    "tracked/unpublished candidates disabled",
+    "explicit Save sends edited options",
+    "save failure preserves draft and retries",
+    "cancel never creates service",
+    "switch candidate resets fields",
+    "explicit manual port mode",
+    "1366/375px light/dark"
+  ],
+  "writes": [
+    {
+      "path": "/api/v2/docker-services",
+      "body": {
+        "id": "http",
+        "service": {
+          "name": "Edited HTTP API",
+          "port": 18080,
+          "http": true,
+          "urldecodeHttpRequests": true,
+          "parseWebSockets": true
+        }
+      }
+    },
+    {
+      "path": "/api/v2/docker-services",
+      "body": {
+        "id": "http",
+        "service": {
+          "name": "Edited HTTP API",
+          "port": 18080,
+          "http": true,
+          "urldecodeHttpRequests": true,
+          "parseWebSockets": true
+        }
+      }
+    },
+    {
+      "path": "/api/service/",
+      "body": {
+        "name": "other-service",
+        "port": 21080,
+        "http": false,
+        "urldecodeHttpRequests": false,
+        "parseWebSockets": false
+      }
+    }
+  ],
+  "errors": []
+}

@@ -84,7 +84,8 @@ func (s *Server) management(w http.ResponseWriter, r *http.Request, p []string) 
 			return true, nil
 		}
 		var body struct {
-			ID string `json:"id"`
+			ID      string         `json:"id"`
+			Service *model.Service `json:"service,omitempty"`
 		}
 		if e := decode(w, r, &body); e != nil {
 			return true, e
@@ -102,6 +103,17 @@ func (s *Server) management(w http.ResponseWriter, r *http.Request, p []string) 
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		v := model.Service{Port: selected.Port, Name: selected.Name}
+		if body.Service != nil {
+			v = *body.Service
+			// Discovery is authoritative: never trust a client-supplied port.
+			v.Port = selected.Port
+			if len(strings.TrimSpace(v.Name)) == 0 || len(v.Name) > 256 {
+				return true, bad("valid name required (1–256 bytes)")
+			}
+			if v.TLS {
+				return true, &httpError{422, "TLS decryption requires session secrets and is not supported; use plaintext capture at the TLS termination point"}
+			}
+		}
 		if e = s.Store.CreateService(ctx, v); e != nil {
 			if errors.Is(e, storage.ErrServiceExists) {
 				return true, &httpError{409, "this port is already being analyzed"}

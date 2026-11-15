@@ -1,0 +1,67 @@
+{
+  "passed": true,
+  "mocked": true,
+  "layouts": [
+    {
+      "page": "chat",
+      "theme": "dark",
+      "width": 1366
+    },
+    {
+      "page": "decoder",
+      "theme": "dark",
+      "width": 1366
+    },
+    {
+      "page": "chat",
+      "theme": "light",
+      "width": 1366
+    },
+    {
+      "page": "decoder",
+      "theme": "light",
+      "width": 1366
+    },
+    {
+      "page": "chat",
+      "theme": "dark",
+      "width": 375
+    },
+    {
+      "page": "decoder",
+      "theme": "dark",
+      "width": 375
+    },
+    {
+      "page": "chat",
+      "theme": "light",
+      "width": 375
+    },
+    {
+      "page": "decoder",
+      "theme": "light",
+      "width": 375
+    },
+    {
+      "page": "chat",
+      "theme": "dark",
+      "width": 667
+    },
+    {
+      "page": "decoder",
+      "theme": "dark",
+      "width": 667
+    },
+    {
+      "page": "chat",
+      "theme": "light",
+      "width": 667
+    },
+    {
+      "page": "decoder",
+      "theme": "light",
+      "width": 667
+    }
+  ],
+  "errors": []
+}

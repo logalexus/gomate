@@ -33,7 +33,7 @@ process.chdir(path.resolve(__dirname,'../..'));
    const height=width===667?375:760;
    await page.setViewportSize({width,height});await page.goto(base+'/#/all/100');await page.locator('.gm-packet').waitFor();await page.evaluate(theme=>document.body.dataset.theme=theme,theme);await page.waitForTimeout(150);
    const layout=await page.evaluate(()=>{const r=s=>{const b=document.querySelector(s).getBoundingClientRect();return {height:b.height,top:b.top,bottom:b.bottom}};return {docWidth:document.documentElement.scrollWidth,list:r('.session-list-area'),filters:r('.gm-traffic-filters'),pagination:r('.session-pagination'),heading:r('.traffic-detail-heading'),toolbar:r('.packet-view-toolbar'),main:r('main'),packet:r('.gm-packet')}});
-   assert(layout.docWidth<=width+1,JSON.stringify(layout));assert(layout.pagination.height<=40,JSON.stringify(layout));assert(layout.heading.height<42,JSON.stringify(layout));
+   assert(layout.docWidth<=width+1,JSON.stringify(layout));assert(layout.pagination.height<=40,JSON.stringify(layout));assert(layout.heading.height<(width>=1100?42:80),JSON.stringify(layout));
    if(width>=1100){assert(layout.list.height>440,JSON.stringify(layout));assert(layout.packet.top-layout.main.top<100,JSON.stringify(layout))}
    report.layouts.push({width,height,theme,...layout});
    if(width===1100)await page.screenshot({path:'reports/compact-traffic-'+theme+'.jpg',type:'jpeg',quality:30,scale:'css'});

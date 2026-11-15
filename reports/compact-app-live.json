@@ -1,0 +1,65 @@
+{
+  "passed": true,
+  "readOnly": true,
+  "layouts": [
+    {
+      "width": 1366,
+      "theme": "dark",
+      "topbarHeight": 48,
+      "composerBottom": 874,
+      "mainBottom": 874,
+      "mainHeight": 826,
+      "mainScrollHeight": 826
+    },
+    {
+      "width": 1366,
+      "theme": "light",
+      "topbarHeight": 48,
+      "composerBottom": 874,
+      "mainBottom": 874,
+      "mainHeight": 826,
+      "mainScrollHeight": 826
+    },
+    {
+      "width": 800,
+      "theme": "dark",
+      "topbarHeight": 82.6875,
+      "composerBottom": 873,
+      "mainBottom": 873,
+      "mainHeight": 790,
+      "mainScrollHeight": 790
+    },
+    {
+      "width": 800,
+      "theme": "light",
+      "topbarHeight": 82.6875,
+      "composerBottom": 873,
+      "mainBottom": 873,
+      "mainHeight": 790,
+      "mainScrollHeight": 790
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "topbarHeight": 81,
+      "composerBottom": 873,
+      "mainBottom": 873,
+      "mainHeight": 792,
+      "mainScrollHeight": 792
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "topbarHeight": 81,
+      "composerBottom": 873,
+      "mainBottom": 873,
+      "mainHeight": 792,
+      "mainScrollHeight": 792
+    }
+  ],
+  "errors": [],
+  "blockedWrites": [],
+  "dockerDraftChecked": true,
+  "captureRunning": true,
+  "servicesUnchanged": true
+}

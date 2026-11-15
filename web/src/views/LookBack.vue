@@ -26,5 +26,5 @@ export default {
 };
 </script>
 <style scoped>
-.lookback-eyebrow{font-size:.68rem;font-weight:700;letter-spacing:.14em;color:var(--gm-accent)}.lookback-summary h6{font-size:1.1rem;margin:8px 0;font-weight:600;overflow-wrap:anywhere}.lookback-summary p{color:var(--gm-muted);font-size:.9rem;margin-bottom:24px}.lookback-presets{display:flex;flex-wrap:wrap;gap:8px}.lookback-note{display:flex;gap:12px;align-items:start;background:var(--gm-panel-alt);padding:16px;border-radius:var(--gm-radius);margin-top:24px;border:1px solid var(--gm-border)}.lookback-note i{color:var(--gm-accent);margin-top:4px}.lookback-note p{font-size:.8rem;color:var(--gm-muted);margin:0}
+.lookback-eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--gm-accent)}.lookback-summary h6{font-size:14px;margin:4px 0;font-weight:600;overflow-wrap:anywhere}.lookback-summary p{color:var(--gm-muted);font-size:12px;margin-bottom:12px}.lookback-presets{display:flex;flex-wrap:wrap;gap:6px}.lookback-note{display:flex;gap:8px;align-items:start;background:var(--gm-panel-alt);padding:10px;border-radius:8px;margin-top:12px;border:1px solid var(--gm-border)}.lookback-note i{color:var(--gm-accent);margin-top:3px}.lookback-note p{font-size:12px;color:var(--gm-muted);margin:0}
 </style>

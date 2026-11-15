@@ -34,5 +34,5 @@ export default {
 };
 </script>
 <style scoped>
-.session-share{display:inline-flex}.session-share>.btn{font-size:.75rem;min-height:30px}.session-share-form{font-size:.85rem}.session-share-form textarea{font-size:.85rem;background:var(--gm-panel);color:var(--gm-text);border-color:var(--gm-border)}.session-share-preview{margin:12px 0;padding:10px;border:1px solid var(--gm-border);border-radius:6px;background:var(--gm-panel-alt);overflow-wrap:anywhere}.session-share-actions{display:flex;justify-content:flex-end;gap:8px}
+.session-share{display:inline-flex}.session-share>.btn{font-size:.75rem;min-height:30px}.session-share-form{font-size:.8125rem}.session-share-form>p{margin-bottom:8px}.session-share-form textarea{font-size:.85rem;background:var(--gm-panel);color:var(--gm-text);border-color:var(--gm-border)}.session-share-preview{margin:8px 0;padding:8px;border:1px solid var(--gm-border);border-radius:6px;background:var(--gm-panel-alt);overflow-wrap:anywhere}.session-share-actions{display:flex;justify-content:flex-end;gap:8px}
 </style>
