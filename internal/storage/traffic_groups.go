@@ -9,21 +9,22 @@ import (
 // Endpoint groups use the first request method/path without query values.
 // Behavior groups additionally populate the fingerprint and descriptor fields.
 type TrafficGroup struct {
-	Fingerprint    string   `json:"fingerprint,omitempty"`
-	Fields         []string `json:"fields,omitempty"`
-	VariableFields []string `json:"variableFields,omitempty"`
-	Limited        bool     `json:"limited,omitempty"`
-	Missing        bool     `json:"missing,omitempty"`
-	Service        int      `json:"service"`
-	Protocol       string   `json:"protocol"`
-	Method         string   `json:"method"`
-	Path           string   `json:"path"`
-	Count          int64    `json:"count"`
-	AnomalyCount   int64    `json:"anomalyCount"`
-	Patterns       []int    `json:"foundPatternsIds"`
-	DismissedCount int64    `json:"dismissedCount"`
-	Score          float64  `json:"score"`
-	Start          int64    `json:"startTimestamp"`
+	Fingerprint      string              `json:"fingerprint,omitempty"`
+	Fields           []string            `json:"fields,omitempty"`
+	VariableFields   []string            `json:"variableFields,omitempty"`
+	VariableExamples map[string][]string `json:"variableExamples,omitempty"`
+	Limited          bool                `json:"limited,omitempty"`
+	Missing          bool                `json:"missing,omitempty"`
+	Service          int                 `json:"service"`
+	Protocol         string              `json:"protocol"`
+	Method           string              `json:"method"`
+	Path             string              `json:"path"`
+	Count            int64               `json:"count"`
+	AnomalyCount     int64               `json:"anomalyCount"`
+	Patterns         []int               `json:"foundPatternsIds"`
+	DismissedCount   int64               `json:"dismissedCount"`
+	Score            float64             `json:"score"`
+	Start            int64               `json:"startTimestamp"`
 }
 
 type TrafficGroupPage struct {

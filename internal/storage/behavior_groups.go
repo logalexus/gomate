@@ -30,6 +30,37 @@ type behaviorCluster struct {
 	TrafficGroup
 	ids      []int64
 	patterns map[int]bool
+	examples map[string][]behaviorExample
+}
+
+type behaviorExample struct {
+	value     string
+	start, id int64
+}
+
+// Keep three distinct saved previews, newest first, without retaining all values.
+// Previews are already bounded/redacted by the behavior descriptor builder.
+func addBehaviorExample(examples []behaviorExample, sample behaviorExample) []behaviorExample {
+	for i, previous := range examples {
+		if previous.value == sample.value {
+			if previous.start > sample.start || (previous.start == sample.start && previous.id >= sample.id) {
+				return examples
+			}
+			examples = append(examples[:i], examples[i+1:]...)
+			break
+		}
+	}
+	examples = append(examples, sample)
+	sort.Slice(examples, func(i, j int) bool {
+		if examples[i].start != examples[j].start {
+			return examples[i].start > examples[j].start
+		}
+		return examples[i].id > examples[j].id
+	})
+	if len(examples) > 3 {
+		examples = examples[:3]
+	}
+	return examples
 }
 
 func digest(v any) string {
@@ -101,9 +132,14 @@ func clusterBehavior(ctx context.Context, sessions []behaviorSession, since int6
 			if !ok {
 				index = len(groups)
 				byKey[key] = index
-				groups = append(groups, behaviorCluster{patterns: map[int]bool{}, TrafficGroup: TrafficGroup{Fingerprint: key, Service: s.service, Protocol: s.protocol, Method: s.method, Path: s.path, Fields: fields, VariableFields: variable, Limited: s.limited, Missing: s.missing}})
+				groups = append(groups, behaviorCluster{patterns: map[int]bool{}, examples: map[string][]behaviorExample{}, TrafficGroup: TrafficGroup{Fingerprint: key, Service: s.service, Protocol: s.protocol, Method: s.method, Path: s.path, Fields: fields, VariableFields: variable, Limited: s.limited, Missing: s.missing}})
 			}
 			g := &groups[index]
+			for j, f := range s.fields {
+				if values[j] == "*" {
+					g.examples[f.Key] = addBehaviorExample(g.examples[f.Key], behaviorExample{value: f.Preview, start: s.start, id: s.id})
+				}
+			}
 			g.ids = append(g.ids, s.id)
 			g.Count++
 			for _, id := range s.patterns {
@@ -125,6 +161,14 @@ func clusterBehavior(ctx context.Context, sessions []behaviorSession, since int6
 	}
 	for i := range groups {
 		g := &groups[i]
+		if len(g.examples) > 0 {
+			g.VariableExamples = make(map[string][]string, len(g.examples))
+			for field, examples := range g.examples {
+				for _, example := range examples {
+					g.VariableExamples[field] = append(g.VariableExamples[field], example.value)
+				}
+			}
+		}
 		g.Patterns = make([]int, 0, len(g.patterns))
 		for id := range g.patterns {
 			g.Patterns = append(g.Patterns, id)

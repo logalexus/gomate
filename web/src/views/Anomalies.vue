@@ -68,7 +68,7 @@
        <span v-else-if="scope==='all'">{{ g.anomalyCount }} со срабатыванием · {{ g.count-g.anomalyCount-g.dismissedCount }} без срабатывания</span>
        <template v-else><span v-if="g.top.reasons[0]" class="detector-tag" :class="detectorTone(g.top.reasons[0].detector)">{{ detectors[g.top.reasons[0].detector] || g.top.reasons[0].detector }}</span><span>{{ g.top.reasons[0]?.field }}{{ g.top.reasons[0]?.field ? ' · ' : '' }}{{ g.top.reasons[0]?.text || 'Раскройте для просмотра сессии' }}</span></template>
       </span>
-      <span v-if="g.fingerprint && !g.missing && g.variableFields?.length" class="anomaly-variable-preview"><span class="variable-preview-label">Меняются:</span><code v-for="f in g.variableFields" :key="f" class="variable-preview-tag">{{ f }}</code></span>
+      <span v-if="g.fingerprint && !g.missing && g.variableFields?.length" class="anomaly-variable-preview"><span class="variable-preview-label">Меняются:</span><span v-for="f in g.variableFields" :key="f" class="variable-preview-tag" :title="variableTitle(g, f)"><span class="variable-preview-key">{{ shortField(f) }}:</span> <code>{{ variablePreview(g, f) }}</code></span></span>
       <PatternLabels v-if="scope==='all'" :ids="g.foundPatternsIds" compact title="Шаблоны, найденные хотя бы в одной сессии группы"/>
      </span>
      <span class="anomaly-meta"><span>{{ serviceName(g.top.service) }}</span><span>{{ time(g.top.startTimestamp) }} · {{ scope==='all' ? g.count+' сессий' : g.items.length>1 ? g.items.length+' сессий' : '#'+g.top.streamId }}</span></span>
@@ -81,7 +81,7 @@
       <p v-if="g.missing" class="anomaly-detail-note">Нет сохранённых признаков: сессия создана до обновления или входящий трафик не разобран. Совпадение поведения не установлено.</p>
       <template v-else>
        <details class="common-features" open><summary>Общие признаки ({{ (g.fields || []).length }})</summary><ul><li v-for="f in g.fields" :key="f"><BehaviorFeature :field="f"/></li></ul><p v-if="!g.fields?.length" class="anomaly-detail-note">Нет общих сохранённых значений.</p></details>
-       <div v-if="g.variableFields?.length" class="variable-features"><h3>Меняющиеся поля <span>{{ g.variableFields.length }}</span></h3><p>Значения различаются между сессиями и не разделяют эту группу.</p><div class="variable-feature-list"><BehaviorFeature v-for="f in g.variableFields" :key="f" :field="f" variable/></div></div>
+       <div v-if="g.variableFields?.length" class="variable-features"><h3>Меняющиеся поля <span>{{ g.variableFields.length }}</span></h3><p>До трёх разных примеров из последних сессий группы. Это сохранённые фрагменты; длинные значения могли быть сокращены при захвате.</p><dl class="variable-feature-list"><div v-for="f in g.variableFields" :key="f" class="variable-feature"><dt><BehaviorFeature :field="f" variable/></dt><dd><code v-for="(value, i) in g.variableExamples?.[f] || []" :key="i">{{ value === '' ? '(пусто)' : value }}</code><span v-if="!g.variableExamples?.[f]?.length">Нет сохранённых примеров</span></dd></div></dl></div>
        <p v-if="g.limited" class="anomaly-detail-note">Предел описания: первые 8 сообщений, до 48 полей на сообщение. Остальные различия не сравниваются.</p>
       </template>
      </section>
@@ -196,6 +196,10 @@ export default {
   closeFlow() { this.flowOpen=false; this.$nextTick(()=>{ const target=this.flowReturnFocus?.isConnected ? this.flowReturnFocus : this.$el.querySelector('.anomaly.expanded .open-session-flow'); target?.focus(); this.flowReturnFocus=null; }); },
   detectorTone(detector) { return ['field','missing','enum','chars'].includes(detector) ? 'tone-warning' : 'tone-info'; },
   previewFields(g) { const fields=(g.fields||[]).filter(f=>/\/(json\.|form\.|query\.|token\.|body)/.test(f) && !f.includes('/json.structure')); return fields.slice(0,2); },
+  shortField(field) { return this.shortValue(field.replace(/^\d+:[^/]+\//, ''), 36); },
+  shortValue(value, limit = 32) { const chars=Array.from(value.replace(/\s+/g, ' ').trim()); return chars.length>limit ? chars.slice(0, limit).join('')+'…' : chars.join('') || '(пусто)'; },
+  variablePreview(g, field) { return g.variableExamples?.[field]?.map(value=>this.shortValue(value)).join(' · ') || 'нет примера'; },
+  variableTitle(g, field) { return field+'\n'+(g.variableExamples?.[field] || []).map(value=>value === '' ? '(пусто)' : value).join('\n'); },
   resetFilters() { this.service=0; this.period=3600; this.level=6; this.showDismissed=false; this.sort='score'; },
   reloadFilters() { this.items = []; this.trafficPage = {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}; this.groupOffset=0; return this.load(); },
   changePage(delta) { this.groupOffset=Math.max(0,this.groupOffset+delta); return this.load(); },
@@ -319,7 +323,8 @@ export default {
 .variable-features h3,.reasons-heading{font-size:12px;font-weight:600;margin:0 0 6px;color:var(--gm-text)}
 .variable-features h3 span,.reasons-heading span{margin-left:5px;color:var(--gm-muted);font-weight:400}
 .variable-features p{color:var(--gm-muted);margin:0 0 8px}
-.variable-feature-list{display:flex;flex-wrap:wrap;gap:6px 12px}
+.variable-feature-list{display:grid;gap:8px;margin:0}
+.variable-feature{min-width:0}.variable-feature dt{font-weight:400}.variable-feature dd{display:flex;flex-wrap:wrap;gap:4px 12px;margin:3px 0 0;color:var(--gm-muted)}.variable-feature dd code{max-width:100%;color:var(--gm-text);font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
 .group-explanation{padding:0 2px}
 .reasons-heading{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 0}
 .detector-tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 5px;border-radius:4px;flex-shrink:0}
@@ -328,7 +333,8 @@ export default {
 .preview-structure{font-size:11px;border-radius:4px;padding:1px 5px;flex-shrink:0}
 .anomaly-variable-preview{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px;margin-top:5px;min-width:0;font-size:11px}
 .variable-preview-label{color:var(--gm-muted)}
-.variable-preview-tag{display:inline-block;max-width:100%;min-width:0;padding:1px 5px;border-radius:4px;font-size:11px;line-height:1.5;color:var(--gm-warning);background:var(--gm-warning-soft);white-space:normal;overflow-wrap:anywhere}
+.variable-preview-tag{display:inline-block;max-width:100%;min-width:0;padding:1px 5px;border-radius:4px;font-size:11px;line-height:1.5;background:var(--gm-warning-soft);white-space:normal;overflow-wrap:anywhere}
+.variable-preview-key{color:var(--gm-muted)}.variable-preview-tag code{font-size:inherit;color:var(--gm-warning)}
 
 .anomalies{max-width:1500px;margin:auto;padding-bottom:16px}
 .anomaly-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
