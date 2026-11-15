@@ -4,6 +4,7 @@
   "checks": [
     "expanding a group does not open or fetch its flow; explicit button opens flow",
     "side flow keeps anomaly route, shows requests and responses, pages through session, follows selection, closes and reopens",
+    "variable field labels visible before expansion, with wrapping and full long paths",
     "group pattern union, compact overflow, deleted pattern label, selected session labels independent of score",
     "all traffic default with full totals",
     "normal session link without learning action",
@@ -27,7 +28,7 @@
       "docWidth": 1366,
       "mainWidth": 1366,
       "firstRowTop": 266.796875,
-      "rowHeight": 83
+      "rowHeight": 145.5
     },
     {
       "width": 1366,
@@ -35,7 +36,7 @@
       "docWidth": 1366,
       "mainWidth": 1366,
       "firstRowTop": 266.796875,
-      "rowHeight": 83
+      "rowHeight": 145.5
     },
     {
       "width": 1920,
@@ -43,7 +44,7 @@
       "docWidth": 1920,
       "mainWidth": 1920,
       "firstRowTop": 266.796875,
-      "rowHeight": 83
+      "rowHeight": 145.5
     },
     {
       "width": 1920,
@@ -51,7 +52,7 @@
       "docWidth": 1920,
       "mainWidth": 1920,
       "firstRowTop": 266.796875,
-      "rowHeight": 83
+      "rowHeight": 145.5
     },
     {
       "width": 800,
@@ -59,7 +60,7 @@
       "docWidth": 800,
       "mainWidth": 800,
       "firstRowTop": 384.984375,
-      "rowHeight": 83
+      "rowHeight": 178.5
     },
     {
       "width": 800,
@@ -67,7 +68,7 @@
       "docWidth": 800,
       "mainWidth": 800,
       "firstRowTop": 384.984375,
-      "rowHeight": 83
+      "rowHeight": 178.5
     },
     {
       "width": 375,
@@ -75,7 +76,7 @@
       "docWidth": 375,
       "mainWidth": 375,
       "firstRowTop": 574.296875,
-      "rowHeight": 126.5
+      "rowHeight": 277.5
     },
     {
       "width": 375,
@@ -83,7 +84,7 @@
       "docWidth": 375,
       "mainWidth": 375,
       "firstRowTop": 574.296875,
-      "rowHeight": 126.5
+      "rowHeight": 277.5
     },
     {
       "width": 667,
@@ -91,7 +92,7 @@
       "docWidth": 667,
       "mainWidth": 667,
       "firstRowTop": 449.984375,
-      "rowHeight": 83
+      "rowHeight": 195
     },
     {
       "width": 667,
@@ -99,7 +100,7 @@
       "docWidth": 667,
       "mainWidth": 667,
       "firstRowTop": 449.984375,
-      "rowHeight": 83
+      "rowHeight": 195
     }
   ],
   "pageErrors": []

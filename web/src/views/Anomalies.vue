@@ -63,11 +63,12 @@
      <span class="anomaly-description">
       <span class="anomaly-title"><code :title="g.top.summary">{{ endpoint(g.top) }}</code><small v-if="g.fingerprint" class="fingerprint-id">{{ g.fingerprint.slice(0,8) }}</small><span v-if="g.top.dismissed" class="hidden-label">Скрыто</span></span>
       <span class="anomaly-reason-preview" :title="g.fingerprint ? behaviorPreview(g) : reasonPreview(g.top)">
-       <template v-if="g.fingerprint && !g.missing"><BehaviorFeature v-for="f in previewFields(g)" :key="f" :field="f" compact/><span v-if="!previewFields(g).length" class="preview-structure">Общая структура и значения</span><span v-if="g.variableFields?.length" class="preview-variable">{{ g.variableFields.length }} меняются</span></template>
+       <template v-if="g.fingerprint && !g.missing"><BehaviorFeature v-for="f in previewFields(g)" :key="f" :field="f" compact/><span v-if="!previewFields(g).length" class="preview-structure">Общая структура и значения</span></template>
        <span v-else-if="g.fingerprint">Нет сохранённых признаков поведения</span>
        <span v-else-if="scope==='all'">{{ g.anomalyCount }} со срабатыванием · {{ g.count-g.anomalyCount-g.dismissedCount }} без срабатывания</span>
        <template v-else><span v-if="g.top.reasons[0]" class="detector-tag" :class="detectorTone(g.top.reasons[0].detector)">{{ detectors[g.top.reasons[0].detector] || g.top.reasons[0].detector }}</span><span>{{ g.top.reasons[0]?.field }}{{ g.top.reasons[0]?.field ? ' · ' : '' }}{{ g.top.reasons[0]?.text || 'Раскройте для просмотра сессии' }}</span></template>
       </span>
+      <span v-if="g.fingerprint && !g.missing && g.variableFields?.length" class="anomaly-variable-preview"><span class="variable-preview-label">Меняются:</span><code v-for="f in g.variableFields" :key="f" class="variable-preview-tag">{{ f }}</code></span>
       <PatternLabels v-if="scope==='all'" :ids="g.foundPatternsIds" compact title="Шаблоны, найденные хотя бы в одной сессии группы"/>
      </span>
      <span class="anomaly-meta"><span>{{ serviceName(g.top.service) }}</span><span>{{ time(g.top.startTimestamp) }} · {{ scope==='all' ? g.count+' сессий' : g.items.length>1 ? g.items.length+' сессий' : '#'+g.top.streamId }}</span></span>
@@ -322,9 +323,12 @@ export default {
 .group-explanation{padding:0 2px}
 .reasons-heading{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 0}
 .detector-tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 5px;border-radius:4px;flex-shrink:0}
-.tone-warning,.preview-variable{color:var(--gm-warning);background:var(--gm-warning-soft)}
+.tone-warning{color:var(--gm-warning);background:var(--gm-warning-soft)}
 .tone-info,.preview-structure{color:var(--gm-info);background:var(--gm-info-soft)}
-.preview-variable,.preview-structure{font-size:11px;border-radius:4px;padding:1px 5px;flex-shrink:0}
+.preview-structure{font-size:11px;border-radius:4px;padding:1px 5px;flex-shrink:0}
+.anomaly-variable-preview{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px;margin-top:5px;min-width:0;font-size:11px}
+.variable-preview-label{color:var(--gm-muted)}
+.variable-preview-tag{display:inline-block;max-width:100%;min-width:0;padding:1px 5px;border-radius:4px;font-size:11px;line-height:1.5;color:var(--gm-warning);background:var(--gm-warning-soft);white-space:normal;overflow-wrap:anywhere}
 
 .anomalies{max-width:1500px;margin:auto;padding-bottom:16px}
 .anomaly-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
