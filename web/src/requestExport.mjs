@@ -244,3 +244,62 @@ export function generateExport(options={}){
   return {code,warnings,error:''};
  }catch(error){return {code:'',warnings,error:error.message||'Не удалось создать экспорт.'};}
 }
+
+// Whole-session exports always use the transport representation, never decoded
+// copies. Limits fail closed: a prefix must not look like the complete session.
+export const MAX_SESSION_BYTES = 1024 * 1024;
+export const MAX_SESSION_PACKETS = 4096;
+export function prepareSessionExport(packets=[],stream={},service={}){
+ const warnings=[],events=[];let requests=[],httpError='',error='',bytes=0;
+ try{
+  if(stream.payloadPurged)fail('Содержимое сессии удалено. Полный скрипт недоступен.');
+  if(stream.incomplete)fail('В захвате сессии есть пропуски. Полный скрипт недоступен.');
+  if(String(stream.protocol||'').toLowerCase()!=='tcp')fail('Экспорт всей сессии поддерживает HTTP поверх TCP и TCP.');
+  if(!Array.isArray(packets)||packets.length>MAX_SESSION_PACKETS)fail('Сессия превышает лимит экспорта 4096 блоков.');
+  const rawPackets=packets.filter(p=>!p.kind||p.kind==='raw');
+  if(!rawPackets.length)fail('Исходные байты сессии недоступны. Разобранные сообщения не заменяют полный TCP-поток.');
+  for(const packet of rawPackets){
+   if(packet.incomplete)fail('В одном из блоков есть пропуски. Полный скрипт недоступен.');
+   if(typeof packet.incoming!=='boolean')fail('Неизвестно направление блока сессии.');
+   const raw=packetBytes(packet);bytes+=raw.length;
+   if(bytes>MAX_SESSION_BYTES)fail('Сессия превышает лимит экспорта 1 MiB исходных байтов.');
+   const last=events[events.length-1];
+   if(last&&last.incoming===packet.incoming)last.raw+=raw;
+   else events.push({incoming:packet.incoming,raw});
+  }
+  if(!events.some(e=>e.incoming))fail('В сессии нет сохранённых клиентских данных.');
+ }catch(e){error=e.message;}
+ if(!error)try{requests=parseRawHTTP(events.filter(e=>e.incoming).map(e=>e.raw).join(''),warnings)}catch(e){httpError=e.message;}
+ return {events,requests,httpError,error,warnings,bytes,endpoint:endpointFor(stream,service,requests,events.find(e=>e.incoming)?.raw||'')};
+}
+export function generateSessionExport({packets=[],stream={},service={},format='requests',host,port,scheme='http'}={}){
+ const prepared=prepareSessionExport(packets,stream,service),warnings=[...prepared.warnings];
+ try{
+  if(prepared.error)fail(prepared.error);
+  const target=destination(host===undefined?prepared.endpoint.host:host,port===undefined?prepared.endpoint.port:port,scheme);
+  warn(warnings,'Скрипт построен по всем сохранённым исходным блокам на момент загрузки. Новые данные активной сессии в него не добавляются.');
+  if(format==='tcp'){
+   const first=prepared.events.find(e=>e.incoming).raw;
+   if(first.charCodeAt(0)===0x16&&first.charCodeAt(1)===3)fail('Захвачен TLS handshake. Шифрованную сессию нельзя воспроизвести в новом соединении без ключей и состояния TLS.');
+   if(scheme==='https')warn(warnings,'TLS оборачивает сохранённые открытые байты. Выбирайте его только если новый сервис ожидает TLS.');
+   warn(warnings,'TCP сохраняет порядок и байты отправки; каждый ответ читается до захваченной длины. Если длина ответа изменилась, скорректируйте recv_exact в скрипте.');
+   warn(warnings,'Паузы захвата и динамические значения не воспроизводятся. Ответы сервера выводятся, но не подставляются в следующие сообщения.');
+   const steps=prepared.events.map((e,i)=>e.incoming?`    # ${i+1}. Client → server: ${e.raw.length} bytes\n    connection.sendall(base64.b64decode(${python(btoa(e.raw))}, validate=True))`:`    # ${i+1}. Server → client: ${e.raw.length} bytes\n    sys.stdout.buffer.write(recv_exact(connection, ${e.raw.length}))\n    sys.stdout.buffer.flush()`).join('\n');
+   return {error:'',warnings,code:`import base64\nimport socket\nimport sys\nimport time\n${scheme==='https'?'import ssl\n':''}\nHOST = ${python(target.host)}\nPORT = ${target.port}\nTIMEOUT = 15\n\ndef recv_exact(connection, size):\n    reply = bytearray()\n    deadline = time.monotonic() + TIMEOUT\n    while len(reply) < size:\n        remaining = deadline - time.monotonic()\n        if remaining <= 0:\n            raise TimeoutError(f"Expected {size} bytes, received {len(reply)}")\n        connection.settimeout(remaining)\n        chunk = connection.recv(min(65536, size - len(reply)))\n        if not chunk:\n            raise EOFError(f"Expected {size} bytes, received {len(reply)}")\n        reply.extend(chunk)\n    connection.settimeout(TIMEOUT)\n    return bytes(reply)\n\nwith socket.create_connection((HOST, PORT), timeout=TIMEOUT) as transport:\n${scheme==='https'?'    connection = ssl.create_default_context().wrap_socket(transport, server_hostname=HOST)':'    connection = transport'}\n    try:\n${steps.split('\n').map(line=>'    '+line).join('\n')}\n    finally:\n        connection.close()\n`};
+  }
+  if(format!=='requests')fail('Выберите HTTP · requests или TCP · socket.');
+  if(prepared.httpError)fail(prepared.httpError+' Для TCP выберите шаблон TCP · socket.');
+  if(!prepared.requests.length)fail('Полные HTTP-запросы не найдены.');
+  const rows=prepared.requests.map(request=>{
+   if(!request.target.startsWith('/')||request.target.startsWith('//')||request.method==='CONNECT'||values(request.headers,'upgrade').length)fail('Туннели, Upgrade и этот request-target не поддерживаются HTTP-экспортом сессии. Выберите TCP · socket.');
+   const headers=requestHeaders(request,warnings),names=new Set();
+   for(const header of headers){const name=header.name.toLowerCase();if(names.has(name))fail('requests не сохраняет повторяющиеся заголовки. Выберите TCP · socket.');names.add(name);}
+   return `    (${python(request.method)}, ${python(request.target)}, {${headers.filter(h=>h.name.toLowerCase()!=='cookie').map(h=>python(h.name)+': '+python(h.value)).join(', ')}}, base64.b64decode(${python(btoa(request.body))}, validate=True)),`;
+  });
+  const initialCookie=values(prepared.requests[0].headers,'cookie')[0]||'';
+  warn(warnings,'Cookie первого запроса задают начальное состояние. Дальше cookies обновляются из Set-Cookie ответов; захваченные Cookie следующих запросов не подменяют новые значения.');
+  warn(warnings,'Host и Authorization сохранены. Токены в URL, заголовках и телах остаются захваченными значениями; при необходимости добавьте извлечение из ответов.');
+  warn(warnings,'requests пересчитывает framing, может нормализовать URL и отправляет запросы последовательно без захваченных пауз. Для wire-байтов используйте TCP · socket.');
+  return {error:'',warnings,code:`import base64\nfrom http.cookies import SimpleCookie\nfrom urllib.parse import urlsplit\nimport requests\n\nHOST = ${python(target.host)}\nPORT = ${target.port}\nSCHEME = ${python(scheme)}\nTIMEOUT = 15\nbase_url = f"{SCHEME}://{'[' + HOST + ']' if ':' in HOST else HOST}:{PORT}"\n\n# method, path, headers, body — in captured request order\nsteps = [\n${rows.join('\n')}\n]\n\nwith requests.Session() as session:\n    session.trust_env = False\n    session.headers.clear()\n    initial = SimpleCookie()\n    initial.load(${python(initialCookie)})\n    cookie_host = next((v for k, v in steps[0][2].items() if k.lower() == "host"), HOST)\n    cookie_domain = urlsplit("http://" + cookie_host).hostname or HOST\n    if "." not in cookie_domain and ":" not in cookie_domain:\n        cookie_domain += ".local"\n    for name, morsel in initial.items():\n        session.cookies.set(name, morsel.value, domain=cookie_domain, path="/")\n    for index, (method, path, headers, body) in enumerate(steps, 1):\n        response = session.request(\n            method, base_url + path, headers=headers, data=body,\n            timeout=TIMEOUT, allow_redirects=False,\n        )\n        print(f"[{index}/{len(steps)}] {method} {path}: {response.status_code}")\n        print(response.content)\n`};
+ }catch(e){return {code:'',warnings,error:e.message||'Не удалось создать скрипт сессии.'};}
+}

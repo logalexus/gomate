@@ -31,6 +31,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
   await page.routeWebSocket('**/api/v2/events',()=>{});
   await page.route('**/api/**',async route => {
    const req=route.request(), u=new URL(req.url()); let data=[];
+   if(u.pathname.startsWith('/api/packet/'))return route.fulfill({json:[{id:1,incoming:true,timestamp:Date.now(),kind:'raw',content:Buffer.from('TCP session '+u.pathname.split('/').pop()).toString('base64')}]});
    if (u.pathname==='/api/v2/config') data={timeoutSeconds:10};
    if (u.pathname==='/api/v2/snapshot') data={services:[{port:8080,name:'HTTP mock'},{port:9000,name:'TCP mock'}], patterns:[], metrics:{},captureRunning:true};
    if (u.pathname==='/api/v2/anomalies/groups') data={groups:[],totalGroups:0,totalSessions:0,totalAnomalies:0};
@@ -58,6 +59,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
   await page.locator('.anomaly-session-picker select').selectOption('200');
   assert.match(await page.getByRole('link',{name:'Открыть сессию',exact:true}).getAttribute('href'),/8080\/200$/);
   assert.match(await page.locator('.anomaly-full-summary').innerText(),/second-session/);
+  await page.locator('.anomaly-flow-panel').getByText('TCP session 200',{exact:false}).waitFor();
   await page.getByRole('button',{name:'Это норма',exact:true}).click();
   await page.waitForFunction(()=>!document.querySelector('.anomaly-detail'));
   assert.deepEqual(mutations,['/api/v2/anomalies/200/normal']);

@@ -1,0 +1,38 @@
+<template>
+ <span class="session-share">
+  <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="!streamId" @click="open"><i class="fas fa-comment" aria-hidden="true"/> В общий чат</button>
+  <b-modal ref="modal" title="Отправить сессию в общий чат" hide-footer :return-focus="returnFocus" :no-close-on-backdrop="sending" :no-close-on-esc="sending" :hide-header-close="sending" @shown="focusComment">
+   <form class="session-share-form" @submit.prevent="send">
+    <p>В чат будет отправлена ссылка на сессию #{{ selectedId }}. Содержимое доступно, пока сессия хранится на сервере.</p>
+    <label :for="'session-share-comment-'+_uid">Комментарий <span class="text-muted">(необязательно)</span></label>
+    <textarea :id="'session-share-comment-'+_uid" ref="comment" v-model="comment" class="form-control" rows="3" maxlength="1500" :disabled="sending||sent" placeholder="На что обратить внимание"/>
+    <div class="session-share-preview" aria-label="Предпросмотр сообщения"><ChatMarkdown :text="message"/></div>
+    <p v-if="error" class="text-danger" role="alert">{{ error }}</p>
+    <p v-if="sent" class="text-success" role="status">Сессия отправлена в общий чат. <router-link to="/chat" @click.native="$refs.modal.hide()">Открыть чат</router-link></p>
+    <div class="session-share-actions"><button type="button" class="btn btn-sm btn-outline-secondary" :disabled="sending" @click="$refs.modal.hide()">{{ sent?'Закрыть':'Отмена' }}</button><button v-if="!sent" type="submit" class="btn btn-sm btn-primary" :disabled="sending">{{ sending?'Отправка…':'Отправить в чат' }}</button></div>
+   </form>
+  </b-modal>
+ </span>
+</template>
+<script>
+import ChatMarkdown from './ChatMarkdown.vue';
+const messageKey=()=>{const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);return Array.from(bytes,n=>n.toString(16).padStart(2,'0')).join('')};
+export default {
+ components:{ChatMarkdown},props:['streamId','servicePort'],
+ data:()=>({selectedId:'',url:'',comment:'',sending:false,sent:false,error:'',returnFocus:null,pendingText:'',pendingKey:'',identityReady:false}),
+ computed:{message(){return `[Сессия #${this.selectedId}](${this.url})`+(this.comment.trim()?'\n\n'+this.comment.trim():'')}},
+ methods:{
+  open(event){this.returnFocus=event.currentTarget;this.selectedId=String(this.streamId);const href=this.$router.resolve({name:'stream',params:{servicePort:String(this.servicePort||'0'),streamId:this.selectedId}}).href;this.url=new URL(href,location.href).href;this.comment='';this.error='';this.sent=false;this.pendingText='';this.pendingKey='';this.$refs.modal.show()},
+  focusComment(){this.$refs.comment?.focus()},
+  async send(){if(this.sending||this.sent)return;const text=this.message;if(text!==this.pendingText){this.pendingText=text;this.pendingKey=messageKey()}this.sending=true;this.error='';try{
+   // Establish the anonymous author cookie before POST, so a lost POST response
+   // can be retried with the same author and idempotency key.
+   if(!this.identityReady){await this.$http.get('/v2/chat');this.identityReady=true}
+   await this.$http.post('/v2/chat',{text,key:this.pendingKey});this.sent=true;
+  }catch(e){this.error=e.response?.status===429?'Слишком много сообщений. Подождите секунду и повторите отправку.':'Не удалось отправить сообщение. Комментарий сохранён; повторите отправку.'}finally{this.sending=false}}
+ }
+};
+</script>
+<style scoped>
+.session-share{display:inline-flex}.session-share>.btn{font-size:.75rem;min-height:30px}.session-share-form{font-size:.85rem}.session-share-form textarea{font-size:.85rem;background:var(--gm-panel);color:var(--gm-text);border-color:var(--gm-border)}.session-share-preview{margin:12px 0;padding:10px;border:1px solid var(--gm-border);border-radius:6px;background:var(--gm-panel-alt);overflow-wrap:anywhere}.session-share-actions{display:flex;justify-content:flex-end;gap:8px}
+</style>

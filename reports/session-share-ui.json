@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "mocked": true,
+  "checks": [
+    "explicit send only",
+    "absolute session link rendered safely",
+    "GET identity before write",
+    "same key/text after failed response",
+    "draft retained on failure",
+    "success prevents duplicate send",
+    "session change resets preview",
+    "Escape and light/dark 1366/375px"
+  ],
+  "pageErrors": []
+}

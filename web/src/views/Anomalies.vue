@@ -14,7 +14,7 @@
     <li><b>«Все сессии»</b> показывает и обычный трафик, и срабатывания. «По поведению» сравнивает структуру и значения первых 8 входящих сообщений: параметры, заголовки и тела запросов. Часто меняющиеся значения отмечаются как переменные; повторяющаяся нагрузка остаётся отдельным фингерпринтом. Это сходство трафика, а не доказательство атаки или принадлежности команде. «По адресу» объединяет только по первому методу и пути. Удаление сессий удаляет и их срабатывания. Очистка только содержимого пакетов сохраняет сессии, аномалии и признаки поведения. Обучение модели группы не скрывает. Лейблы показывают совпавшие FIND-шаблоны: в строке — всей группы, внутри — выбранной сессии. Совпадения не добавляют баллы и сохраняются после очистки содержимого пакетов.</li>
     <li><b>Выберите сервис и период.</b> По умолчанию выше сессии с большей необычностью. Баллы — сумма отличий от изученного трафика, а не вероятность атаки.</li>
     <li><b>Раскройте строку.</b> Посмотрите, какое поле отличается и почему. В группе можно выбрать конкретную сессию. Пока причины открыты, список не обновляется.</li>
-    <li><b>Откройте сессию</b> и проверьте запрос и ответ. Высокая оценка сама по себе не подтверждает атаку; повторяющиеся атаки могут стать привычными для модели.</li>
+    <li><b>«Поток сессии»</b> показывает запросы и ответы справа, а на узком экране — в отдельном окне. Переключайте страницы блоков, чтобы просмотреть весь поток. Высокая оценка сама по себе не подтверждает атаку; повторяющиеся атаки могут стать привычными для модели.</li>
     <li><b>«Это норма»</b> скрывает только выбранную сессию и дополнительно обучает модель на её отличиях. Применяйте после проверки. «Вернуть в список» отменяет скрытие, но не обучение.</li>
    </ol>
    <p>Для просмотра скрытых включите «Включая скрытые». Первые {{ stats.warmAfter }} сообщений сервиса нужны для прогрева; после перезапуска приложения обучение начинается заново.</p>
@@ -55,29 +55,37 @@
    <p v-else>Увеличьте период или снизьте порог. Отсутствие срабатываний не означает отсутствие атак.</p>
   </div>
 
+  <div class="anomaly-workspace" :class="{'has-flow':flowOpen && activeSession}">
   <div class="anomaly-list">
    <article v-for="(g, index) in groups" :key="g.key" class="anomaly" :class="{expanded:expanded===g.key, dismissed:g.top.dismissed, alerted:g.anomalyCount>0}">
     <button type="button" class="anomaly-row" :aria-expanded="String(expanded===g.key)" :aria-controls="'anomaly-detail-'+index" @click="toggle(g)">
      <span class="anomaly-score"><strong>{{ g.top.score ? Math.round(g.top.score) : '—' }}</strong><small>{{ scope==='all' && g.top.score ? 'макс.' : 'баллов' }}</small></span>
      <span class="anomaly-description">
       <span class="anomaly-title"><code :title="g.top.summary">{{ endpoint(g.top) }}</code><small v-if="g.fingerprint" class="fingerprint-id">{{ g.fingerprint.slice(0,8) }}</small><span v-if="g.top.dismissed" class="hidden-label">Скрыто</span></span>
-      <span class="anomaly-reason-preview" :title="g.fingerprint ? behaviorPreview(g) : ''">{{ g.fingerprint ? behaviorPreview(g) : scope==='all' ? `${g.anomalyCount} со срабатыванием · ${g.count-g.anomalyCount-g.dismissedCount} без срабатывания${g.dismissedCount ? ' · '+g.dismissedCount+' скрытых' : ''}` : reasonPreview(g.top) }}</span>
+      <span class="anomaly-reason-preview" :title="g.fingerprint ? behaviorPreview(g) : reasonPreview(g.top)">
+       <template v-if="g.fingerprint && !g.missing"><BehaviorFeature v-for="f in previewFields(g)" :key="f" :field="f" compact/><span v-if="!previewFields(g).length" class="preview-structure">Общая структура и значения</span><span v-if="g.variableFields?.length" class="preview-variable">{{ g.variableFields.length }} меняются</span></template>
+       <span v-else-if="g.fingerprint">Нет сохранённых признаков поведения</span>
+       <span v-else-if="scope==='all'">{{ g.anomalyCount }} со срабатыванием · {{ g.count-g.anomalyCount-g.dismissedCount }} без срабатывания</span>
+       <template v-else><span v-if="g.top.reasons[0]" class="detector-tag" :class="detectorTone(g.top.reasons[0].detector)">{{ detectors[g.top.reasons[0].detector] || g.top.reasons[0].detector }}</span><span>{{ g.top.reasons[0]?.field }}{{ g.top.reasons[0]?.field ? ' · ' : '' }}{{ g.top.reasons[0]?.text || 'Раскройте для просмотра сессии' }}</span></template>
+      </span>
       <PatternLabels v-if="scope==='all'" :ids="g.foundPatternsIds" compact title="Шаблоны, найденные хотя бы в одной сессии группы"/>
      </span>
      <span class="anomaly-meta"><span>{{ serviceName(g.top.service) }}</span><span>{{ time(g.top.startTimestamp) }} · {{ scope==='all' ? g.count+' сессий' : g.items.length>1 ? g.items.length+' сессий' : '#'+g.top.streamId }}</span></span>
      <span class="anomaly-chevron" aria-hidden="true">{{ expanded===g.key ? '▴' : '▾' }}</span>
     </button>
     <div v-if="expanded===g.key" :id="'anomaly-detail-'+index" class="anomaly-detail">
-     <div v-if="g.fingerprint" class="behavior-details">
-      <p><b>Фингерпринт {{ g.fingerprint.slice(0,8) }}</b> · {{ g.count }} сессий · {{ g.anomalyCount }} со срабатыванием · {{ g.dismissedCount }} скрытых срабатываний</p>
-      <p v-if="g.missing">Нет сохранённых признаков: сессия создана до обновления или входящий трафик не разобран. Совпадение поведения не установлено.</p>
+     <section v-if="g.fingerprint" class="behavior-details" aria-label="Поведение группы">
+      <header class="detail-section-heading"><h2>Общее поведение</h2><code class="fingerprint-id">{{ g.fingerprint.slice(0,8) }}</code></header>
+      <div class="behavior-counts"><span><b>{{ g.count }}</b> сессий</span><span class="count-alerts"><b>{{ g.anomalyCount }}</b> со срабатыванием</span><span v-if="g.dismissedCount"><b>{{ g.dismissedCount }}</b> скрытых</span></div>
+      <p v-if="g.missing" class="anomaly-detail-note">Нет сохранённых признаков: сессия создана до обновления или входящий трафик не разобран. Совпадение поведения не установлено.</p>
       <template v-else>
-       <details><summary>Общие признаки ({{ (g.fields || []).length }})</summary><ul><li v-for="f in g.fields" :key="f"><code>{{ f }}</code></li></ul></details>
-       <p v-if="g.variableFields && g.variableFields.length">Меняются: <code>{{ g.variableFields.join(', ') }}</code></p>
-       <p v-if="g.limited">Достигнут предел описания: первые 8 сообщений, до 48 полей на сообщение. Различия за пределом не сравниваются.</p>
-       <p>Совпадение не определяет команду и не подтверждает атаку. Новые данные и очистка могут менять разбиение переменных полей; обучение детектора группы не скрывает.</p>
+       <details class="common-features" open><summary>Общие признаки ({{ (g.fields || []).length }})</summary><ul><li v-for="f in g.fields" :key="f"><BehaviorFeature :field="f"/></li></ul><p v-if="!g.fields?.length" class="anomaly-detail-note">Нет общих сохранённых значений.</p></details>
+       <div v-if="g.variableFields?.length" class="variable-features"><h3>Меняющиеся поля <span>{{ g.variableFields.length }}</span></h3><p>Значения различаются между сессиями и не разделяют эту группу.</p><div class="variable-feature-list"><BehaviorFeature v-for="f in g.variableFields" :key="f" :field="f" variable/></div></div>
+       <p v-if="g.limited" class="anomaly-detail-note">Предел описания: первые 8 сообщений, до 48 полей на сообщение. Остальные различия не сравниваются.</p>
       </template>
-     </div>
+     </section>
+     <section class="selected-session-section" aria-label="Выбранная сессия">
+     <header class="detail-section-heading"><h2>Выбранная сессия</h2><span v-if="g.items.length" class="loaded-session-count">{{ g.items.length }} загружено</span></header>
      <div v-if="scope==='all'" class="anomaly-member-controls">
       <b-form-checkbox v-if="g.anomalyCount" v-model="memberAlerts" @change="loadMembers(g)">Только со срабатыванием</b-form-checkbox>
       <span v-if="membersLoading" role="status">Загрузка сессий…</span>
@@ -92,26 +100,32 @@
       </label>
       <span v-else class="anomaly-session-label">Сессия #{{ selected(g).streamId }} · {{ time(selected(g).startTimestamp) }}</span>
       <div class="anomaly-actions">
-       <b-button size="sm" variant="primary" :to="streamLink(selected(g))">Открыть сессию</b-button>
+       <b-button size="sm" variant="primary" class="open-session-flow" :aria-expanded="String(flowOpen)" @click="openFlow($event)">Поток сессии</b-button>
+       <b-button size="sm" variant="outline-secondary" :to="streamLink(selected(g))">Открыть сессию</b-button>
        <b-button v-if="selected(g).hasAnomaly!==false" size="sm" variant="outline-secondary" :disabled="busy" :title="selected(g).dismissed ? 'Отменить скрытие этой сессии; обучение сохранится' : 'Скрыть эту сессию и обучить модель на её отличиях'" @click="mark(selected(g))">{{ selected(g).dismissed ? 'Вернуть в список' : 'Это норма' }}</b-button>
       </div>
      </div>
      <div v-if="scope==='all'" class="session-patterns"><span>Шаблоны этой сессии · на баллы не влияют</span><PatternLabels :ids="selected(g).foundPatternsIds"/><span v-if="!selected(g).foundPatternsIds?.length">Нет совпадений</span></div>
      <code class="anomaly-full-summary">{{ selected(g).request || selected(g).summary || g.top.summary }}</code>
-     <p v-if="selected(g).hasAnomaly===false" class="anomaly-detail-note">Нет сохранённого срабатывания. Это не подтверждение безопасности: модель могла ещё учиться или привыкнуть к таким запросам.</p>
+     <p v-if="selected(g).hasAnomaly===false" class="anomaly-detail-note">Нет сохранённого срабатывания · модель могла ещё учиться или привыкнуть к трафику.</p>
      <p v-if="selected(g).payloadPurged" class="anomaly-detail-note">Содержимое пакетов удалено очисткой; метаданные сессии сохранены.</p>
      <p v-if="scope==='all' && selected(g).hasAnomaly" class="anomaly-detail-note">Сохранённое срабатывание: {{ Math.round(selected(g).score) }} баллов. Оценка старой сессии не пересчитывается при обучении.</p>
      <p v-if="selected(g).dismissed" class="anomaly-detail-note">Срабатывание этой сессии скрыто вручную.</p>
+     <h3 v-if="selected(g).reasons?.length" class="reasons-heading">Причины оценки <span>{{ Math.round(selected(g).score) }} баллов</span></h3>
      <ul class="anomaly-reasons">
       <li v-for="(r, i) in selected(g).reasons" :key="i">
        <span class="anomaly-bits">+{{ r.bits.toFixed(1) }}</span>
-       <div><b>{{ detectors[r.detector] || r.detector }}</b> <code v-if="r.field">{{ r.field }}</code><p>{{ r.text }}</p><small v-if="r.template && r.template!==selected(g).summary">{{ r.template }}</small></div>
+       <div><b class="detector-tag" :class="detectorTone(r.detector)">{{ detectors[r.detector] || r.detector }}</b> <code v-if="r.field">{{ r.field }}</code><p>{{ r.text }}</p><small v-if="r.template && r.template!==selected(g).summary">{{ r.template }}</small></div>
       </li>
      </ul>
      <p v-if="selected(g).hasAnomaly!==false" class="anomaly-detail-note">Баллы показывают необычность, а не вероятность атаки. «Это норма» действует только на сессию #{{ selected(g).streamId }}.</p>
     </template>
+    </section>
+    <p v-if="g.fingerprint && !g.missing" class="anomaly-detail-note group-explanation">Группы сохраняются при обучении. Сходство трафика не определяет команду и не подтверждает атаку.</p>
     </div>
    </article>
+  </div>
+  <AnomalyFlowPanel v-if="flowOpen && activeSession" :session="activeSession" :service-name="serviceName(activeSession.service)" @close="closeFlow"/>
   </div>
   <div v-if="scope==='all' && trafficPage.totalGroups>100" class="anomaly-pagination">
    <b-button size="sm" variant="outline-secondary" :disabled="loading || groupOffset===0" @click="changePage(-100)">Предыдущие группы</b-button>
@@ -123,14 +137,16 @@
 
 <script>
 import PatternLabels from '../components/PatternLabels.vue';
+import BehaviorFeature from '../components/BehaviorFeature.vue';
+import AnomalyFlowPanel from '../components/AnomalyFlowPanel.vue';
 const message = e => e.code === 'ECONNABORTED' ? 'Сервер не успел ответить. Выберите один сервис или увеличьте ожидание в настройках приложения.' : e.response?.data?.error || e.message;
 export default {
- components: {PatternLabels},
+ components: {PatternLabels, BehaviorFeature, AnomalyFlowPanel},
  data: () => ({
   scope: 'all', grouping: 'behavior', trafficPage: {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}, groupOffset: 0,
   membersLoading: false, membersError: '', memberAlerts: false, memberRequestId: 0,
   items: [], stats: {services: [], drops: 0, warmAfter: 100},
-  loading: false, busy: false, error: '', help: false, modelInfo: false, expanded: '', selectedId: null,
+  loading: false, busy: false, error: '', help: false, modelInfo: false, expanded: '', selectedId: null, flowOpen: false,
   paused: false, timer: null, loadedAt: 0, destroyed: false, requestId: 0,
   service: 0, period: 3600, level: 6, sort: 'score', group: true, showDismissed: false,
   detectors: {template: 'Эндпоинт', field: 'Новое поле', missing: 'Нет поля', chars: 'Символы', enum: 'Значение', shape: 'Форма', length: 'Длина'},
@@ -139,6 +155,7 @@ export default {
   sorts: [{value: 'score', text: 'Сначала необычные'}, {value: 'time', text: 'Сначала новые'}],
  }),
  computed: {
+  activeSession() { const g=this.groups.find(g=>g.key===this.expanded); return g && g.items.length ? this.selected(g) : null; },
   serviceOptions() {
    return [{value: 0, text: 'Все сервисы'}, ...this.$store.state.services.map(s => ({value: s.port, text: `${s.name} #${s.port}`}))];
   },
@@ -169,11 +186,15 @@ export default {
  },
  watch: {
   scope: 'reloadFilters', grouping: 'reloadFilters', service: 'reloadFilters', period: 'reloadFilters', level: 'reloadFilters', sort: 'reloadFilters', showDismissed: 'reloadFilters',
-  group() { this.expanded = ''; },
+  group() { this.expanded = ''; this.flowOpen=false; },
  },
  mounted() { this.load(); this.timer = setInterval(this.refreshLive, 1000); },
  beforeDestroy() { this.destroyed = true; clearInterval(this.timer); this.listController?.abort(); this.memberController?.abort(); },
  methods: {
+  openFlow(event) { this.flowReturnFocus=event?.currentTarget; this.flowOpen=true; },
+  closeFlow() { this.flowOpen=false; this.$nextTick(()=>{ const target=this.flowReturnFocus?.isConnected ? this.flowReturnFocus : this.$el.querySelector('.anomaly.expanded .open-session-flow'); target?.focus(); this.flowReturnFocus=null; }); },
+  detectorTone(detector) { return ['field','missing','enum','chars'].includes(detector) ? 'tone-warning' : 'tone-info'; },
+  previewFields(g) { const fields=(g.fields||[]).filter(f=>/\/(json\.|form\.|query\.|token\.|body)/.test(f) && !f.includes('/json.structure')); return fields.slice(0,2); },
   resetFilters() { this.service=0; this.period=3600; this.level=6; this.showDismissed=false; this.sort='score'; },
   reloadFilters() { this.items = []; this.trafficPage = {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}; this.groupOffset=0; return this.load(); },
   changePage(delta) { this.groupOffset=Math.max(0,this.groupOffset+delta); return this.load(); },
@@ -181,7 +202,7 @@ export default {
    if (!document.hidden && !this.paused && !this.expanded && !this.busy && !this.loading && Date.now()-this.loadedAt>3000) return this.load(false);
   },
   async load(closeDetails = true) {
-   if (closeDetails) { this.expanded = ''; ++this.memberRequestId; this.memberController?.abort(); }
+   if (closeDetails) { this.expanded = ''; this.flowOpen=false; ++this.memberRequestId; this.memberController?.abort(); }
    this.listController?.abort();
    const controller = new AbortController();
    this.listController = controller;
@@ -236,6 +257,7 @@ export default {
    this.memberController?.abort();
    this.loading = false;
    this.expanded = this.expanded === g.key ? '' : g.key;
+   this.flowOpen=!!this.expanded && window.innerWidth>=1200;
    this.selectedId = g.top.streamId;
    ++this.memberRequestId;
    this.membersLoading=false;
@@ -280,10 +302,29 @@ export default {
 <style scoped>
 .session-patterns {font-size:11px;color:var(--gm-muted);margin-bottom:8px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .fingerprint-id {font-size:10px;color:var(--gm-muted);margin-left:6px;flex-shrink:0}
-.behavior-details {font-size:12px;overflow-wrap:anywhere;margin-bottom:10px}
-.behavior-details p {margin:0 0 6px}
-.behavior-details ul {padding-left:18px;max-height:230px;overflow:auto}
-.behavior-details summary {cursor:pointer;margin-bottom:6px}
+.anomaly-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+.anomaly-workspace.has-flow{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)}
+.behavior-details,.selected-session-section{font-size:12px;overflow-wrap:anywhere;border:1px solid var(--gm-border);border-radius:6px;padding:10px 12px;background:var(--gm-panel)}
+.behavior-details{margin-bottom:10px}
+.detail-section-heading{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.detail-section-heading h2{font-size:13px;font-weight:650;margin:0}
+.loaded-session-count{color:var(--gm-muted);font-size:11px}
+.behavior-counts{display:flex;flex-wrap:wrap;gap:5px 14px;color:var(--gm-muted);margin-bottom:10px;font-variant-numeric:tabular-nums}
+.behavior-counts b{color:var(--gm-text)}.behavior-counts .count-alerts,.behavior-counts .count-alerts b{color:var(--gm-warning)}
+.common-features summary{cursor:pointer;font-weight:600;padding:4px 0;color:var(--gm-info)}
+.common-features ul{padding:0;margin:6px 0;list-style:none;max-height:200px;overflow:auto;overscroll-behavior:contain}
+.common-features li{padding:6px 0}.common-features li+li{border-top:1px solid var(--gm-border)}
+.variable-features{margin-top:8px;padding-top:10px;border-top:1px solid var(--gm-border)}
+.variable-features h3,.reasons-heading{font-size:12px;font-weight:600;margin:0 0 6px;color:var(--gm-text)}
+.variable-features h3 span,.reasons-heading span{margin-left:5px;color:var(--gm-muted);font-weight:400}
+.variable-features p{color:var(--gm-muted);margin:0 0 8px}
+.variable-feature-list{display:flex;flex-wrap:wrap;gap:6px 12px}
+.group-explanation{padding:0 2px}
+.reasons-heading{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 0}
+.detector-tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 5px;border-radius:4px;flex-shrink:0}
+.tone-warning,.preview-variable{color:var(--gm-warning);background:var(--gm-warning-soft)}
+.tone-info,.preview-structure{color:var(--gm-info);background:var(--gm-info-soft)}
+.preview-variable,.preview-structure{font-size:11px;border-radius:4px;padding:1px 5px;flex-shrink:0}
 
 .anomalies{max-width:1500px;margin:auto;padding-bottom:16px}
 .anomaly-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
@@ -314,16 +355,18 @@ export default {
 .anomaly-description,.anomaly-meta{min-width:0}.anomaly-title{display:flex;gap:8px;align-items:center;min-width:0}
 .anomaly-title code{font-family:var(--gm-mono);font-size:13px;color:var(--gm-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hidden-label{font-size:11px;color:var(--gm-muted)}
-.anomaly-reason-preview{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gm-muted);font-size:12px;margin-top:3px}
+.anomaly-reason-preview{display:flex;align-items:center;gap:5px 8px;overflow:hidden;white-space:nowrap;color:var(--gm-muted);font-size:12px;margin-top:3px;max-width:100%}.anomaly-reason-preview>span{min-width:0;overflow:hidden;text-overflow:ellipsis}.anomaly-reason-preview>.behavior-feature{flex:0 1 auto}
 .anomaly-meta{display:flex;flex-direction:column;gap:3px;color:var(--gm-muted);font-size:12px}.anomaly-meta>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.anomaly-chevron{color:var(--gm-muted)}
 .anomaly.alerted>.anomaly-row{box-shadow:inset 3px 0 var(--gm-warning)}
 .anomaly-member-controls,.anomaly-pagination{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--gm-muted);margin:8px 0}
-.anomaly-detail{padding:12px 16px 12px 76px;border-top:1px solid var(--gm-border)}
+.anomaly-detail{padding:10px 12px;border-top:1px solid var(--gm-border);background:var(--gm-panel-alt)}
 .anomaly-detail-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px}
 .anomaly-session-picker{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0;font-size:12px;color:var(--gm-muted)}.anomaly-session-picker select{width:auto;max-width:100%;font-size:12px}.anomaly-session-label{color:var(--gm-muted);font-size:12px}
 .anomaly-full-summary{display:block;overflow-wrap:anywhere;white-space:pre-wrap;color:var(--gm-text);font-size:12px;background:var(--gm-panel-alt);border-radius:4px;padding:8px}
 .anomaly-reasons{list-style:none;padding:0;margin:10px 0}.anomaly-reasons li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;padding:6px 0;font-size:13px;overflow-wrap:anywhere}.anomaly-reasons li+li{border-top:1px solid var(--gm-border)}.anomaly-reasons p{margin:3px 0 0}.anomaly-reasons small{color:var(--gm-muted)}.anomaly-reasons code{color:var(--gm-text);font-size:12px}
-.anomaly-bits{font-family:var(--gm-mono);font-size:12px;color:var(--gm-muted);padding-top:2px}.anomaly-detail-note{margin:8px 0 0;font-size:12px;color:var(--gm-muted)}
+.anomaly-bits{font-family:var(--gm-mono);font-size:12px;color:var(--gm-muted);padding-top:2px}.anomaly-detail-note{margin:8px 0 0;font-size:12px;color:var(--gm-muted);line-height:1.5}
+@media(min-width:1200px){.has-flow .anomaly-row{grid-template-columns:40px minmax(0,1fr) 12px;gap:4px 8px}.has-flow .anomaly-score{grid-row:1/3}.has-flow .anomaly-meta{grid-column:2;flex-direction:row;gap:6px}.has-flow .anomaly-chevron{grid-column:3;grid-row:1/3}.has-flow .anomaly-session-picker{width:100%}.has-flow .anomaly-session-picker select{flex:1;min-width:0}}
+@media(max-width:1199px){.anomaly-workspace.has-flow{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:900px){.anomaly-header{align-items:flex-start;flex-wrap:wrap}.anomaly-status-toggle{margin-left:0}.anomaly-row{grid-template-columns:44px minmax(0,1fr) 150px 12px;gap:8px}.anomaly-detail{padding-left:16px}}
 @media(max-width:600px){.anomaly-filters{grid-template-columns:1fr 1fr;gap:8px}.anomaly-header p{font-size:12px}.anomaly-view-options{gap:4px 12px}.anomaly-status-toggle{width:100%}.anomaly-row{grid-template-columns:36px minmax(0,1fr) 12px;padding:10px 8px;gap:3px 8px}.anomaly-score{grid-row:1/3}.anomaly-meta{grid-column:2;flex-direction:row;font-size:11px;gap:6px}.anomaly-meta>span:first-child{flex:1}.anomaly-chevron{grid-column:3;grid-row:1/3}.anomaly-detail{padding:10px}.anomaly-title{flex-wrap:wrap;gap:3px 6px}.anomaly-score strong{font-size:17px}.anomaly-reason-preview{font-size:11px}.anomaly-header .anomaly-actions{gap:5px}}
 </style>

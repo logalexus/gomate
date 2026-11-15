@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "readOnly": true,
+  "at": "2026-11-15T00:15:52.242Z",
+  "errors": [],
+  "blockedWrites": [],
+  "exports": [
+    {
+      "kind": "http",
+      "streamId": 217423,
+      "codeBytes": 1512
+    },
+    {
+      "kind": "tcp",
+      "streamId": 217426,
+      "codeBytes": 1982
+    }
+  ],
+  "layouts": [
+    {
+      "view": "anomalies",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "view": "anomalies",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "view": "anomalies",
+      "width": 375
+    },
+    {
+      "view": "containers",
+      "width": 375
+    },
+    {
+      "view": "containers",
+      "width": 1440
+    }
+  ],
+  "captureBefore": {
+    "running": true,
+    "interface": "eth1",
+    "localIPs": [
+      "192.168.56.103"
+    ],
+    "startedAt": "2026-11-15T00:15:48.676222226Z"
+  },
+  "flowVisible": true,
+  "containers": 20,
+  "logsVisible": true,
+  "captureAfter": {
+    "running": true,
+    "interface": "eth1",
+    "localIPs": [
+      "192.168.56.103"
+    ],
+    "startedAt": "2026-11-15T00:15:48.676222226Z"
+  }
+}
