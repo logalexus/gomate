@@ -1,11 +1,22 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {serviceScope,streamLocation,filterLocation,patternSelection} from '../../web/src/trafficFilters.mjs';
+import {serviceScope,streamLocation,filterLocation,patternSelection,trafficSearch} from '../../web/src/trafficFilters.mjs';
 test('opening a session keeps all-service scope and pattern filter',()=>{
  const route={params:{},query:{pattern:'42'}};
  assert.deepEqual(streamLocation(route,{id:7,service:8080}),{name:'stream',params:{servicePort:'all',streamId:7},query:{pattern:'42'}});
  assert.equal(serviceScope('all'),'');
  assert.equal(streamLocation({params:{servicePort:'8080'},query:{}},{id:7,service:8080}).params.servicePort,'8080');
+});
+
+test('traffic search persists across filters and session links, and clears its mode',()=>{
+ const route={params:{servicePort:'8080',streamId:7},query:{patterns:'1,2'}};
+ const target=filterLocation(route,{search:'token=[a-z]+',searchMode:'regex'});
+ assert.deepEqual(trafficSearch(target.query),{query:'token=[a-z]+',mode:'regex'});
+ assert.equal(streamLocation(target,{id:8}).query.q,'token=[a-z]+');
+ assert.equal(filterLocation(target,{service:'9090'}).query.q,'token=[a-z]+');
+ assert.equal(filterLocation(target,{patterns:[3]}).query.searchMode,'regex');
+ assert.deepEqual(filterLocation(target,{search:''}).query,{patterns:'1,2'});
+ assert.deepEqual(trafficSearch({q:['x'],searchMode:'bad'}),{query:'',mode:'text'});
 });
 test('changing a filter drops stale selected session but preserves independent constraints',()=>{
  const route={params:{servicePort:'8080',streamId:7},query:{pattern:'42',other:'kept'}};

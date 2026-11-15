@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -31,18 +32,19 @@ import (
 )
 
 type Server struct {
-	Farm          *farm.Service
-	arenaGame     arena.Hub
-	chatLimit     chatLimiter
-	behaviorPages behaviorPageCache
-	Control       *control.Manager
-	Config        config.Config
-	Store         *storage.Store
-	Catalog       *analyze.Catalog
-	Metrics       *metrics.Metrics
-	Hub           *events.Hub
-	Anomaly       *anomaly.Engine
-	mu            sync.Mutex
+	Farm                 *farm.Service
+	arenaGame            arena.Hub
+	chatLimit            chatLimiter
+	behaviorPages        behaviorPageCache
+	trafficSearchRunning atomic.Int32
+	Control              *control.Manager
+	Config               config.Config
+	Store                *storage.Store
+	Catalog              *analyze.Catalog
+	Metrics              *metrics.Metrics
+	Hub                  *events.Hub
+	Anomaly              *anomaly.Engine
+	mu                   sync.Mutex
 }
 
 func (s *Server) Reload(ctx context.Context) error {
@@ -117,6 +119,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.WithContext(ctx)
 	if strings.HasPrefix(r.URL.Path, "/api/v2/farm/") && s.Farm != nil {
 		s.Farm.ServeHTTP(w, r)
+		return
+	}
+	if r.URL.Path == "/api/v2/traffic/search" {
+		if e := s.trafficSearch(w, r); e != nil {
+			s.fail(w, e)
+		}
 		return
 	}
 	if r.URL.Path == "/api/v2/monitor" {
