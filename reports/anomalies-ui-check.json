@@ -9,8 +9,8 @@
       "docWidth": 1366,
       "mainWidth": 1366,
       "first": {
-        "top": 278.796875,
-        "bottom": 337.796875,
+        "top": 266.796875,
+        "bottom": 325.796875,
         "height": 59
       },
       "visibleRows": 7
@@ -22,8 +22,8 @@
       "docWidth": 1366,
       "mainWidth": 1366,
       "first": {
-        "top": 278.796875,
-        "bottom": 337.796875,
+        "top": 266.796875,
+        "bottom": 325.796875,
         "height": 59
       },
       "visibleRows": 7
@@ -35,8 +35,8 @@
       "docWidth": 1920,
       "mainWidth": 1920,
       "first": {
-        "top": 278.796875,
-        "bottom": 337.796875,
+        "top": 266.796875,
+        "bottom": 325.796875,
         "height": 59
       },
       "visibleRows": 7
@@ -48,8 +48,8 @@
       "docWidth": 1920,
       "mainWidth": 1920,
       "first": {
-        "top": 278.796875,
-        "bottom": 337.796875,
+        "top": 266.796875,
+        "bottom": 325.796875,
         "height": 59
       },
       "visibleRows": 7
@@ -61,11 +61,11 @@
       "docWidth": 800,
       "mainWidth": 800,
       "first": {
-        "top": 381.78125,
-        "bottom": 440.78125,
+        "top": 360.984375,
+        "bottom": 419.984375,
         "height": 59
       },
-      "visibleRows": 5
+      "visibleRows": 6
     },
     {
       "width": 800,
@@ -74,11 +74,11 @@
       "docWidth": 800,
       "mainWidth": 800,
       "first": {
-        "top": 381.78125,
-        "bottom": 440.78125,
+        "top": 360.984375,
+        "bottom": 419.984375,
         "height": 59
       },
-      "visibleRows": 5
+      "visibleRows": 6
     },
     {
       "width": 375,
@@ -87,8 +87,8 @@
       "docWidth": 375,
       "mainWidth": 375,
       "first": {
-        "top": 551.09375,
-        "bottom": 631.59375,
+        "top": 522.296875,
+        "bottom": 602.796875,
         "height": 80.5
       },
       "visibleRows": 2
@@ -100,8 +100,8 @@
       "docWidth": 375,
       "mainWidth": 375,
       "first": {
-        "top": 551.09375,
-        "bottom": 631.59375,
+        "top": 522.296875,
+        "bottom": 602.796875,
         "height": 80.5
       },
       "visibleRows": 2
@@ -113,8 +113,8 @@
       "docWidth": 667,
       "mainWidth": 667,
       "first": {
-        "top": 450.78125,
-        "bottom": 509.78125,
+        "top": 425.984375,
+        "bottom": 484.984375,
         "height": 59
       },
       "visibleRows": 0
@@ -126,8 +126,8 @@
       "docWidth": 667,
       "mainWidth": 667,
       "first": {
-        "top": 450.78125,
-        "bottom": 509.78125,
+        "top": 425.984375,
+        "bottom": 484.984375,
         "height": 59
       },
       "visibleRows": 0

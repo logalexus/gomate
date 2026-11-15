@@ -1,18 +1,18 @@
 {
   "passed": true,
   "readOnly": true,
-  "at": "2026-11-15T00:15:52.242Z",
+  "at": "2026-11-15T00:48:02.692Z",
   "errors": [],
   "blockedWrites": [],
   "exports": [
     {
       "kind": "http",
-      "streamId": 217423,
-      "codeBytes": 1512
+      "streamId": 227758,
+      "codeBytes": 1541
     },
     {
       "kind": "tcp",
-      "streamId": 217426,
+      "streamId": 227704,
       "codeBytes": 1982
     }
   ],
@@ -46,8 +46,9 @@
     "localIPs": [
       "192.168.56.103"
     ],
-    "startedAt": "2026-11-15T00:15:48.676222226Z"
+    "startedAt": "2026-11-15T00:47:53.990596497Z"
   },
+  "flowClosedOnExpand": true,
   "flowVisible": true,
   "containers": 20,
   "logsVisible": true,
@@ -57,6 +58,6 @@
     "localIPs": [
       "192.168.56.103"
     ],
-    "startedAt": "2026-11-15T00:15:48.676222226Z"
+    "startedAt": "2026-11-15T00:47:53.990596497Z"
   }
 }

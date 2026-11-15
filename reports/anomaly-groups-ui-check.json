@@ -2,6 +2,7 @@
   "passed": true,
   "mocked": true,
   "checks": [
+    "expanding a group does not open or fetch its flow; explicit button opens flow",
     "side flow keeps anomaly route, shows requests and responses, pages through session, follows selection, closes and reopens",
     "group pattern union, compact overflow, deleted pattern label, selected session labels independent of score",
     "all traffic default with full totals",

@@ -257,7 +257,7 @@ export default {
    this.memberController?.abort();
    this.loading = false;
    this.expanded = this.expanded === g.key ? '' : g.key;
-   this.flowOpen=!!this.expanded && window.innerWidth>=1200;
+   this.flowOpen=false;
    this.selectedId = g.top.streamId;
    ++this.memberRequestId;
    this.membersLoading=false;

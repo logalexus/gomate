@@ -59,6 +59,8 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
   await page.locator('.anomaly-session-picker select').selectOption('200');
   assert.match(await page.getByRole('link',{name:'Открыть сессию',exact:true}).getAttribute('href'),/8080\/200$/);
   assert.match(await page.locator('.anomaly-full-summary').innerText(),/second-session/);
+  assert.equal(await page.locator('.anomaly-flow-panel').count(),0);
+  await page.getByRole('button',{name:'Поток сессии',exact:true}).click();
   await page.locator('.anomaly-flow-panel').getByText('TCP session 200',{exact:false}).waitFor();
   await page.getByRole('button',{name:'Это норма',exact:true}).click();
   await page.waitForFunction(()=>!document.querySelector('.anomaly-detail'));
