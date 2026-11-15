@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "checks": [
+    "live farm route",
+    "response printing template without regex",
+    "automatic launch credentials and copy button",
+    "credentials are not cached",
+    "farm settings deep link",
+    "ructf_http default",
+    "submission disabled",
+    "token not exposed",
+    "Python client download",
+    "no JavaScript errors"
+  ]
+}

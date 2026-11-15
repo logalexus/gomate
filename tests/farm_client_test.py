@@ -29,7 +29,7 @@ class ClientTest(unittest.TestCase):
         try:
             with tempfile.TemporaryDirectory() as folder:
                 exploit = Path(folder) / 'sploit.py'
-                exploit.write_text('print("A" * 31 + "=", flush=True)\n')
+                exploit.write_text('print("response prefix " + "A" * 31 + "= and more response text", flush=True)\n')
                 result = subprocess.run([sys.executable, str(CLIENT), '--server', f'http://127.0.0.1:{server.server_port}', '--name', 'test', '--once', '--spool', str(Path(folder)/'outbox.db'), '--', sys.executable, str(exploit)], env={**os.environ, 'GOMATE_USER': 'test', 'GOMATE_PASSWORD': 'pass'}, capture_output=True, timeout=15)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(posted, [{'flags': ['A'*31+'='], 'team': 'mock', 'sploit': 'test'}])

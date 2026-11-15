@@ -100,6 +100,17 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		respond(w, 200, map[string]int64{"timeoutSeconds": s.requestTimeoutSeconds()})
 		return
 	}
+	// Return only the already authenticated caller's credentials, on explicit UI request.
+	if r.URL.Path == "/api/v2/farm/client-credentials" {
+		w.Header().Set("Cache-Control", "no-store")
+		if r.Method != "POST" {
+			w.Header().Set("Allow", "POST")
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		respond(w, http.StatusOK, map[string]string{"username": user, "password": pass})
+		return
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(s.requestTimeoutSeconds())*time.Second)
 	defer cancel()
 	ctx = storage.WithRequestBudget(ctx)
