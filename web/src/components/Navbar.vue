@@ -14,7 +14,7 @@ import ThemeButton from './ThemeButton';
 import ServiceModal from '../views/ServiceModal';
 export default {
  name:'Navbar',components:{PatternsDropdown,ThemeButton,ServiceModal},
- data:()=>({serviceModalIsCreating:true,serviceModalEditingService:{},navigation:[{name:'stream',label:'Трафик',icon:'fas fa-stream'},{name:'anomalies',label:'Аномалии',icon:'fas fa-wave-square'},{name:'containers',label:'Контейнеры',icon:'fas fa-cubes'},{name:'monitoring',label:'Мониторинг',icon:'fas fa-chart-line'},{name:'chat',label:'Чат команды',icon:'far fa-comment-alt'}]}),
+ data:()=>({serviceModalIsCreating:true,serviceModalEditingService:{},navigation:[{name:'stream',label:'Трафик',icon:'fas fa-stream'},{name:'anomalies',label:'Аномалии',icon:'fas fa-wave-square'},{name:'containers',label:'Контейнеры',icon:'fas fa-cubes'},{name:'monitoring',label:'Мониторинг',icon:'fas fa-chart-line'},{name:'farm',label:'Ферма',icon:'fas fa-flag'},{name:'chat',label:'Чат команды',icon:'far fa-comment-alt'}]}),
  mounted(){this.updateServices();this.$root.$on('gm:add-service',this.showAddService);this.$root.$on('gm:edit-service',this.editService)},
  beforeDestroy(){this.$root.$off('gm:add-service',this.showAddService);this.$root.$off('gm:edit-service',this.editService)},
  methods:{

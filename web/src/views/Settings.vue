@@ -4,8 +4,8 @@
   <b-alert :show="!!error" variant="danger" role="alert">{{ error }}</b-alert>
   <div v-if="loading" class="settings-empty" role="status">Загружаем конфигурацию хоста…</div>
   <template v-else-if="form">
-   <b-tabs class="settings-tabs">
-    <b-tab title="Захват трафика" active>
+   <b-tabs class="settings-tabs" v-model="activeTab">
+    <b-tab title="Захват трафика">
      <div class="settings-section">
       <div class="settings-status" :class="{'is-live':capture.running&&!capture.error}"><span class="settings-status-dot"/><div><strong>{{ capture.error || (capture.running ? 'Захват работает: ' + capture.interface : 'Захват остановлен') }}</strong><div class="small text-muted">{{ capture.running ? 'Локальные адреса: '+(capture.localIPs || []).join(', ') : 'Выберите интерфейс и включите LIVE-захват ниже.' }}</div></div></div>
       <section class="settings-card"><div class="settings-card-title"><div><h6>Источник трафика</h6><p>Один интерфейс хоста для LIVE-анализа.</p></div><b-form-checkbox v-model="form.captureEnabled" switch>Анализировать LIVE-трафик</b-form-checkbox></div>
@@ -42,8 +42,9 @@
     </section></div></b-tab>
     <b-tab title="Уведомления"><NotificationSettings/></b-tab>
     <b-tab title="Отображение"><div class="settings-section"><section class="settings-card"><div class="settings-card-title"><div><h6>Плотность и формат данных</h6><p>Эти настройки применяются сразу и сохраняются только в вашем браузере.</p></div><span class="settings-local-label">Локально</span></div><div class="row"><b-form-group class="col-md-4" label="Сессий на странице" label-for="settings-pageSize"><b-form-input id="settings-pageSize" type="number" min="1" max="100" v-model.number="pageSize"/></b-form-group><b-form-group class="col-md-4" label="Байтов в строке HEX" label-for="settings-hexdumpBlockSize"><b-form-input id="settings-hexdumpBlockSize" type="number" min="1" max="64" v-model.number="hexdumpBlockSize"/></b-form-group><b-form-group class="col-md-4" label="Нумерация HEX-строк" label-for="settings-hex-base"><b-form-select id="settings-hex-base" v-model="hexdumpLineNumberBase" :options="[{value:10,text:'Десятичная'},{value:16,text:'Шестнадцатеричная'}]"/></b-form-group></div></section></div></b-tab>
+    <b-tab title="Ферма" lazy><FarmSettings/></b-tab>
    </b-tabs>
-   <div class="settings-footer"><span class="small" :class="saved?'text-success':'text-muted'" role="status">{{ saved ? 'Настройки сохранены' : 'Серверные настройки изменятся после сохранения' }}</span><div class="settings-control-row"><b-button variant="outline-secondary" @click="$bvModal.hide('settingsModal')">Закрыть</b-button><b-button variant="primary" :disabled="saving" @click="save">{{ saving ? 'Применение…' : 'Сохранить и применить' }}</b-button></div></div>
+   <div v-if="activeTab!==5" class="settings-footer"><span class="small" :class="saved?'text-success':'text-muted'" role="status">{{ saved ? 'Настройки сохранены' : 'Серверные настройки изменятся после сохранения' }}</span><div class="settings-control-row"><b-button variant="outline-secondary" @click="$bvModal.hide('settingsModal')">Закрыть</b-button><b-button variant="primary" :disabled="saving" @click="save">{{ saving ? 'Применение…' : 'Сохранить и применить' }}</b-button></div></div>
   </template>
   <b-modal id="confirmCleanup" title="Подтверждение очистки" hide-footer>
    <p>Область: <strong>{{ serviceOptions.find(s=>s.value===Number(cleanupService))?.text || 'Все сервисы' }}</strong>.</p><p v-if="preview">Оценка: {{ preview.sessions }} сессий, {{ preview.packets }} блоков, {{ bytes(preview.payloadBytes) }} содержимого.</p><p>{{ cleanupMode==='packets' ? 'Будет удалено содержимое пакетов. Сессии, аномалии и фингерпринты останутся.' : 'Будут удалены сессии, их содержимое и связанные срабатывания в выбранной области.' }}</p><b-alert show variant="warning">{{ cleanupKeep ? 'Избранное будет сохранено.' : 'Избранное тоже будет удалено.' }} Действие нельзя отменить.</b-alert><b-form-checkbox v-model="confirmDelete">Подтверждаю удаление выбранных данных</b-form-checkbox><div class="settings-control-row justify-content-end mt-3"><b-button variant="outline-secondary" @click="$bvModal.hide('confirmCleanup')">Отмена</b-button><b-button variant="danger" :disabled="!confirmDelete || deleting" @click="startCleanup">{{ deleting ? 'Запуск…' : 'Удалить данные' }}</b-button></div>
@@ -51,11 +52,12 @@
  </b-modal>
 </template>
 <script>
+import FarmSettings from '../components/FarmSettings.vue';
 import NotificationSettings from '../components/NotificationSettings.vue';
 const message=e=>e.response?.data?.error || e.message || 'Не удалось выполнить запрос';
 export default {
- components: {NotificationSettings},
- data:()=>({form:null,interfaces:[],capture:{},loading:false,saving:false,saved:false,error:'',ipText:'',packetMinutes:0,sessionMinutes:60,jobs:[],timer:null,polling:false,cleanupMode:'packets',cleanupService:0,cleanupKeep:true,preview:null,busyPreview:false,confirmDelete:false,deleting:false}),
+ components: {NotificationSettings,FarmSettings},
+ data:()=>({activeTab:0,openFarmPending:false,form:null,interfaces:[],capture:{},loading:false,saving:false,saved:false,error:'',ipText:'',packetMinutes:0,sessionMinutes:60,jobs:[],timer:null,polling:false,cleanupMode:'packets',cleanupService:0,cleanupKeep:true,preview:null,busyPreview:false,confirmDelete:false,deleting:false}),
  computed:{
   selectedAddresses(){return this.interfaces.find(x=>x.name===this.form?.interface)?.addresses.join(', ');},
   serviceOptions(){return [{value:0,text:'Все сервисы'},...this.$store.state.services.map(s=>({value:s.port,text:`${s.name} · ${s.port}`}))];},
@@ -65,9 +67,11 @@ export default {
   hexdumpLineNumberBase:{get(){return this.$store.state.hexdumpLineNumberBase},set(v){this.$store.commit('setHexdumpLineNumberBase',v)}},
  },
  watch:{packetMinutes(){this.saved=false},sessionMinutes(){this.saved=false},ipText(){this.saved=false},cleanupMode(){this.preview=null},cleanupService(){this.preview=null},cleanupKeep(){this.preview=null},form:{deep:true,handler(){this.saved=false}}},
- beforeDestroy(){this.stopPolling()},
+ mounted(){this.$root.$on('gm:farm-settings',this.openFarm)},
+ beforeDestroy(){this.$root.$off('gm:farm-settings',this.openFarm);this.stopPolling()},
  methods:{
-  async load(){this.loading=true;this.error='';this.saved=false;try{const [s,i,j]=await Promise.all([this.$http.get('/v2/settings'),this.$http.get('/v2/interfaces'),this.$http.get('/v2/cleanup')]);this.form={...s.data.settings,requestTimeoutSeconds:s.data.settings.requestTimeoutSeconds || s.data.settings.anomalyTimeoutSeconds || 10};this.capture=s.data.capture;this.interfaces=i.data;this.jobs=j.data;this.ipText=this.form.localIPs.join(', ');this.packetMinutes=this.form.packetRetentionSeconds/60;this.sessionMinutes=this.form.sessionRetentionSeconds/60;}catch(e){this.error=message(e)}finally{this.loading=false}},
+ openFarm(){this.openFarmPending=true;this.$bvModal.show('settingsModal')},
+  async load(){this.loading=true;this.error='';this.saved=false;try{const [s,i,j]=await Promise.all([this.$http.get('/v2/settings'),this.$http.get('/v2/interfaces'),this.$http.get('/v2/cleanup')]);this.form={...s.data.settings,requestTimeoutSeconds:s.data.settings.requestTimeoutSeconds || s.data.settings.anomalyTimeoutSeconds || 10};this.capture=s.data.capture;this.interfaces=i.data;this.jobs=j.data;this.ipText=this.form.localIPs.join(', ');this.packetMinutes=this.form.packetRetentionSeconds/60;this.sessionMinutes=this.form.sessionRetentionSeconds/60;}catch(e){this.error=message(e)}finally{this.loading=false;if(this.openFarmPending){this.$nextTick(()=>{this.activeTab=5;this.openFarmPending=false})}}},
   startPolling(){this.stopPolling();this.timer=setInterval(this.poll,2000)},stopPolling(){clearInterval(this.timer);this.timer=null},
   async poll(){if(this.polling)return;this.polling=true;try{const [s,j]=await Promise.all([this.$http.get('/v2/settings'),this.$http.get('/v2/cleanup')]);this.capture=s.data.capture;this.jobs=j.data;}catch(e){this.error=message(e)}finally{this.polling=false}},
   async refreshInterfaces(){try{this.interfaces=(await this.$http.get('/v2/interfaces')).data}catch(e){this.error=message(e)}},

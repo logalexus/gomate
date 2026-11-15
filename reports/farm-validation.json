@@ -1,0 +1,21 @@
+{
+  "at": "2026-11-15T17:39:17.403175+00:00",
+  "upstream": {
+    "S4DFarm": "3b8b057c95e0467c6afb3a47648e8b6befd1a815",
+    "DestructiveFarm": "69cc5821a16fc38e6670e666bc0c8d5ee311e57a",
+    "ForcAD": "6ce3407be569b7f69f879501c5e2ca79231c1ff9"
+  },
+  "checks": {
+    "go_test_all": "passed (existing integration tests require their own TEST_DATABASE_URL)",
+    "farm_postgres_race": "passed on isolated gomate_farm_test",
+    "go_vet": "passed",
+    "python_client_mock": "passed",
+    "browser_mock": "passed",
+    "web_production_build": "passed"
+  },
+  "protocols": [
+    "ructf_http (default)",
+    "forcad HTTP",
+    "volga API v1"
+  ]
+}

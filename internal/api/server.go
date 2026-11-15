@@ -24,12 +24,14 @@ import (
 	"gomate/internal/config"
 	"gomate/internal/control"
 	"gomate/internal/events"
+	"gomate/internal/farm"
 	"gomate/internal/metrics"
 	"gomate/internal/model"
 	"gomate/internal/storage"
 )
 
 type Server struct {
+	Farm          *farm.Service
 	arenaGame     arena.Hub
 	chatLimit     chatLimiter
 	behaviorPages behaviorPageCache
@@ -102,6 +104,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	ctx = storage.WithRequestBudget(ctx)
 	r = r.WithContext(ctx)
+	if strings.HasPrefix(r.URL.Path, "/api/v2/farm/") && s.Farm != nil {
+		s.Farm.ServeHTTP(w, r)
+		return
+	}
 	if r.URL.Path == "/api/v2/monitor" {
 		if e := s.monitor(w, r); e != nil {
 			s.fail(w, e)

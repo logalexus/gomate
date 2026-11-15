@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "checks": [
+    "manual submission feedback and flag statuses",
+    "syntax editor and downloads",
+    "settings deep link, default protocol, board URL and token save",
+    "responsive layouts and no JavaScript errors"
+  ]
+}

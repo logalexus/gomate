@@ -16,6 +16,7 @@ import (
 	"gomate/internal/capture"
 	"gomate/internal/config"
 	"gomate/internal/events"
+	"gomate/internal/farm"
 	"gomate/internal/flow"
 	"gomate/internal/metrics"
 	"gomate/internal/pipeline"
@@ -42,10 +43,15 @@ func run() error {
 		return e
 	}
 	defer store.Close()
+	farmService, e := farm.New(ctx, store.Pool)
+	if e != nil {
+		return e
+	}
+	defer farmService.Close()
 	m := &metrics.Metrics{}
 	catalog := analyze.NewCatalog()
 	hub := events.New()
-	app := &api.Server{Config: cfg, Store: store, Catalog: catalog, Metrics: m, Hub: hub}
+	app := &api.Server{Farm: farmService, Config: cfg, Store: store, Catalog: catalog, Metrics: m, Hub: hub}
 	reload, cancel := context.WithTimeout(ctx, cfg.DBTimeout)
 	e = app.Reload(reload)
 	cancel()
