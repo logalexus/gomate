@@ -147,3 +147,12 @@ BEGIN
   INSERT INTO gomate_schema_versions(version) VALUES (10);
  END IF;
 END $$;
+
+-- Revision cursors synchronize edits and deletions without reloading history.
+CREATE SEQUENCE IF NOT EXISTS gomate_chat_revision_seq;
+ALTER TABLE gomate_chat ADD COLUMN IF NOT EXISTS revision bigint NOT NULL DEFAULT 0;
+ALTER TABLE gomate_chat ALTER COLUMN revision SET DEFAULT nextval('gomate_chat_revision_seq');
+ALTER TABLE gomate_chat ADD COLUMN IF NOT EXISTS edited_at timestamptz;
+ALTER TABLE gomate_chat ADD COLUMN IF NOT EXISTS deleted boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS gomate_chat_revision ON gomate_chat(revision);
+INSERT INTO gomate_schema_versions(version) VALUES (11) ON CONFLICT DO NOTHING;

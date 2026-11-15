@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "run": "chat_management_1794772417005",
+  "messageIDs": [
+    145
+  ],
+  "checks": [
+    "teammate edits foreign message, Markdown rendered and synchronized, author retained, composer draft preserved",
+    "Escape cancels edit without changing message or new-message draft",
+    "stale concurrent save rejected with draft intact; reopening uses current version; Ctrl+Enter saves",
+    "edit controls and message menu usable at 390px and desktop",
+    "delete confirmation cancel/confirm, foreign message deleted for everyone, open remote editor closed, deletion survives reload"
+  ],
+  "pageErrors": []
+}

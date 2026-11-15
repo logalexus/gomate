@@ -173,3 +173,199 @@ func TestContainerAPIConfirmationOriginAndAllowlist(t *testing.T) {
 		t.Fatal(w.Code)
 	}
 }
+
+func TestChatSharedEditingDeletionAndRevisionFeed(t *testing.T) {
+	s := database(t)
+	app := &api.Server{Store: s, Hub: events.New(), Config: config.Config{Login: "test", Password: "test", DBTimeout: 3 * time.Second}}
+	call := func(method, path, body string, cookie *http.Cookie) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, path, strings.NewReader(body))
+		r.SetBasicAuth("test", "test")
+		if cookie != nil {
+			r.AddCookie(cookie)
+		}
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, r)
+		return w
+	}
+	a := call("GET", "/api/v2/chat", "", nil).Result().Cookies()[0]
+	b := call("GET", "/api/v2/chat", "", nil).Result().Cookies()[0]
+	var original storage.ChatMessage
+	w := call("POST", "/api/v2/chat", `{"text":"original **Markdown**","key":"shared-edit-message-1"}`, a)
+	if w.Code != 201 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	json.Unmarshal(w.Body.Bytes(), &original)
+	if original.Revision <= 0 {
+		t.Fatal("missing revision")
+	}
+	path := "/api/v2/chat/" + fmt.Sprint(original.ID)
+	// No ownership restriction: a different browser edits the original message.
+	w = call("PATCH", path, fmt.Sprintf(`{"text":"edited\n\n`+"```go\\ncode\\n```"+`","revision":%d}`, original.Revision), b)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	var edited storage.ChatMessage
+	json.Unmarshal(w.Body.Bytes(), &edited)
+	if edited.Author != original.Author || edited.CreatedAt != original.CreatedAt || edited.EditedAt == nil || edited.Revision <= original.Revision {
+		t.Fatal(edited)
+	}
+	w = call("PATCH", path, fmt.Sprintf(`{"text":"stale overwrite","revision":%d}`, original.Revision), a)
+	if w.Code != 409 {
+		t.Fatal("concurrent edit was not rejected", w.Code, w.Body.String())
+	}
+	w = call("PATCH", path, `{"text":"without revision"}`, a)
+	if w.Code != 400 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	w = call("PATCH", path, fmt.Sprintf(`{"text":"   ","revision":%d}`, edited.Revision), a)
+	if w.Code != 400 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	var page struct {
+		Messages       []storage.ChatMessage `json:"messages"`
+		Changes        []storage.ChatMessage `json:"changes"`
+		Revision       int64                 `json:"revision"`
+		HasChangesMore bool                  `json:"hasChangesMore"`
+	}
+	w = call("GET", fmt.Sprintf("/api/v2/chat?after=%d&revision=%d", original.ID, original.Revision), "", a)
+	json.Unmarshal(w.Body.Bytes(), &page)
+	if w.Code != 200 || len(page.Messages) != 0 || len(page.Changes) != 1 || page.Changes[0].Text != edited.Text || page.Revision != edited.Revision {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	w = call("DELETE", path, "", b)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	var removed storage.ChatMessage
+	json.Unmarshal(w.Body.Bytes(), &removed)
+	if !removed.Deleted || removed.Text != "" || removed.Revision <= edited.Revision {
+		t.Fatal(removed)
+	}
+	w = call("DELETE", path, "", a)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	var again storage.ChatMessage
+	json.Unmarshal(w.Body.Bytes(), &again)
+	if again.Revision != removed.Revision {
+		t.Fatal("delete retry bumped revision")
+	}
+	w = call("GET", fmt.Sprintf("/api/v2/chat?changesOnly=1&revision=%d", edited.Revision), "", a)
+	json.Unmarshal(w.Body.Bytes(), &page)
+	if w.Code != 200 || len(page.Messages) != 0 || len(page.Changes) != 1 || !page.Changes[0].Deleted || page.Changes[0].Text != "" {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	w = call("GET", "/api/v2/chat", "", a)
+	json.Unmarshal(w.Body.Bytes(), &page)
+	if len(page.Messages) != 0 {
+		t.Fatal("deleted message in history", w.Body.String())
+	}
+	// Send retries cannot resurrect a deleted message or leak its original body.
+	w = call("POST", "/api/v2/chat", `{"text":"original **Markdown**","key":"shared-edit-message-1"}`, a)
+	if w.Code != 201 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	json.Unmarshal(w.Body.Bytes(), &again)
+	if !again.Deleted || again.Text != "" || again.ID != original.ID {
+		t.Fatal(again)
+	}
+	w = call("PATCH", path, fmt.Sprintf(`{"text":"resurrect","revision":%d}`, removed.Revision), b)
+	if w.Code != 404 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	r := httptest.NewRequest("DELETE", path, nil)
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	if w.Code != 401 {
+		t.Fatal("unauthenticated deletion", w.Code)
+	}
+	r = httptest.NewRequest("DELETE", path, nil)
+	r.SetBasicAuth("test", "test")
+	r.Header.Set("Origin", "https://other.example")
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	if w.Code != 403 {
+		t.Fatal("cross-origin deletion", w.Code)
+	}
+	var body string
+	if e := s.Pool.QueryRow(context.Background(), `SELECT body FROM gomate_chat WHERE id=$1`, original.ID).Scan(&body); e != nil || body != "[deleted]" {
+		t.Fatal("deleted text not cleared", body, e)
+	}
+}
+
+func TestChatRevisionFeedPagesAndOlderMessages(t *testing.T) {
+	s := database(t)
+	ctx := context.Background()
+	first, e := s.SendChat(ctx, "a", "first", "older message")
+	if e != nil {
+		t.Fatal(e)
+	}
+	for i := 0; i < 205; i++ {
+		if _, e = s.SendChat(ctx, "bulk", fmt.Sprint(i), "newer message"); e != nil {
+			t.Fatal(e)
+		}
+	}
+	baseline, e := s.ChatRevision(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	edited, e := s.ChangeChat(ctx, first.ID, "updated outside latest page", &first.Revision, false)
+	if e != nil {
+		t.Fatal(e)
+	}
+	changes, e := s.ChatChanges(ctx, baseline)
+	if e != nil || len(changes) != 1 || changes[0].ID != first.ID || changes[0].Revision != edited.Revision {
+		t.Fatal(changes, e)
+	}
+	// A backlog is bounded to 100 per response and can be drained without gaps.
+	cursor := int64(0)
+	seen := map[int64]bool{}
+	for {
+		changes, e = s.ChatChanges(ctx, cursor)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if len(changes) > 100 {
+			t.Fatal("unbounded page")
+		}
+		if len(changes) == 0 {
+			break
+		}
+		for _, m := range changes {
+			if seen[m.ID] || m.Revision <= cursor {
+				t.Fatal("duplicate or nonmonotonic revision", m)
+			}
+			seen[m.ID] = true
+			cursor = m.Revision
+		}
+	}
+	if len(seen) != 206 {
+		t.Fatal("changes skipped", len(seen))
+	}
+	// Concurrent edits sharing a revision allow exactly one writer to commit.
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			_, e := s.ChangeChat(ctx, edited.ID, fmt.Sprint(i), &edited.Revision, false)
+			errs <- e
+		}(i)
+	}
+	wg.Wait()
+	close(errs)
+	success, conflicts := 0, 0
+	for e := range errs {
+		if e == nil {
+			success++
+		} else if e == storage.ErrChatConflict {
+			conflicts++
+		} else {
+			t.Fatal(e)
+		}
+	}
+	if success != 1 || conflicts != 1 {
+		t.Fatal(success, conflicts)
+	}
+}

@@ -7,7 +7,7 @@
     <b-button class="chat-history-button" size="sm" variant="link" :disabled="loading||!hasOlder||messages.length>=500" @click="older"><i class="fas fa-history" aria-hidden="true"/> History</b-button>
     <b-dropdown right no-caret variant="link" class="chat-info-menu" :toggle-attrs="{'aria-label':'About this channel'}">
      <template #button-content><i class="fas fa-info-circle" aria-hidden="true"/></template>
-     <b-dropdown-text><strong>{{ author || 'Connecting…' }}</strong><p>Your anonymous name in this browser.</p><p>A shared channel for everyone with access to gomate. History is kept for 7 days, up to 10,000 messages.</p></b-dropdown-text>
+     <b-dropdown-text><strong>{{ author || 'Connecting…' }}</strong><p>Your anonymous name in this browser.</p><p>A shared channel for everyone with access to gomate. History is kept for 7 days, up to 10,000 messages.</p><p>Everyone can edit or delete any message.</p></b-dropdown-text>
     </b-dropdown>
    </div>
   </header>
@@ -17,7 +17,19 @@
    <VirtualList ref="list" :items="messages" class="chat-list" role="region" tabindex="0" aria-label="Team messages" @scroll.native.passive="onScroll">
     <template #default="{item}"><article class="chat-message" :class="{'chat-own':item.author===author}" :data-message-id="item.id">
      <span class="chat-avatar" aria-hidden="true">{{ item.author.slice(-2).toUpperCase() }}</span>
-     <div class="chat-message-body"><div class="chat-message-meta"><strong>{{ item.author }}<span v-if="item.author===author" class="chat-you">you</span></strong><time :datetime="item.createdAt" :title="new Date(item.createdAt).toLocaleString('en-US')">{{ time(item.createdAt) }}</time></div><ChatMarkdown :text="item.text"/></div>
+     <div class="chat-message-body"><div class="chat-message-meta"><strong>{{ item.author }}<span v-if="item.author===author" class="chat-you">you</span></strong><time :datetime="item.createdAt" :title="new Date(item.createdAt).toLocaleString('en-US')">{{ time(item.createdAt) }}</time><span v-if="item.editedAt" class="chat-edited" :title="'Edited '+new Date(item.editedAt).toLocaleString('en-US')">(edited)</span></div>
+      <div v-if="editingId===item.id" class="chat-inline-editor">
+       <textarea :id="'edit-message-'+item.id" v-model="editDraft" rows="3" maxlength="2000" aria-label="Edit message" :aria-describedby="editError?'chat-edit-error':null" :disabled="mutating" @keydown="editKey"/>
+       <p v-if="editError" id="chat-edit-error" class="text-danger chat-edit-error" role="alert">{{ editError }}</p>
+       <div class="chat-edit-actions"><b-button size="sm" variant="outline-secondary" :disabled="mutating" @click="cancelEdit">Cancel</b-button><b-button size="sm" variant="primary" :disabled="mutating||!editDraft.trim()" @click="saveEdit">{{ mutating?'Saving…':'Save' }}</b-button></div>
+      </div>
+      <ChatMarkdown v-else :text="item.text"/>
+     </div>
+     <b-dropdown right no-caret boundary="viewport" variant="link" class="chat-message-menu" :disabled="mutating" :toggle-attrs="{'aria-label':'Message actions'}">
+      <template #button-content><i class="fas fa-ellipsis-h" aria-hidden="true"/></template>
+      <b-dropdown-item-button @click="startEdit(item)"><i class="fas fa-pen mr-2" aria-hidden="true"/>Edit</b-dropdown-item-button>
+      <b-dropdown-item-button variant="danger" @click="deleteMessage(item)"><i class="fas fa-trash mr-2" aria-hidden="true"/>Delete</b-dropdown-item-button>
+     </b-dropdown>
     </article></template>
    </VirtualList>
    <div v-if="!messages.length" class="chat-empty"><span class="chat-empty-mark" aria-hidden="true">#</span><strong>{{ loading?'Loading history…':'Start of #general' }}</strong></div>
@@ -44,28 +56,51 @@
 <script>
 import VirtualList from '@/components/VirtualList';
 import ChatMarkdown from '@/components/ChatMarkdown';
+import {mergeChatMessages} from '../chatMessages.mjs';
 import {insideCodeFence} from '../chatMarkdown.mjs';
 const formats=[{kind:'bold',label:'Bold',hint:'**text**'},{kind:'italic',label:'Italic',hint:'*text*'},{kind:'inline',label:'Code',hint:'Inline code'},{kind:'block',label:'Code block',hint:'Block with triple backticks'},{kind:'quote',label:'Quote',hint:'> text'},{kind:'list',label:'List',hint:'- item'}];
 const message=e=>e.response?.data?.error||e.message;
 const key=()=>{const b=new Uint8Array(16);crypto.getRandomValues(b);return [...b].map(x=>x.toString(16).padStart(2,'0')).join('')};
 export default {
- components:{VirtualList,ChatMarkdown,ArenaGame:()=>import('@/components/ArenaGame.vue')},data:()=>({arenaOpen:false,formats,preview:false,messages:[],author:'',loading:false,sending:false,error:'',sendError:'',draft:'',pendingText:'',pendingKey:'',timer:null,controller:null,destroyed:false,hasOlder:false,browsing:false,atBottom:true,unseen:0}),
+ components:{VirtualList,ChatMarkdown,ArenaGame:()=>import('@/components/ArenaGame.vue')},data:()=>({revision:null,versions:new Map(),editingId:null,editDraft:'',editRevision:0,editError:'',mutating:false,arenaOpen:false,formats,preview:false,messages:[],author:'',loading:false,sending:false,error:'',sendError:'',draft:'',pendingText:'',pendingKey:'',timer:null,controller:null,destroyed:false,hasOlder:false,browsing:false,atBottom:true,unseen:0}),
  watch:{draft(){this.$nextTick(this.resizeEditor)}},
- mounted(){window.addEventListener('resize',this.resizeEditor);this.resizeEditor();this.latest();this.timer=setInterval(()=>{if(!document.hidden&&!this.browsing)this.fetch()},2000);document.addEventListener('visibilitychange',this.visibility)},
+ mounted(){window.addEventListener('resize',this.resizeEditor);this.resizeEditor();this.latest();this.timer=setInterval(()=>{if(!document.hidden)this.fetch(this.browsing?'changes':'new')},2000);document.addEventListener('visibilitychange',this.visibility)},
  beforeDestroy(){window.removeEventListener('resize',this.resizeEditor);this.destroyed=true;clearInterval(this.timer);this.controller?.abort();document.removeEventListener('visibilitychange',this.visibility)},
  methods:{
+  applyChanges(changes){
+   this.messages=mergeChatMessages(this.messages,changes,this.versions,{insert:false});
+   if(this.editingId&&!this.messages.some(m=>m.id===this.editingId)){this.editingId=null;this.editDraft='';this.editError='';this.error='The message being edited was deleted.'}
+  },
+  startEdit(item){if(this.mutating)return;this.editingId=item.id;this.editDraft=item.text;this.editRevision=item.revision||0;this.editError='';this.$nextTick(()=>{const el=document.getElementById('edit-message-'+item.id);el?.focus();el?.setSelectionRange(el.value.length,el.value.length)})},
+  cancelEdit(){if(this.mutating)return;this.editingId=null;this.editDraft='';this.editError=''},
+  editKey(e){if(e.isComposing||e.keyCode===229)return;if(e.key==='Escape'){e.preventDefault();this.cancelEdit()}else if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();this.saveEdit()}},
+  async saveEdit(){
+   const text=this.editDraft.trim();if(!this.editingId||!text||this.mutating)return;
+   this.mutating=true;this.editError='';
+   try{const {data}=await this.$http.patch('/v2/chat/'+this.editingId,{text,revision:this.editRevision});this.applyChanges([data]);this.mutating=false;this.cancelEdit()}
+   catch(e){this.editError=message(e)}finally{this.mutating=false}
+  },
+  async deleteMessage(item){
+   if(this.mutating)return;
+   const confirmed=await this.$bvModal.msgBoxConfirm('Delete this message for everyone?',{title:'Delete message',okTitle:'Delete',okVariant:'danger',cancelTitle:'Cancel',centered:true});
+   if(!confirmed||this.destroyed||this.mutating)return;
+   this.mutating=true;this.error='';
+   try{const {data}=await this.$http.delete('/v2/chat/'+item.id);if(this.editingId===item.id){this.mutating=false;this.cancelEdit()}this.applyChanges([data])}
+   catch(e){this.error=message(e)}finally{this.mutating=false}
+  },
   resizeEditor(){const editor=this.$refs.editor;if(editor&&!this.preview){editor.style.height='auto';editor.style.height=editor.scrollHeight+'px'}},
   time(t){const date=new Date(t);return date.toLocaleDateString('en-US')===new Date().toLocaleDateString('en-US')?date.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'}):date.toLocaleString('en-US', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})},
-  togglePreview(){this.preview=!this.preview;if(!this.preview)this.$nextTick(()=>{this.resizeEditor();this.$refs.editor?.focus()})},visibility(){if(document.hidden)this.controller?.abort();else if(!this.browsing)this.fetch()},
+  togglePreview(){this.preview=!this.preview;if(!this.preview)this.$nextTick(()=>{this.resizeEditor();this.$refs.editor?.focus()})},visibility(){if(document.hidden)this.controller?.abort();else this.fetch(this.browsing?'changes':'new')},
   onScroll(){const el=this.$refs.list?.$el;if(el){this.atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<70;if(this.atBottom)this.unseen=0}},
   bottom(){this.$nextTick(()=>{this.$refs.list?.scrollToIndex(Math.max(0,this.messages.length-1));this.unseen=0;this.atBottom=true})},
   async fetch(mode='new'){
    if(this.loading||this.destroyed)return;this.loading=true;this.controller=new AbortController();const shouldFollow=this.atBottom;
-   const params={};if(mode==='older')params.before=this.messages[0]?.id;else if(mode==='new'&&this.messages.length)params.after=this.messages[this.messages.length-1].id;
+   const params={};if(this.revision!==null)params.revision=this.revision;if(mode==='changes')params.changesOnly=1;if(mode==='older')params.before=this.messages[0]?.id;else if(mode==='new'&&this.messages.length)params.after=this.messages[this.messages.length-1].id;
    try{const {data}=await this.$http.get('/v2/chat',{params,signal:this.controller.signal});if(this.destroyed)return;this.author=data.author;this.error='';
-    if(mode==='latest'){this.messages=data.messages;this.hasOlder=data.hasMore;this.bottom()}
-    else if(mode==='older'){this.messages=[...data.messages,...this.messages].slice(0,500);this.hasOlder=data.hasMore;this.$nextTick(()=>this.$refs.list?.scrollToIndex(data.messages.length))}
-    else{const ids=new Set(this.messages.map(m=>m.id));const fresh=data.messages.filter(m=>!ids.has(m.id));if(!this.messages.length)this.hasOlder=data.hasMore;this.messages=[...this.messages,...fresh].slice(-500);if(fresh.length){if(shouldFollow)this.bottom();else this.unseen+=fresh.length}}
+    if(mode==='latest'){this.messages=mergeChatMessages(this.messages,data.messages,this.versions,{replace:true});this.hasOlder=data.hasMore;this.bottom()}
+    else if(mode==='older'){this.messages=mergeChatMessages(this.messages,data.messages,this.versions,{prepend:true});this.hasOlder=data.hasMore;this.$nextTick(()=>this.$refs.list?.scrollToIndex(data.messages.length))}
+    else if(mode!=='changes'){const ids=new Set(this.messages.map(m=>m.id));const fresh=data.messages.filter(m=>!ids.has(m.id));if(!this.messages.length)this.hasOlder=data.hasMore;this.messages=mergeChatMessages(this.messages,data.messages,this.versions);if(fresh.length){if(shouldFollow)this.bottom();else this.unseen+=fresh.length}}
+    this.applyChanges(data.changes||[]);if(Number.isSafeInteger(data.revision))this.revision=data.revision;
    }catch(e){if(!this.controller.signal.aborted)this.error=message(e)}finally{this.loading=false}
   },
   async latest(){if(this.loading)return;this.browsing=false;await this.fetch('latest')},async older(){if(this.loading)return;this.browsing=true;await this.fetch('older')},
@@ -110,6 +145,12 @@ export default {
 .chat-message-body{min-width:0;flex:1}.chat-message-meta{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:2px}
 .chat-message-meta strong{font-size:13px;display:flex;gap:8px;align-items:center}.chat-message-meta time{font-size:11px;color:var(--gm-muted);font-variant-numeric:tabular-nums}.chat-you{font-size:10px;color:var(--gm-muted);font-weight:400}
 .chat-message ::v-deep .chat-markdown{font-size:14px;line-height:1.5}
+.chat-edited{font-size:10px;color:var(--gm-muted)}
+.chat-message-menu{flex:none}.chat-message-menu ::v-deep .dropdown-toggle{display:grid;place-items:center;width:32px;height:28px;padding:0;color:var(--gm-muted);border-radius:5px}.chat-message-menu ::v-deep .dropdown-menu{font-size:13px;min-width:130px}
+.chat-message-menu ::v-deep .dropdown-toggle:focus-visible,.chat-inline-editor textarea:focus-visible{outline:2px solid var(--gm-accent);outline-offset:2px}
+.chat-inline-editor textarea{display:block;width:100%;min-height:80px;max-height:280px;resize:vertical;background:var(--gm-panel-alt);color:var(--gm-text);border:1px solid var(--gm-border);border-radius:6px;padding:8px;font-size:14px;line-height:1.5;font-family:var(--gm-mono)}
+.chat-edit-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:6px}.chat-edit-error{font-size:12px;margin:5px 0}
+@media(pointer:coarse){.chat-message-menu ::v-deep .dropdown-toggle{width:44px;height:44px}}
 .chat-empty{position:absolute;inset:0;display:flex;justify-content:flex-end;align-items:flex-start;flex-direction:column;gap:10px;padding:20px;pointer-events:none;overflow:hidden}
 .chat-empty-mark{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:50%;font-size:28px;background:var(--gm-panel-alt);color:var(--gm-muted)}.chat-empty strong{font-size:18px}
 .chat-jump{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);border-radius:20px;max-width:calc(100% - 32px);font-size:12px;white-space:normal;box-shadow:0 2px 8px #0002}

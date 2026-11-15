@@ -180,6 +180,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
+		if len(parts) == 4 && parts[2] == "chat" {
+			if e := s.chatMessage(w, r, parts[3]); e != nil {
+				s.fail(w, e)
+			}
+			return
+		}
 		if len(parts) == 3 && parts[2] == "chat" {
 			if e := s.chat(w, r); e != nil {
 				s.fail(w, e)

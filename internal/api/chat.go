@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
+	"gomate/internal/storage"
 	"net/http"
 	"strconv"
 	"strings"
@@ -117,14 +119,36 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) error {
 		if after > 0 && before > 0 {
 			return bad("Specify only one cursor")
 		}
-		messages, e := s.Store.Chat(r.Context(), after, before)
+		revision, e := parse("revision")
+		if e != nil {
+			return e
+		}
+		changes := []storage.ChatMessage{}
+		if r.URL.Query().Has("revision") {
+			changes, e = s.Store.ChatChanges(r.Context(), revision)
+			if len(changes) > 0 {
+				revision = changes[len(changes)-1].Revision
+			}
+		} else {
+			revision, e = s.Store.ChatRevision(r.Context())
+		}
+		if e != nil {
+			return e
+		}
+		messages := []storage.ChatMessage{}
+		if r.URL.Query().Get("changesOnly") != "1" {
+			messages, e = s.Store.Chat(r.Context(), after, before)
+		}
 		if e != nil {
 			return e
 		}
 		for i := range messages {
 			messages[i].Author = chatDisplayAuthor(messages[i].Author)
 		}
-		respond(w, 200, map[string]any{"messages": messages, "author": chatDisplayAuthor(author), "hasMore": len(messages) == 100})
+		for i := range changes {
+			changes[i].Author = chatDisplayAuthor(changes[i].Author)
+		}
+		respond(w, 200, map[string]any{"messages": messages, "author": chatDisplayAuthor(author), "hasMore": len(messages) == 100, "changes": changes, "revision": revision, "hasChangesMore": len(changes) == 100})
 		return nil
 	}
 	var body struct {
@@ -135,7 +159,7 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) error {
 		return e
 	}
 	body.Text = strings.TrimSpace(body.Text)
-	if !utf8.ValidString(body.Text) || len(body.Text) > 8000 || utf8.RuneCountInString(body.Text) > 2000 || body.Text == "" || strings.ContainsRune(body.Text, 0) {
+	if !validChatText(body.Text) {
 		return bad("Message must contain 1 to 2000 characters")
 	}
 	if len(body.Key) < 16 || len(body.Key) > 64 {
@@ -152,5 +176,52 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) error {
 	s.Hub.Notify()
 	m.Author = chatDisplayAuthor(m.Author)
 	respond(w, 201, m)
+	return nil
+}
+
+func validChatText(text string) bool {
+	return utf8.ValidString(text) && len(text) <= 8000 && utf8.RuneCountInString(text) <= 2000 && text != "" && !strings.ContainsRune(text, 0)
+}
+
+func (s *Server) chatMessage(w http.ResponseWriter, r *http.Request, rawID string) error {
+	if r.Method != "PATCH" && r.Method != "DELETE" {
+		return &httpError{405, "method not allowed"}
+	}
+	id, e := strconv.ParseInt(rawID, 10, 64)
+	if e != nil || id <= 0 {
+		return bad("Invalid message ID")
+	}
+	author := s.chatAuthor(w, r)
+	w.Header().Set("Cache-Control", "no-store")
+	var body struct {
+		Text     string `json:"text"`
+		Revision *int64 `json:"revision"`
+	}
+	if r.Method == "PATCH" {
+		if e = decode(w, r, &body); e != nil {
+			return e
+		}
+		body.Text = strings.TrimSpace(body.Text)
+		if !validChatText(body.Text) {
+			return bad("Message must contain 1 to 2000 characters")
+		}
+		if body.Revision == nil || *body.Revision < 0 {
+			return bad("Message revision is required")
+		}
+	}
+	if !s.chatLimit.allow(author) {
+		w.Header().Set("Retry-After", "1")
+		return &httpError{429, "Too many changes; wait a second"}
+	}
+	m, e := s.Store.ChangeChat(r.Context(), id, body.Text, body.Revision, r.Method == "DELETE")
+	if errors.Is(e, storage.ErrChatConflict) {
+		return &httpError{409, "This message was edited by someone else. Cancel and reopen Edit to use the latest version."}
+	}
+	if e != nil {
+		return e
+	}
+	s.Hub.Notify()
+	m.Author = chatDisplayAuthor(m.Author)
+	respond(w, 200, m)
 	return nil
 }
