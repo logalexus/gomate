@@ -197,7 +197,7 @@ func (m *Monitor) collect(parent context.Context) {
 	result := Response{SampledAt: now.UnixMilli(), IntervalSeconds: 5, RetentionMinutes: 60, Host: h, Containers: []Container{}}
 	list, err := m.source.List(ctx)
 	if err != nil {
-		result.Error = "Docker недоступен: показатели контейнеров не обновлены"
+		result.Error = "Docker unavailable: container metrics were not refreshed"
 	} else {
 		sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 		if len(list) > maxContainers {
@@ -223,7 +223,7 @@ func (m *Monitor) collect(parent context.Context) {
 					if c.State == "running" || c.State == "paused" {
 						s, e := m.source.Stats(ctx, c.ID)
 						if e != nil {
-							v.Error = "Метрики недоступны"
+							v.Error = "Metrics unavailable"
 						} else {
 							raw[i] = s
 							valid[i] = true
@@ -251,7 +251,7 @@ func (m *Monitor) collect(parent context.Context) {
 		result.Containers = append([]Container(nil), m.current.Containers...)
 		for i := range result.Containers {
 			result.Containers[i].Point = Point{Time: now.UnixMilli()}
-			result.Containers[i].Error = "Docker недоступен"
+			result.Containers[i].Error = "Docker unavailable"
 		}
 		m.prev = make(map[string]previous)
 	}
@@ -284,7 +284,7 @@ func (m *Monitor) snapshot(minutes int, id string) Response {
 		r.ContainerHistory = h.since(cutoff)
 	}
 	if r.SampledAt == 0 {
-		r.Error = "Мониторинг запускается"
+		r.Error = "Monitoring is starting"
 		r.Containers = []Container{}
 	}
 	return r
@@ -305,7 +305,7 @@ func (m *Monitor) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("container")
 	if err != nil || (minutes != 5 && minutes != 15 && minutes != 60) || (id != "" && !dockerui.ValidID(id)) {
 		w.WriteHeader(400)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Некорректный период или контейнер"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid period or container"})
 		return
 	}
 	json.NewEncoder(w).Encode(m.snapshot(minutes, id))

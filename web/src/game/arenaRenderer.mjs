@@ -56,13 +56,13 @@ export class ArenaRenderer {
  constructor(canvas) {
   this.canvas=canvas;
   const gl=canvas.getContext('webgl',{alpha:false,antialias:false,powerPreference:'low-power'});
-  if(!gl) throw Error('Для 3D-арены нужен WebGL. Включите аппаратное ускорение в браузере.');
+  if(!gl) throw Error('The 3D arena requires WebGL. Enable hardware acceleration in your browser.');
   this.gl=gl;this.camera=null;this.lastShot=0;this.flashUntil=0;this.model=new Float32Array(16);
   this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const shader=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const error=gl.getShaderInfoLog(s);gl.deleteShader(s);throw Error(error)}return s};
   const vs=shader(gl.VERTEX_SHADER,vertexSource),fs=shader(gl.FRAGMENT_SHADER,fragmentSource);
   this.program=gl.createProgram();gl.attachShader(this.program,vs);gl.attachShader(this.program,fs);gl.linkProgram(this.program);gl.deleteShader(vs);gl.deleteShader(fs);
-  if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw Error('Не удалось запустить 3D-рендер.');
+  if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw Error('Could not start the 3D renderer.');
   gl.useProgram(this.program);this.uniform={};
   for(const name of ['Projection','View','Model','Color','Camera','Emission','Grid'])this.uniform[name]=gl.getUniformLocation(this.program,'u'+name);
   this.buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);gl.bufferData(gl.ARRAY_BUFFER,cubeVertices(),gl.STATIC_DRAW);

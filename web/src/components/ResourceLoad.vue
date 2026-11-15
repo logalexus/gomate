@@ -12,7 +12,7 @@ export default {
  props:{value:Number,capacity:Number,label:{type:String,required:true},basis:{type:String,default:''}},
  computed:{
   load(){return resourceLoad(this.value,this.capacity)},
-  description(){return `${this.label}: ${this.load.label}${this.load.percent===null?'':' · '+formatMetric(this.load.percent,'percent')+(this.basis?' '+this.basis:'')}. Повышенная ≥ 70%, высокая ≥ 90%.`},
+  description(){return `${this.label}: ${this.load.label}${this.load.percent===null?'':' · '+formatMetric(this.load.percent,'percent')+(this.basis?' '+this.basis:'')}. Elevated ≥ 70%, high ≥ 90%.`},
  },
  methods:{format:formatMetric},
 };

@@ -1,10 +1,10 @@
 <template>
- <aside v-if="count || gap" class="anomaly-notification" aria-label="Уведомления об аномалиях" data-testid="anomaly-notification" @mouseenter="hold" @mouseleave="release" @focusin="hold" @focusout="release">
-  <div class="notice-heading"><strong role="status" aria-live="polite">Аномалии с высоким скором · {{ count }}</strong><button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Закрыть уведомление" @click="dismiss">×</button></div>
-  <p v-if="count" class="notice-summary">Максимальный скор <strong>{{ maxScore.toFixed(1) }}</strong> · порог ≥ {{ threshold }}</p>
-  <ul v-if="items.length"><li v-for="item in items" :key="item.streamId"><router-link :to="{name:'stream',params:{servicePort:item.service,streamId:item.streamId}}" @click.native="dismiss">Сессия #{{ item.streamId }}</router-link><span>порт {{ item.service }} <b>{{ item.score.toFixed(1) }}</b></span></li></ul>
-  <p v-if="gap" class="notice-summary">Часть событий пропущена после перерыва. Проверьте список аномалий.</p>
-  <router-link :to="{name:'anomalies'}" class="notice-all" @click.native="dismiss">Открыть аномалии<span v-if="count > items.length"> · ещё {{ count-items.length }}</span></router-link>
+ <aside v-if="count || gap" class="anomaly-notification" aria-label="Anomaly notifications" data-testid="anomaly-notification" @mouseenter="hold" @mouseleave="release" @focusin="hold" @focusout="release">
+  <div class="notice-heading"><strong role="status" aria-live="polite">High-score anomalies · {{ count }}</strong><button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Dismiss notification" @click="dismiss">×</button></div>
+  <p v-if="count" class="notice-summary">Highest score <strong>{{ maxScore.toFixed(1) }}</strong> · threshold ≥ {{ threshold }}</p>
+  <ul v-if="items.length"><li v-for="item in items" :key="item.streamId"><router-link :to="{name:'stream',params:{servicePort:item.service,streamId:item.streamId}}" @click.native="dismiss">Session #{{ item.streamId }}</router-link><span>port {{ item.service }} <b>{{ item.score.toFixed(1) }}</b></span></li></ul>
+  <p v-if="gap" class="notice-summary">Some events were missed while disconnected. Check the anomaly list.</p>
+  <router-link :to="{name:'anomalies'}" class="notice-all" @click.native="dismiss">Open anomalies<span v-if="count > items.length"> · more {{ count-items.length }}</span></router-link>
  </aside>
 </template>
 <script>

@@ -74,9 +74,9 @@ func Enrich(p *model.Packet) {
 				}
 				a := file(name, disposition["name"], part.Header.Get("Content-Type"), data)
 				files = append(files, a)
-				fmt.Fprintf(&summary, "%s: [файл %s · %s · %d Б]\n", a.Field, a.Name, a.Type, len(data))
+				fmt.Fprintf(&summary, "%s: [file %s · %s · %d B]\n", a.Field, a.Name, a.Type, len(data))
 			} else {
-				value := "[бинарное поле]"
+				value := "[binary field]"
 				if utf8.Valid(data) {
 					value = string(data)
 				}
@@ -90,7 +90,7 @@ func Enrich(p *model.Packet) {
 			return
 		}
 		files = append(files, file(disp["filename"], "", typ, body))
-		fmt.Fprintf(&summary, "[файл %s · %s · %d Б]\n", files[0].Name, files[0].Type, len(body))
+		fmt.Fprintf(&summary, "[file %s · %s · %d B]\n", files[0].Name, files[0].Type, len(body))
 	}
 	if len(files) == 0 {
 		return

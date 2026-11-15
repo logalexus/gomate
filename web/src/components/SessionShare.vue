@@ -1,15 +1,15 @@
 <template>
  <span class="session-share">
-  <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="!streamId" @click="open"><i class="fas fa-comment" aria-hidden="true"/> В общий чат</button>
-  <b-modal ref="modal" title="Отправить сессию в общий чат" hide-footer :return-focus="returnFocus" :no-close-on-backdrop="sending" :no-close-on-esc="sending" :hide-header-close="sending" @shown="focusComment">
+  <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="!streamId" @click="open"><i class="fas fa-comment" aria-hidden="true"/> Share in chat</button>
+  <b-modal ref="modal" title="Share session in team chat" hide-footer :return-focus="returnFocus" :no-close-on-backdrop="sending" :no-close-on-esc="sending" :hide-header-close="sending" @shown="focusComment">
    <form class="session-share-form" @submit.prevent="send">
-    <p>В чат будет отправлена ссылка на сессию #{{ selectedId }}. Содержимое доступно, пока сессия хранится на сервере.</p>
-    <label :for="'session-share-comment-'+_uid">Комментарий <span class="text-muted">(необязательно)</span></label>
-    <textarea :id="'session-share-comment-'+_uid" ref="comment" v-model="comment" class="form-control" rows="3" maxlength="1500" :disabled="sending||sent" placeholder="На что обратить внимание"/>
-    <div class="session-share-preview" aria-label="Предпросмотр сообщения"><ChatMarkdown :text="message"/></div>
+    <p>A link to session #{{ selectedId }} will be sent to chat. Content is available while the session is stored on the server.</p>
+    <label :for="'session-share-comment-'+_uid">Comment <span class="text-muted">(optional)</span></label>
+    <textarea :id="'session-share-comment-'+_uid" ref="comment" v-model="comment" class="form-control" rows="3" maxlength="1500" :disabled="sending||sent" placeholder="What to look for"/>
+    <div class="session-share-preview" aria-label="Message preview"><ChatMarkdown :text="message"/></div>
     <p v-if="error" class="text-danger" role="alert">{{ error }}</p>
-    <p v-if="sent" class="text-success" role="status">Сессия отправлена в общий чат. <router-link to="/chat" @click.native="$refs.modal.hide()">Открыть чат</router-link></p>
-    <div class="session-share-actions"><button type="button" class="btn btn-sm btn-outline-secondary" :disabled="sending" @click="$refs.modal.hide()">{{ sent?'Закрыть':'Отмена' }}</button><button v-if="!sent" type="submit" class="btn btn-sm btn-primary" :disabled="sending">{{ sending?'Отправка…':'Отправить в чат' }}</button></div>
+    <p v-if="sent" class="text-success" role="status">Session shared in team chat. <router-link to="/chat" @click.native="$refs.modal.hide()">Open chat</router-link></p>
+    <div class="session-share-actions"><button type="button" class="btn btn-sm btn-outline-secondary" :disabled="sending" @click="$refs.modal.hide()">{{ sent?'Close':'Cancel' }}</button><button v-if="!sent" type="submit" class="btn btn-sm btn-primary" :disabled="sending">{{ sending?'Sending…':'Send to chat' }}</button></div>
    </form>
   </b-modal>
  </span>
@@ -20,7 +20,7 @@ const messageKey=()=>{const bytes=new Uint8Array(16);crypto.getRandomValues(byte
 export default {
  components:{ChatMarkdown},props:['streamId','servicePort'],
  data:()=>({selectedId:'',url:'',comment:'',sending:false,sent:false,error:'',returnFocus:null,pendingText:'',pendingKey:'',identityReady:false}),
- computed:{message(){return `[Сессия #${this.selectedId}](${this.url})`+(this.comment.trim()?'\n\n'+this.comment.trim():'')}},
+ computed:{message(){return `[Session #${this.selectedId}](${this.url})`+(this.comment.trim()?'\n\n'+this.comment.trim():'')}},
  methods:{
   open(event){this.returnFocus=event.currentTarget;this.selectedId=String(this.streamId);const href=this.$router.resolve({name:'stream',params:{servicePort:String(this.servicePort||'0'),streamId:this.selectedId}}).href;this.url=new URL(href,location.href).href;this.comment='';this.error='';this.sent=false;this.pendingText='';this.pendingKey='';this.$refs.modal.show()},
   focusComment(){this.$refs.comment?.focus()},
@@ -29,7 +29,7 @@ export default {
    // can be retried with the same author and idempotency key.
    if(!this.identityReady){await this.$http.get('/v2/chat');this.identityReady=true}
    await this.$http.post('/v2/chat',{text,key:this.pendingKey});this.sent=true;
-  }catch(e){this.error=e.response?.status===429?'Слишком много сообщений. Подождите секунду и повторите отправку.':'Не удалось отправить сообщение. Комментарий сохранён; повторите отправку.'}finally{this.sending=false}}
+  }catch(e){this.error=e.response?.status===429?'Too many messages. Wait a second and try again.':'Could not send the message. Your comment is saved; try again.'}finally{this.sending=false}}
  }
 };
 </script>

@@ -99,11 +99,11 @@ func (m *Manager) call(ctx context.Context, method, path string, body any) (*htt
 	}
 	resp, err := m.client.Do(r)
 	if err != nil {
-		return nil, &Error{503, "Docker-шлюз исполнения недоступен"}
+		return nil, &Error{503, "Docker runner gateway unavailable"}
 	}
 	if resp.StatusCode >= 400 {
 		resp.Body.Close()
-		return nil, &Error{resp.StatusCode, fmt.Sprintf("Docker вернул HTTP %d", resp.StatusCode)}
+		return nil, &Error{resp.StatusCode, fmt.Sprintf("Docker returned HTTP %d", resp.StatusCode)}
 	}
 	return resp, nil
 }
@@ -200,7 +200,7 @@ func (m *Manager) Get(id string) (Result, error) {
 	m.pruneLocked()
 	j := m.jobs[id]
 	if j == nil {
-		return Result{}, &Error{404, "Запуск не найден или результат устарел"}
+		return Result{}, &Error{404, "Run not found or result expired"}
 	}
 	return m.snapshotLocked(j), nil
 }
@@ -209,7 +209,7 @@ func (m *Manager) Cancel(id string) (Result, error) {
 	defer m.mu.Unlock()
 	j := m.jobs[id]
 	if j == nil {
-		return Result{}, &Error{404, "Запуск не найден"}
+		return Result{}, &Error{404, "Run not found"}
 	}
 	if j.finished.IsZero() {
 		j.canceled = true
@@ -220,16 +220,16 @@ func (m *Manager) Cancel(id string) (Result, error) {
 }
 func (m *Manager) Start(req Request) (Result, error) {
 	if req.Language != "python" && req.Language != "bash" {
-		return Result{}, &Error{400, "Выберите Python или Bash"}
+		return Result{}, &Error{400, "Choose Python or Bash"}
 	}
 	if strings.TrimSpace(req.Code) == "" || len(req.Code) > MaxCodeBytes {
-		return Result{}, &Error{400, "Код должен содержать от 1 до 262144 байт"}
+		return Result{}, &Error{400, "Code must contain 1 to 262144 bytes"}
 	}
 	if req.TimeoutSeconds == 0 {
 		req.TimeoutSeconds = 30
 	}
 	if req.TimeoutSeconds < 1 || req.TimeoutSeconds > MaxTimeoutSeconds {
-		return Result{}, &Error{400, "Время исполнения: 1–120 секунд"}
+		return Result{}, &Error{400, "Execution timeout: 1–120 seconds"}
 	}
 	idBytes := make([]byte, 16)
 	if _, e := rand.Read(idBytes); e != nil {
@@ -242,11 +242,11 @@ func (m *Manager) Start(req Request) (Result, error) {
 	m.pruneLocked()
 	if !m.ready {
 		cancel()
-		return Result{}, &Error{503, "Runner не готов: проверьте Docker и перезапустите шлюз"}
+		return Result{}, &Error{503, "Runner not ready: check Docker and restart the gateway"}
 	}
 	if m.active >= MaxConcurrent {
 		cancel()
-		return Result{}, &Error{429, "Уже выполняются два скрипта. Дождитесь завершения или остановите один"}
+		return Result{}, &Error{429, "Two scripts are already running. Wait for one to finish or stop one"}
 	}
 	if len(m.jobs) >= maxJobs {
 		var oldest string
@@ -318,7 +318,7 @@ func (m *Manager) run(ctx context.Context, j *job, req Request) {
 		if cleanupErr != nil {
 			m.ready = false
 			j.result.Status = "cleanup_failed"
-			j.result.Error = "Не удалось удалить контейнер запуска; проверьте Docker"
+			j.result.Error = "Could not remove the run container; check Docker"
 		}
 	}()
 	// Let an in-flight create settle before cleanup, even if the user cancels.

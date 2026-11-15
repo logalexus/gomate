@@ -33,7 +33,7 @@ export default {
     indentOnInput(),indentUnit.of('    '),bracketMatching(),syntaxHighlighting(highlighting),
     // Tab remains normal focus navigation. Default keymap supports Enter indentation and Mod-[/].
     keymap.of([...defaultKeymap,...historyKeymap]),
-    EditorView.contentAttributes.of({id:'request-script','aria-label':'Редактируемый скрипт','aria-multiline':'true',spellcheck:'false',autocapitalize:'off'}),
+    EditorView.contentAttributes.of({id:'request-script','aria-label':'Editable script','aria-multiline':'true',spellcheck:'false',autocapitalize:'off'}),
     EditorView.updateListener.of(update=>{if(update.docChanged)this.$emit('input',update.state.doc.toString())}),
    ],
   })});
@@ -49,7 +49,7 @@ export default {
    // HTTP deployments lack navigator.clipboard. Copy via a temporary field inside the modal,
    // preserving the editor selection and scroll instead of selecting the entire document.
    const field=document.createElement('textarea'),previous=document.activeElement;
-   field.value=this.value;field.setAttribute('aria-label','Копирование скрипта');
+   field.value=this.value;field.setAttribute('aria-label','Copy script');
    Object.assign(field.style,{position:'fixed',left:'0',top:'0',width:'1px',height:'1px',opacity:'0'});
    this.$el.appendChild(field);
    try{field.focus({preventScroll:true});field.select();return document.execCommand('copy')}

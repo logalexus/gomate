@@ -29,7 +29,7 @@ func Gateway(engine *Engine, token string, services http.Handler) http.Handler {
 		case actions <- struct{}{}:
 			defer func() { <-actions }()
 		default:
-			write(w, nil, &Error{429, "Дождитесь завершения текущих действий"})
+			write(w, nil, &Error{429, "Wait for current actions to finish"})
 			return
 		}
 		e := engine.Action(r.Context(), r.PathValue("id"), r.PathValue("action"))
@@ -38,19 +38,19 @@ func Gateway(engine *Engine, token string, services http.Handler) http.Handler {
 	mux.HandleFunc("GET /containers/{id}/logs", func(w http.ResponseWriter, r *http.Request) {
 		tail, e := strconv.Atoi(r.URL.Query().Get("tail"))
 		if e != nil || tail < 1 || tail > 2000 {
-			write(w, nil, &Error{400, "tail должен быть от 1 до 2000"})
+			write(w, nil, &Error{400, "tail must be between 1 and 2000"})
 			return
 		}
 		since, e := strconv.ParseInt(r.URL.Query().Get("since"), 10, 64)
 		if e != nil || since < 0 {
-			write(w, nil, &Error{400, "Некорректное начало периода"})
+			write(w, nil, &Error{400, "Invalid period start"})
 			return
 		}
 		select {
 		case reads <- struct{}{}:
 			defer func() { <-reads }()
 		default:
-			write(w, nil, &Error{429, "Просмотр логов занят; повторите обновление"})
+			write(w, nil, &Error{429, "Log viewer busy; try refreshing again"})
 			return
 		}
 		v, err := engine.Logs(r.Context(), r.PathValue("id"), tail, since)
@@ -75,7 +75,7 @@ func Gateway(engine *Engine, token string, services http.Handler) http.Handler {
 func write(w http.ResponseWriter, v any, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
-		code, message := 502, "Не удалось выполнить операцию Docker"
+		code, message := 502, "Could not perform Docker operation"
 		var e *Error
 		if errors.As(err, &e) {
 			code, message = e.Code, e.Message

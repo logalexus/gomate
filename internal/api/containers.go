@@ -13,7 +13,7 @@ import (
 
 func (s *Server) containers(w http.ResponseWriter, r *http.Request, p []string) error {
 	if s.Config.DiscoveryURL == "" {
-		return &httpError{503, "Docker-шлюз не настроен"}
+		return &httpError{503, "Docker gateway is not configured"}
 	}
 	path := "/containers"
 	if len(p) == 3 {
@@ -22,17 +22,17 @@ func (s *Server) containers(w http.ResponseWriter, r *http.Request, p []string) 
 		}
 	} else {
 		if len(p) != 5 || !dockerui.ValidID(p[3]) {
-			return bad("Некорректный адрес контейнера")
+			return bad("Invalid container address")
 		}
 		path += "/" + p[3] + "/" + p[4]
 		if p[4] == "logs" && r.Method == "GET" {
 			tail, e := strconv.Atoi(r.URL.Query().Get("tail"))
 			if e != nil || tail < 1 || tail > 2000 {
-				return bad("Число строк: 1–2000")
+				return bad("Line count: 1–2000")
 			}
 			since, e := strconv.ParseInt(r.URL.Query().Get("since"), 10, 64)
 			if e != nil || since < 0 {
-				return bad("Некорректное начало периода")
+				return bad("Invalid period start")
 			}
 			path += "?" + url.Values{"tail": {strconv.Itoa(tail)}, "since": {strconv.FormatInt(since, 10)}}.Encode()
 		} else if r.Method == "POST" && dockerui.ValidAction(p[4]) {
@@ -43,10 +43,10 @@ func (s *Server) containers(w http.ResponseWriter, r *http.Request, p []string) 
 				return e
 			}
 			if (p[4] == "stop" || p[4] == "restart" || p[4] == "pause") && !body.Confirm {
-				return bad("Подтвердите действие с контейнером")
+				return bad("Confirm the container action")
 			}
 		} else {
-			return &httpError{405, "Недопустимое действие"}
+			return &httpError{405, "Unsupported action"}
 		}
 	}
 	return s.dockerProxy(w, r, path)
@@ -54,7 +54,7 @@ func (s *Server) containers(w http.ResponseWriter, r *http.Request, p []string) 
 
 func (s *Server) dockerProxy(w http.ResponseWriter, r *http.Request, path string) error {
 	if s.Config.DiscoveryURL == "" {
-		return &httpError{503, "Docker-шлюз не настроен"}
+		return &httpError{503, "Docker gateway is not configured"}
 	}
 	req, e := http.NewRequestWithContext(r.Context(), r.Method, strings.TrimRight(s.Config.DiscoveryURL, "/")+path, nil)
 	if e != nil {
@@ -64,7 +64,7 @@ func (s *Server) dockerProxy(w http.ResponseWriter, r *http.Request, path string
 	req.Header.Set("Authorization", "Bearer "+s.Config.DiscoveryToken)
 	resp, e := http.DefaultClient.Do(req)
 	if e != nil {
-		return &httpError{503, "Docker-шлюз недоступен или операция ещё не завершена; обновите статус"}
+		return &httpError{503, "Docker gateway is unavailable or the operation is still running; refresh the status"}
 	}
 	defer resp.Body.Close()
 	data, e := io.ReadAll(io.LimitReader(resp.Body, 4<<20+1))
@@ -72,7 +72,7 @@ func (s *Server) dockerProxy(w http.ResponseWriter, r *http.Request, path string
 		return e
 	}
 	if len(data) > 4<<20 || !json.Valid(data) {
-		return &httpError{502, "Некорректный ответ Docker-шлюза"}
+		return &httpError{502, "Invalid Docker gateway response"}
 	}
 	if resp.StatusCode != 200 {
 		var v struct {

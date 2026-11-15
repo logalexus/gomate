@@ -2,8 +2,8 @@
  <span class="behavior-feature" :class="[{compact,variable},'feature-'+kind.tone]" :title="field">
   <span class="feature-kind">{{ kind.label }}</span>
   <span class="feature-name">{{ name }}</span>
-  <code v-if="hasValue" class="feature-value">{{ value || '(пусто)' }}</code>
-  <small v-if="message && !compact" class="feature-message">сообщение {{ message }}</small>
+  <code v-if="hasValue" class="feature-value">{{ value || '(empty)' }}</code>
+  <small v-if="message && !compact" class="feature-message">message {{ message }}</small>
  </span>
 </template>
 <script>
@@ -15,17 +15,17 @@ export default {
   message(){return this.parts.key.match(/^(\d+):/)?.[1]||''},
   key(){return this.parts.key.replace(/^\d+:[^/]+\//,'')},
   kind(){
-   if(this.variable)return {label:'Меняется',tone:'variable'};
-   if(this.key==='json.structure'||this.key==='separators')return {label:'Структура',tone:'structure'};
+   if(this.variable)return {label:'Variable',tone:'variable'};
+   if(this.key==='json.structure'||this.key==='separators')return {label:'Structure',tone:'structure'};
    if(this.key.startsWith('json.'))return {label:'JSON',tone:'payload'};
-   if(this.key.startsWith('form.'))return {label:'Форма',tone:'payload'};
-   if(this.key.startsWith('query.'))return {label:'Параметр',tone:'payload'};
+   if(this.key.startsWith('form.'))return {label:'Shape',tone:'payload'};
+   if(this.key.startsWith('query.'))return {label:'Parameter',tone:'payload'};
    if(this.key.startsWith('cookie.'))return {label:'Cookie',tone:'meta'};
-   if(this.key.startsWith('header.'))return {label:'Заголовок',tone:'meta'};
+   if(this.key.startsWith('header.'))return {label:'Header',tone:'meta'};
    if(this.key.startsWith('token.'))return {label:'TCP',tone:'payload'};
-   return {label:/^body/.test(this.key)?'Тело':'Запрос',tone:'meta'};
+   return {label:/^body/.test(this.key)?'Body':'Request',tone:'meta'};
   },
-  name(){if(this.variable)return this.key;return ({'json.structure':'JSON','method':'Метод','path':'Путь','separators':'Разделители','body':'Содержимое'})[this.key]||this.key.replace(/^(json|form|query|cookie|header|token)\./,'')},
+  name(){if(this.variable)return this.key;return ({'json.structure':'JSON','method':'Method','path':'Path','separators':'Delimiters','body':'Content'})[this.key]||this.key.replace(/^(json|form|query|cookie|header|token)\./,'')},
   hasValue(){return this.field.includes(' = ')},
   value(){return this.parts.value},
  },

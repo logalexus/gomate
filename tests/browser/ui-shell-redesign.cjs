@@ -13,7 +13,7 @@ process.chdir(path.resolve(__dirname,'../..'));
   for(const width of [1440,375]){
    await page.setViewportSize({width,height:width===375?812:900});
    for(const theme of ['dark','light']){
-    if(await page.evaluate(()=>document.body.dataset.theme)!==theme)await page.getByRole('button',{name:'Переключить тему',exact:true}).click();
+    if(await page.evaluate(()=>document.body.dataset.theme)!==theme)await page.getByRole('button',{name:'Toggle theme',exact:true}).click();
     for(const route of ['stream','containers','chat','anomalies']){
      await page.goto(base+'/#/'+(route==='stream'?(target?'all/'+target:''):route));
      await page.locator('main h1').waitFor();await page.waitForTimeout(350);

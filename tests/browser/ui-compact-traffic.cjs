@@ -23,12 +23,12 @@ process.chdir(path.resolve(__dirname,'../..'));
   const chip=name=>page.getByRole('button',{name,exact:true});
   await chip('SQL injection').click();await chip('Flag').click();await page.waitForFunction(()=>location.hash.includes('patterns=1,2')||location.hash.includes('patterns=1%2C2'));
   await page.waitForTimeout(150);assert.deepEqual(latestBody.patternIds,[1,2]);assert.equal(await chip('SQL injection').getAttribute('aria-pressed'),'true');assert.equal(await chip('Flag').getAttribute('aria-pressed'),'true');assert.equal(await chip('Ignored').count(),0);
-  await chip('Избранное').click();await page.waitForTimeout(100);assert(latestBody.favorites);
-  await page.getByLabel('Сервис',{exact:true}).selectOption('8080');await page.waitForTimeout(100);assert.deepEqual(latestBody.patternIds,[1,2]);
+  await chip('Favorites').click();await page.waitForTimeout(100);assert(latestBody.favorites);
+  await page.getByLabel('Service',{exact:true}).selectOption('8080');await page.waitForTimeout(100);assert.deepEqual(latestBody.patternIds,[1,2]);
   await page.locator('#stream-100 .stream-link').click();await page.locator('.gm-packet').waitFor();assert.equal(await page.locator('#stream-100 .stream-path').innerText(),'/api/login');assert.match(page.url(),/patterns=/);
   await page.reload();await page.locator('.gm-packet').waitFor();assert.equal(await chip('Flag').getAttribute('aria-pressed'),'true');
   await chip('SQL injection').focus();await page.keyboard.press('Space');await page.waitForTimeout(120);assert.deepEqual(latestBody.patternIds,[2]);
-  await page.getByRole('button',{name:'Сбросить все фильтры'}).click();await page.waitForTimeout(120);assert.deepEqual(latestBody.patternIds,[]);assert.equal(latestBody.favorites,false);assert.equal(await page.getByLabel('Сервис',{exact:true}).inputValue(),'');
+  await page.getByRole('button',{name:'Reset all filters'}).click();await page.waitForTimeout(120);assert.deepEqual(latestBody.patternIds,[]);assert.equal(latestBody.favorites,false);assert.equal(await page.getByLabel('Service',{exact:true}).inputValue(),'');
   for(const width of [1440,1100,375,667])for(const theme of ['dark','light']){
    const height=width===667?375:760;
    await page.setViewportSize({width,height});await page.goto(base+'/#/all/100');await page.locator('.gm-packet').waitFor();await page.evaluate(theme=>document.body.dataset.theme=theme,theme);await page.waitForTimeout(150);

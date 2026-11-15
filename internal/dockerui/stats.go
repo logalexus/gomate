@@ -38,7 +38,7 @@ type Stats struct {
 func (e *Engine) Stats(ctx context.Context, id string) (Stats, error) {
 	var v Stats
 	if !ValidID(id) {
-		return v, &Error{400, "Некорректный ID контейнера"}
+		return v, &Error{400, "Invalid container ID"}
 	}
 	resp, err := e.request(ctx, "GET", "/containers/"+id+"/stats?stream=false&one-shot=true")
 	if err != nil {

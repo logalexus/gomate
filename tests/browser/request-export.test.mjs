@@ -63,7 +63,7 @@ test('unsupported representations and response/incomplete blocks do not pretend 
 });
 test('duplicate headers reject requests while curl and raw pwntools preserve them',()=>{
  const raw='GET / HTTP/1.1\r\nHost: x\r\nX-Repeat: one\r\nx-repeat: two\r\nCookie: secret\r\nAuthorization: Bearer secret\r\n\r\n';
- assert.match(exported(raw,'requests').error,/повторяющиеся/);assert.equal((exported(raw,'curl').code.match(/--header '[Xx]-[Rr]epeat:/g)||[]).length,2);assert(exported(raw,'pwntools').code.includes('X-Repeat: one\\r\\n'));
+ assert.match(exported(raw,'requests').error,/duplicate/);assert.equal((exported(raw,'curl').code.match(/--header '[Xx]-[Rr]epeat:/g)||[]).length,2);assert(exported(raw,'pwntools').code.includes('X-Repeat: one\\r\\n'));
 });
 test('all generated Python compiles with captured quotes/backticks/shell syntax as data',async()=>{
  const raw='POST /a\'$(printf%20oops) HTTP/1.1\r\nHost: captured.example\r\nX-Quoted: \'";print("oops");# $(printf injected) `printf injected` \\ tail\r\nContent-Length: 4\r\n\r\n\xff\x00\'"';

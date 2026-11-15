@@ -23,8 +23,8 @@ export default {
      el.value=text;el.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(el);
      try{el.select();if(!document.execCommand('copy'))throw Error('copy')}finally{el.remove();active?.focus({preventScroll:true})}
     }
-    this.copyState='Код скопирован';
-   }catch{this.copyState='Не удалось скопировать. Выделите код и скопируйте вручную.'}
+    this.copyState='Code copied';
+   }catch{this.copyState='Could not copy. Select the code and copy it manually.'}
   },
  },
 };

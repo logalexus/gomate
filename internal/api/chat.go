@@ -77,6 +77,17 @@ func (s *Server) chatAuthor(w http.ResponseWriter, r *http.Request) string {
 	http.SetCookie(w, &http.Cookie{Name: "gomate_chat", Value: id + "." + sign(id), Path: "/api/v2/chat", HttpOnly: true, SameSite: http.SameSiteStrictMode, Secure: r.TLS != nil, MaxAge: 7 * 86400})
 	return "Аноним-" + id[:8]
 }
+
+// Keep stored author keys stable so pre-upgrade cookies, message ownership and
+// retries retain their identity. Only the display name is translated.
+func chatDisplayAuthor(author string) string {
+	id, legacy := strings.CutPrefix(author, "Аноним-")
+	if decoded, err := hex.DecodeString(id); legacy && err == nil && len(decoded) == 4 {
+		return "Anonymous-" + id
+	}
+	return author
+}
+
 func (s *Server) chat(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != "GET" && r.Method != "POST" {
 		return &httpError{405, "method not allowed"}
@@ -91,7 +102,7 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) error {
 			}
 			n, e := strconv.ParseInt(v, 10, 64)
 			if e != nil || n < 0 {
-				return 0, bad("Некорректный курсор чата")
+				return 0, bad("Invalid chat cursor")
 			}
 			return n, nil
 		}
@@ -104,13 +115,16 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) error {
 			return e
 		}
 		if after > 0 && before > 0 {
-			return bad("Укажите один курсор")
+			return bad("Specify only one cursor")
 		}
 		messages, e := s.Store.Chat(r.Context(), after, before)
 		if e != nil {
 			return e
 		}
-		respond(w, 200, map[string]any{"messages": messages, "author": author, "hasMore": len(messages) == 100})
+		for i := range messages {
+			messages[i].Author = chatDisplayAuthor(messages[i].Author)
+		}
+		respond(w, 200, map[string]any{"messages": messages, "author": chatDisplayAuthor(author), "hasMore": len(messages) == 100})
 		return nil
 	}
 	var body struct {
@@ -122,20 +136,21 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) error {
 	}
 	body.Text = strings.TrimSpace(body.Text)
 	if !utf8.ValidString(body.Text) || len(body.Text) > 8000 || utf8.RuneCountInString(body.Text) > 2000 || body.Text == "" || strings.ContainsRune(body.Text, 0) {
-		return bad("Сообщение должно содержать от 1 до 2000 символов")
+		return bad("Message must contain 1 to 2000 characters")
 	}
 	if len(body.Key) < 16 || len(body.Key) > 64 {
-		return bad("Некорректный ключ сообщения")
+		return bad("Invalid message key")
 	}
 	if !s.chatLimit.allow(author) {
 		w.Header().Set("Retry-After", "1")
-		return &httpError{429, "Слишком много сообщений; подождите секунду"}
+		return &httpError{429, "Too many messages; wait a second"}
 	}
 	m, e := s.Store.SendChat(r.Context(), author, body.Key, body.Text)
 	if e != nil {
 		return e
 	}
 	s.Hub.Notify()
+	m.Author = chatDisplayAuthor(m.Author)
 	respond(w, 201, m)
 	return nil
 }

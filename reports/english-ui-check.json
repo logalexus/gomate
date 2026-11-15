@@ -1,0 +1,132 @@
+{
+  "passed": true,
+  "browserLocale": "ru-RU",
+  "checks": [
+    "all frontend source, hidden dialogs and workers contain English copy",
+    "all six routes, English navigation and document language in both themes at 1366 and 375 px with a Russian browser locale",
+    "all six settings tabs, pattern manager and editor, user-entered Unicode preserved",
+    "English formatting snippets, Unicode chat draft preserved and no browser errors"
+  ],
+  "layouts": [
+    {
+      "route": "all",
+      "width": 1366,
+      "theme": "dark"
+    },
+    {
+      "route": "anomalies",
+      "width": 1366,
+      "theme": "dark"
+    },
+    {
+      "route": "containers",
+      "width": 1366,
+      "theme": "dark"
+    },
+    {
+      "route": "monitoring",
+      "width": 1366,
+      "theme": "dark"
+    },
+    {
+      "route": "farm",
+      "width": 1366,
+      "theme": "dark"
+    },
+    {
+      "route": "chat",
+      "width": 1366,
+      "theme": "dark"
+    },
+    {
+      "route": "all",
+      "width": 1366,
+      "theme": "light"
+    },
+    {
+      "route": "anomalies",
+      "width": 1366,
+      "theme": "light"
+    },
+    {
+      "route": "containers",
+      "width": 1366,
+      "theme": "light"
+    },
+    {
+      "route": "monitoring",
+      "width": 1366,
+      "theme": "light"
+    },
+    {
+      "route": "farm",
+      "width": 1366,
+      "theme": "light"
+    },
+    {
+      "route": "chat",
+      "width": 1366,
+      "theme": "light"
+    },
+    {
+      "route": "all",
+      "width": 375,
+      "theme": "dark"
+    },
+    {
+      "route": "anomalies",
+      "width": 375,
+      "theme": "dark"
+    },
+    {
+      "route": "containers",
+      "width": 375,
+      "theme": "dark"
+    },
+    {
+      "route": "monitoring",
+      "width": 375,
+      "theme": "dark"
+    },
+    {
+      "route": "farm",
+      "width": 375,
+      "theme": "dark"
+    },
+    {
+      "route": "chat",
+      "width": 375,
+      "theme": "dark"
+    },
+    {
+      "route": "all",
+      "width": 375,
+      "theme": "light"
+    },
+    {
+      "route": "anomalies",
+      "width": 375,
+      "theme": "light"
+    },
+    {
+      "route": "containers",
+      "width": 375,
+      "theme": "light"
+    },
+    {
+      "route": "monitoring",
+      "width": 375,
+      "theme": "light"
+    },
+    {
+      "route": "farm",
+      "width": 375,
+      "theme": "light"
+    },
+    {
+      "route": "chat",
+      "width": 375,
+      "theme": "light"
+    }
+  ]
+}

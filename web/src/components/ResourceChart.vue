@@ -5,8 +5,8 @@
   <div class="resource-legend">
    <span v-for="(s,i) in series" :key="s.key"><i :class="{'is-secondary':i===1}" aria-hidden="true"/>{{ s.label }} <strong>{{ format(last[s.key],unit) }}</strong></span>
   </div>
-  <div v-if="!hasData" class="resource-chart-empty">{{ points.length < 2 ? 'Накапливаем первые замеры…' : 'Нет данных за этот период' }}</div>
-  <svg v-else viewBox="0 0 560 134" role="img" tabindex="0" :aria-label="title+'. Стрелки влево и вправо — значения по времени.'" @mousemove="inspect" @mouseleave="index=null" @focus="index=points.length-1" @blur="index=null" @keydown.left.prevent="step(-1)" @keydown.right.prevent="step(1)">
+  <div v-if="!hasData" class="resource-chart-empty">{{ points.length < 2 ? 'Collecting initial samples…' : 'No data for this period' }}</div>
+  <svg v-else viewBox="0 0 560 134" role="img" tabindex="0" :aria-label="title+'. Use the left and right arrow keys to inspect values over time.'" @mousemove="inspect" @mouseleave="index=null" @focus="index=points.length-1" @blur="index=null" @keydown.left.prevent="step(-1)" @keydown.right.prevent="step(1)">
    <defs v-if="capacity>0"><linearGradient :id="gradientId" gradientUnits="userSpaceOnUse" x1="0" y1="106" x2="0" y2="10"><stop offset="0" class="resource-stop-normal"/><stop :offset="thresholdOffset(0.7)" class="resource-stop-normal"/><stop :offset="thresholdOffset(0.7)" class="resource-stop-warning"/><stop :offset="thresholdOffset(0.9)" class="resource-stop-warning"/><stop :offset="thresholdOffset(0.9)" class="resource-stop-danger"/><stop offset="1" class="resource-stop-danger"/></linearGradient></defs>
    <g v-if="capacity>0" aria-hidden="true"><rect x="48" y="10" width="494" :height="thresholdY(0.9)-10" class="resource-band-danger"/><rect x="48" :y="thresholdY(0.9)" width="494" :height="thresholdY(0.7)-thresholdY(0.9)" class="resource-band-warning"/></g>
    <g v-for="fraction in [0,0.5,1]" :key="fraction"><line x1="48" x2="542" :y1="106-fraction*96" :y2="106-fraction*96" class="resource-grid"/><text x="43" :y="110-fraction*96" text-anchor="end">{{ axis(maximum*fraction) }}</text></g>
@@ -18,7 +18,7 @@
   </svg>
   <div class="resource-chart-values" :aria-live="index!==null?'polite':'off'">
    <template v-if="hover"><span>{{ time(hover.time,true) }}</span><span v-for="s in series" :key="s.key">{{ s.label }}: {{ format(hover[s.key],unit) }}</span></template>
-   <template v-else><span>Макс. {{ format(peak,unit) }}</span><span>{{ series[0].label }} · среднее {{ format(average,unit) }}</span></template>
+   <template v-else><span>Peak {{ format(peak,unit) }}</span><span>{{ series[0].label }} · average {{ format(average,unit) }}</span></template>
   </div>
  </article>
 </template>
@@ -44,7 +44,7 @@ export default {
   thresholdOffset(fraction){return Math.min(1,fraction*this.capacity/this.maximum)},
   thresholdY(fraction){return 106-96*this.thresholdOffset(fraction)},
   axis(v){return this.unit==='percent'?Math.round(v)+'%':formatMetric(v).replace(/\s/g,'')},
-  time(v,seconds=false){return new Date(v).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',...(seconds?{second:'2-digit'}:{})})},
+  time(v,seconds=false){return new Date(v).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',...(seconds?{second:'2-digit'}:{})})},
   path(key){return chartPath(this.points,key,this.start,this.end,this.maximum)},
   x(t){return 48+494*(t-this.start)/Math.max(1,this.end-this.start)},
   step(delta){this.index=Math.max(0,Math.min(this.points.length-1,(this.index===null?this.points.length-1:this.index)+delta))},

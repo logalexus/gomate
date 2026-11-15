@@ -1,54 +1,54 @@
 <template>
- <b-modal ref="modal" title="Декодер трафика" size="xl" scrollable hide-footer :return-focus="returnFocus" @hidden="close" @shown="focusInput">
+ <b-modal ref="modal" title="Traffic decoder" size="xl" scrollable hide-footer :return-focus="returnFocus" @hidden="close" @shown="focusInput">
   <div class="traffic-decoder">
-   <div class="decoder-intro"><h4>{{ source }}</h4><p>Распознайте кодировку или выберите её вручную. Для следующего слоя перенесите результат во вход — исходный трафик останется прежним.</p></div>
+   <div class="decoder-intro"><h4>{{ source }}</h4><p>Detect the encoding or choose one manually. Use the result as input for the next layer; captured traffic stays unchanged.</p></div>
    <div class="decoder-history mb-2">
-    <b-button size="sm" variant="outline-secondary" :disabled="!history.length" @click="back">Назад</b-button>
-    <b-button size="sm" variant="outline-secondary" @click="reset">Исходный фрагмент</b-button>
-    <span class="small">Шаг {{ history.length+1 }} / 9</span>
+    <b-button size="sm" variant="outline-secondary" :disabled="!history.length" @click="back">Back</b-button>
+    <b-button size="sm" variant="outline-secondary" @click="reset">Source fragment</b-button>
+    <span class="small">Step {{ history.length+1 }} / 9</span>
    </div>
    <div class="decoder-workbench"><section class="decoder-input-pane">
-   <div class="decoder-pane-heading"><span>01</span><label for="traffic-decode-input">Входные данные</label></div>
+   <div class="decoder-pane-heading"><span>01</span><label for="traffic-decode-input">Input</label></div>
    <b-form-textarea id="traffic-decode-input" ref="input" v-model="input" rows="5" spellcheck="false" @input="edited"/>
-   <div class="small text-muted mt-1">{{ input.length.toLocaleString() }} / 65 536 символов. Можно вставить своё значение или выделить меньший фрагмент.</div>
+   <div class="small text-muted mt-1">{{ input.length.toLocaleString('en-US') }} / 65,536 characters. Paste a value or select a smaller fragment.</div>
    <div class="decoder-actions my-2">
-    <b-button variant="primary" :disabled="busy||!validInput" @click="run('auto')">{{ busy?'Обработка…':'Распознать автоматически' }}</b-button>
-    <div class="decoder-method"><label for="traffic-decode-method" class="small mb-1">Ручной декодер</label><b-form-select id="traffic-decode-method" v-model="operation" :options="operations"/></div>
-    <b-button variant="outline-primary" :disabled="busy||!validInput" @click="run(operation)">Декодировать</b-button>
-    <b-button v-if="busy" variant="outline-secondary" @click="cancel">Отмена</b-button>
+    <b-button variant="primary" :disabled="busy||!validInput" @click="run('auto')">{{ busy?'Processing…':'Auto-detect' }}</b-button>
+    <div class="decoder-method"><label for="traffic-decode-method" class="small mb-1">Manual decoder</label><b-form-select id="traffic-decode-method" v-model="operation" :options="operations"/></div>
+    <b-button variant="outline-primary" :disabled="busy||!validInput" @click="run(operation)">Decode</b-button>
+    <b-button v-if="busy" variant="outline-secondary" @click="cancel">Cancel</b-button>
    </div>
    <b-alert :show="!!error" variant="danger" role="alert">{{ error }}</b-alert>
-   <p v-if="searched&&!busy" class="small" role="status">{{ candidates.length?'Найдено вариантов: '+candidates.length:'Автопоиск не нашёл подходящего текстового декодирования. Выделите значение без обрамления или выберите ручной декодер.' }}</p>
-   <p v-if="limited" class="small text-warning">Достигнут лимит автопоиска. Выделите меньший фрагмент и повторите поиск.</p>
-   <div v-if="candidates.length" class="decoder-candidates mb-2" aria-label="Варианты декодирования">
+   <p v-if="searched&&!busy" class="small" role="status">{{ candidates.length?'Candidates found: '+candidates.length:'No suitable text decoding found. Select the value without surrounding text or choose a manual decoder.' }}</p>
+   <p v-if="limited" class="small text-warning">Auto-detection limit reached. Select a smaller fragment and try again.</p>
+   <div v-if="candidates.length" class="decoder-candidates mb-2" aria-label="Decoding candidates">
     <button v-for="(candidate,i) in candidates" :key="i" type="button" class="decoder-candidate btn btn-outline-secondary text-left" :class="{active:selected===i}" :aria-pressed="String(selected===i)" @click="choose(i)">
-     <strong>{{ candidate.label }}</strong><span class="small ml-2">позиция {{ candidate.offset }}</span><code>{{ candidate.text.slice(0,180) }}{{ candidate.text.length>180?'…':'' }}</code>
+     <strong>{{ candidate.label }}</strong><span class="small ml-2">position {{ candidate.offset }}</span><code>{{ candidate.text.slice(0,180) }}{{ candidate.text.length>180?'…':'' }}</code>
     </button>
    </div>
    </section>
-   <section v-if="output" class="decoder-output-pane" aria-label="Результат декодирования">
-    <div class="decoder-pane-heading"><span>02</span><h5>Результат · {{ output.label }}</h5></div><p class="decoder-output-size">{{ output.byteLength.toLocaleString() }} байт после декодирования</p>
+   <section v-if="output" class="decoder-output-pane" aria-label="Decoded result">
+    <div class="decoder-pane-heading"><span>02</span><h5>Result · {{ output.label }}</h5></div><p class="decoder-output-size">{{ output.byteLength.toLocaleString('en-US') }} decoded bytes</p>
     <b-alert :show="!!output.warning" variant="warning">{{ output.warning }}</b-alert>
     <template v-if="output.jwt">
      <label for="traffic-jwt-header">JWT header</label><b-form-textarea id="traffic-jwt-header" :value="output.jwt.header" readonly rows="3" spellcheck="false"/>
      <label for="traffic-jwt-payload" class="mt-2">JWT payload</label><b-form-textarea id="traffic-jwt-payload" ref="payload" @focus="lastResultField='payload'" :value="output.jwt.payload" readonly rows="6" spellcheck="false"/>
      <ul v-if="output.jwt.dates.length" class="small mt-2"><li v-for="date in output.jwt.dates" :key="date.field">{{ date.field }}: {{ date.value }} (UTC)</li></ul>
-     <b-button size="sm" class="my-2" variant="outline-primary" :disabled="history.length>=8" @click="useText(output.jwt.payload,'JWT payload')">Payload → вход</b-button>
+     <b-button size="sm" class="my-2" variant="outline-primary" :disabled="history.length>=8" @click="useText(output.jwt.payload,'JWT payload')">Payload → input</b-button>
     </template>
-    <b-form-checkbox v-if="!output.binary&&!output.jwt" v-model="showHex" class="mb-2">Показать HEX</b-form-checkbox>
-    <p v-if="output.binary" class="small">Бинарный результат: это не текст UTF-8. Показано HEX-представление.</p>
-    <p v-if="(showHex||output.binary)&&output.hexTruncated" class="small text-warning">HEX сокращён до первых 4096 байт. Копирование ниже также копирует только показанный фрагмент.</p>
-    <label for="traffic-decode-output">{{ showHex||output.binary?'HEX':'Текст результата' }}</label>
+    <b-form-checkbox v-if="!output.binary&&!output.jwt" v-model="showHex" class="mb-2">Show HEX</b-form-checkbox>
+    <p v-if="output.binary" class="small">Binary result: this is not UTF-8 text. Showing HEX instead.</p>
+    <p v-if="(showHex||output.binary)&&output.hexTruncated" class="small text-warning">HEX is limited to the first 4096 bytes. Copying below also copies only the displayed fragment.</p>
+    <label for="traffic-decode-output">{{ showHex||output.binary?'HEX':'Result text' }}</label>
     <b-form-textarea id="traffic-decode-output" ref="output" @focus="lastResultField='output'" :value="resultText" readonly rows="8" spellcheck="false"/>
     <div class="decoder-actions mt-2">
-     <b-button variant="outline-secondary" @click="copy">Копировать результат</b-button>
-     <b-button variant="outline-primary" :disabled="output.binary||showHex||history.length>=8||output.text.length>maxInput" @click="useText(output.text,output.label)">Результат → вход</b-button>
-     <b-button variant="outline-primary" :disabled="history.length>=8" @mousedown.prevent @click="useSelection">Выделение результата → вход</b-button>
+     <b-button variant="outline-secondary" @click="copy">Copy result</b-button>
+     <b-button variant="outline-primary" :disabled="output.binary||showHex||history.length>=8||output.text.length>maxInput" @click="useText(output.text,output.label)">Result → input</b-button>
+     <b-button variant="outline-primary" :disabled="history.length>=8" @mousedown.prevent @click="useSelection">Selected result → input</b-button>
     </div>
     <span v-if="copyState" class="small" role="status">{{ copyState }}</span>
-    <p class="small text-muted mt-2 mb-0">Для вложенного Base64 в JSON выделите только значение, без кавычек. Декодированный текст не участвует в серверном поиске шаблонов.</p>
+    <p class="small text-muted mt-2 mb-0">For nested Base64 in JSON, select only the value without quotes. Decoded text is not included in server pattern searches.</p>
    </section>
-   <div v-else class="decoder-awaiting"><i :class="busy?'fas fa-circle-notch fa-spin':'fas fa-code'" aria-hidden="true"/><h5>{{ busy?'Разбираем данные…':'Результат появится здесь' }}</h5><p>Base64, JWT, URL, HEX и JSON.<br>До восьми последовательных преобразований.</p></div>
+   <div v-else class="decoder-awaiting"><i :class="busy?'fas fa-circle-notch fa-spin':'fas fa-code'" aria-hidden="true"/><h5>{{ busy?'Decoding…':'Your result will appear here' }}</h5><p>Base64, JWT, URL, HEX and JSON.<br>Up to eight consecutive transformations.</p></div>
    </div>
   </div>
  </b-modal>
@@ -63,13 +63,13 @@ export default {
   open({text,source,operation,returnFocus}){this.stop();this.returnFocus=returnFocus;this.original=text;this.originalSource=source;this.source=source;this.input=text;this.history=[];this.operation=operation||'base64';this.clear();this.$refs.modal.show();this.run(operation||'auto')},
   focusInput(){this.$refs.input?.$el.focus()},
   stop(){clearTimeout(this.deadline);this.worker?.terminate();this.worker=null;this.busy=false},
-  cancel(){this.stop();this.error='Обработка отменена.';this.$nextTick(this.focusInput)},
+  cancel(){this.stop();this.error='Processing canceled.';this.$nextTick(this.focusInput)},
   close(){this.stop();this.clear();this.input='';this.original='';this.history=[]},
   clear(){this.candidates=[];this.output=null;this.selected=-1;this.searched=false;this.limited=false;this.error='';this.showHex=false;this.copyState=''},
   edited(){this.stop();this.clear()},
   run(operation){
    this.stop();this.clear();
-   if(!this.validInput){this.error=this.input.length>MAX_INPUT?'Лимит — 65 536 символов. Выделите меньший фрагмент.':'Введите данные для декодирования.';return}
+   if(!this.validInput){this.error=this.input.length>MAX_INPUT?'Limit: 65,536 characters. Select a smaller fragment.':'Enter data to decode.';return}
    this.busy=true;
    // Disabling the action button otherwise drops focus to <body>, outside
    // Bootstrap's modal Escape handler. Keep keyboard focus in the dialog.
@@ -77,20 +77,20 @@ export default {
    try{
     const worker=new Worker(new URL('../trafficDecode.worker.mjs',import.meta.url),{type:'module'});this.worker=worker;
     worker.onmessage=({data})=>{if(this.worker!==worker)return;this.stop();if(data.error){this.error=data.error;return}if(operation==='auto'){this.searched=true;this.candidates=data.result.results;this.limited=data.result.limited;if(this.candidates.length)this.choose(0)}else this.output=data.result};
-    worker.onerror=()=>{if(this.worker!==worker)return;this.stop();this.error='Не удалось запустить декодер. Обновите страницу и повторите.'};
-    this.deadline=setTimeout(()=>{if(this.worker!==worker)return;this.stop();this.error='Превышено время обработки (2 секунды). Выделите меньший фрагмент.'},2000);
+    worker.onerror=()=>{if(this.worker!==worker)return;this.stop();this.error='Could not start the decoder. Refresh the page and try again.'};
+    this.deadline=setTimeout(()=>{if(this.worker!==worker)return;this.stop();this.error='Processing timed out (2 seconds). Select a smaller fragment.'},2000);
     worker.postMessage({operation,input:this.input});
-   }catch{this.stop();this.error='Web Worker недоступен в этом браузере.'}
+   }catch{this.stop();this.error='Web Workers are unavailable in this browser.'}
   },
   choose(index){this.selected=index;this.output=this.candidates[index];this.showHex=false;this.copyState=''},
   useText(text,label){if(this.history.length>=8||text.length>MAX_INPUT)return;this.history.push({input:this.input,source:this.source});this.input=text;this.source=label;this.run('auto')},
   useSelection(){
-   const el=this.$refs[this.lastResultField]?.$el;if(el&&el.selectionEnd>el.selectionStart){this.useText(el.value.slice(el.selectionStart,el.selectionEnd),'Выделение результата');return}
-   this.copyState='Сначала выделите фрагмент в поле результата или JWT payload.';
+   const el=this.$refs[this.lastResultField]?.$el;if(el&&el.selectionEnd>el.selectionStart){this.useText(el.value.slice(el.selectionStart,el.selectionEnd),'Selected result');return}
+   this.copyState='Select a fragment in the result field or JWT payload first.';
   },
   back(){const previous=this.history.pop();if(!previous)return;this.input=previous.input;this.source=previous.source;this.run('auto')},
   reset(){this.input=this.original;this.source=this.originalSource;this.history=[];this.run('auto')},
-  async copy(){try{if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(this.resultText);else{const el=this.$refs.output.$el;el.focus();el.select();if(!document.execCommand('copy'))throw Error('copy')}this.copyState='Результат скопирован'}catch{this.copyState='Выделите текст результата и скопируйте вручную.'}},
+  async copy(){try{if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(this.resultText);else{const el=this.$refs.output.$el;el.focus();el.select();if(!document.execCommand('copy'))throw Error('copy')}this.copyState='Result copied'}catch{this.copyState='Select the result text and copy it manually.'}},
  },
 };
 </script>

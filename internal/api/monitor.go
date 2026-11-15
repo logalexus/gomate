@@ -16,7 +16,7 @@ func (s *Server) monitor(w http.ResponseWriter, r *http.Request) error {
 	}
 	id := r.URL.Query().Get("container")
 	if (minutes != "5" && minutes != "15" && minutes != "60") || (id != "" && !dockerui.ValidID(id)) {
-		return bad("Некорректный период или контейнер")
+		return bad("Invalid period or container")
 	}
 	return s.dockerProxy(w, r, "/monitor?"+url.Values{"minutes": {minutes}, "container": {id}}.Encode())
 }

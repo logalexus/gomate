@@ -64,7 +64,7 @@ func (e *Engine) request(ctx context.Context, method, path string) (*http.Respon
 	}
 	resp, err := e.client.Do(r)
 	if err != nil {
-		return nil, &Error{503, "Docker недоступен или операция превысила время ожидания; обновите статус"}
+		return nil, &Error{503, "Docker is unavailable or the operation timed out; refresh the status"}
 	}
 	if resp.StatusCode >= 400 {
 		resp.Body.Close()
@@ -72,7 +72,7 @@ func (e *Engine) request(ctx context.Context, method, path string) (*http.Respon
 		if resp.StatusCode == 404 || resp.StatusCode == 409 {
 			code = resp.StatusCode
 		}
-		return nil, &Error{code, fmt.Sprintf("Docker вернул HTTP %d; обновите статус контейнера", resp.StatusCode)}
+		return nil, &Error{code, fmt.Sprintf("Docker returned HTTP %d; refresh the container status", resp.StatusCode)}
 	}
 	return resp, nil
 }
@@ -82,7 +82,7 @@ func boundedJSON(r io.Reader, v any) error {
 		return err
 	}
 	if len(b) > 4<<20 {
-		return &Error{502, "Слишком большой ответ Docker"}
+		return &Error{502, "Docker response too large"}
 	}
 	return json.Unmarshal(b, v)
 }
@@ -137,7 +137,7 @@ type inspection struct {
 func (e *Engine) inspect(ctx context.Context, id string) (inspection, error) {
 	var v inspection
 	if !ValidID(id) {
-		return v, &Error{400, "Некорректный ID контейнера"}
+		return v, &Error{400, "Invalid container ID"}
 	}
 	resp, err := e.request(ctx, "GET", "/containers/"+id+"/json")
 	if err != nil {
@@ -149,14 +149,14 @@ func (e *Engine) inspect(ctx context.Context, id string) (inspection, error) {
 }
 func (e *Engine) Action(ctx context.Context, id, action string) error {
 	if !ValidAction(action) {
-		return &Error{400, "Недопустимое действие"}
+		return &Error{400, "Unsupported action"}
 	}
 	v, err := e.inspect(ctx, id)
 	if err != nil {
 		return err
 	}
 	if internal(v.Config.Labels) {
-		return &Error{403, "Управление контейнерами самого gomate отключено"}
+		return &Error{403, "Management of gomate containers is disabled"}
 	}
 	path := "/containers/" + id + "/" + action
 	if action == "stop" || action == "restart" {

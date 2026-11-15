@@ -307,19 +307,19 @@ func (e *Engine) pair(s *serviceModel, st *streamState, m *message, p model.Pack
 		m.summary = req.summary
 		switch {
 		case m.incoming:
-			m.tpl = req.tpl + " · тело"
+			m.tpl = req.tpl + " · body"
 		case m.status != "":
-			m.tpl = req.tpl + " ⇐ ответ"
+			m.tpl = req.tpl + " ⇐ response"
 		default:
-			m.tpl = req.tpl + " ⇐ тело"
+			m.tpl = req.tpl + " ⇐ body"
 		}
 	case !m.incoming:
-		req := pendingRequest{"?", "ответ без запроса"}
+		req := pendingRequest{"?", "response without request"}
 		if len(st.pending) > 0 {
 			req = st.pending[0]
 			st.pending = st.pending[1:]
 		}
-		m.tpl = req.tpl + " ⇐ ответ"
+		m.tpl = req.tpl + " ⇐ response"
 		m.summary = req.summary
 	default:
 		m.tpl = "?"

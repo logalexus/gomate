@@ -14,10 +14,10 @@ test('Base64 variants preserve UTF-8 and whitespace and reject invalid input',()
 test('JWT separates header, claims and timestamp without claiming validation',()=>{
  const payload={sub:'admin',exp:1700000000,blob:b64("' OR 1=1 --")};
  const token=url64({alg:'none'})+'.'+url64(payload)+'.';
- const decoded=decode('Bearer '+token,'jwt');assert.deepEqual(JSON.parse(decoded.jwt.payload),payload);assert.match(decoded.warning,/не проверялась/);assert.equal(decoded.jwt.dates[0].value,'2023-11-14T22:13:20.000Z');
+ const decoded=decode('Bearer '+token,'jwt');assert.deepEqual(JSON.parse(decoded.jwt.payload),payload);assert.match(decoded.warning,/not verified/);assert.equal(decoded.jwt.dates[0].value,'2023-11-14T22:13:20.000Z');
  assert(detect('Cookie: token='+token+'; other=plain').results.some(v=>v.operation==='jwt'));
  assert.throws(()=>decode('e30.e30.e30.e30.e30','jwt'),/JWE/);
- assert.throws(()=>decode(url64({alg:'none'})+'.'+url64([])+'.','jwt'),/JSON-объект/);
+ assert.throws(()=>decode(url64({alg:'none'})+'.'+url64([])+'.','jwt'),/JSON object/);
  assert.throws(()=>decode('e30.invalid.','jwt'));
 });
 test('manual URL, form, hex, JSON and nested decoding are explicit and lossless',()=>{
@@ -42,8 +42,8 @@ test('auto-detection finds encoded values in query strings, headers and JSON',()
  assert.equal(detect('HTTP/1.1 200 OK\r\nContent-Type: text/plain').results.length,0);
 });
 test('bounded scanning, binary preview and hostile strings do not grow unbounded',()=>{
- assert.throws(()=>decode('a'.repeat(MAX_INPUT+1),'base64'),/Лимит/);
- assert.throws(()=>decode('['.repeat(1000)+'0'+']'.repeat(1000),'json'),/32 уровней/);
+ assert.throws(()=>decode('a'.repeat(MAX_INPUT+1),'base64'),/Limit/);
+ assert.throws(()=>decode('['.repeat(1000)+'0'+']'.repeat(1000),'json'),/32 nesting levels/);
  const many=Array.from({length:100},(_,i)=>b64('SELECT '+i)).join(' '),scan=detect(many);
  assert.equal(scan.results.length,MAX_RESULTS);assert(scan.limited);assert(scan.attempts<=512);
  const binary=decode(Buffer.alloc(5000).toString('base64'),'base64');assert(binary.hexTruncated);assert.equal(binary.hex.split(' ').length,4096);

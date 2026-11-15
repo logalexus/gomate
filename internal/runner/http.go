@@ -17,7 +17,7 @@ func (m *Manager) Handler() http.Handler {
 		default:
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(429)
-			json.NewEncoder(w).Encode(map[string]string{"error": "Runner занят, повторите запрос"})
+			json.NewEncoder(w).Encode(map[string]string{"error": "Runner busy, try again"})
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -35,12 +35,12 @@ func (m *Manager) Handler() http.Handler {
 			decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 2<<20))
 			decoder.DisallowUnknownFields()
 			if e := decoder.Decode(&req); e != nil {
-				err = &Error{400, "Некорректный JSON запуска"}
+				err = &Error{400, "Invalid run JSON"}
 				break
 			}
 			var extra any
 			if decoder.Decode(&extra) != io.EOF {
-				err = &Error{400, "Ожидался один JSON объект"}
+				err = &Error{400, "Expected a single JSON object"}
 				break
 			}
 			result, err = m.Start(req)
@@ -59,7 +59,7 @@ func (m *Manager) Handler() http.Handler {
 		}
 		if err != nil {
 			status = 503
-			message := "Не удалось запустить скрипт"
+			message := "Could not run the script"
 			var e *Error
 			if errors.As(err, &e) {
 				status, message = e.Code, e.Message

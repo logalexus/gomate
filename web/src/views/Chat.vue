@@ -1,42 +1,42 @@
 <template>
- <section class="chat-page" aria-label="Общий чат">
+ <section class="chat-page" aria-label="Team chat">
   <header class="chat-room-heading">
-   <div class="chat-room-name"><span class="chat-room-symbol" aria-hidden="true">#</span><h1 class="gm-page-title">общий</h1></div>
+   <div class="chat-room-name"><span class="chat-room-symbol" aria-hidden="true">#</span><h1 class="gm-page-title">general</h1></div>
    <div class="chat-room-actions">
-    <b-button class="chat-game-button" size="sm" variant="outline-secondary" aria-label="Открыть мини-шутер" @click="arenaOpen=true"><i class="fas fa-gamepad" aria-hidden="true"/><span class="chat-game-label"> Арена</span></b-button>
-    <b-button class="chat-history-button" size="sm" variant="link" :disabled="loading||!hasOlder||messages.length>=500" @click="older"><i class="fas fa-history" aria-hidden="true"/> История</b-button>
-    <b-dropdown right no-caret variant="link" class="chat-info-menu" :toggle-attrs="{'aria-label':'О канале'}">
+    <b-button class="chat-game-button" size="sm" variant="outline-secondary" aria-label="Open mini shooter" @click="arenaOpen=true"><i class="fas fa-gamepad" aria-hidden="true"/><span class="chat-game-label"> Arena</span></b-button>
+    <b-button class="chat-history-button" size="sm" variant="link" :disabled="loading||!hasOlder||messages.length>=500" @click="older"><i class="fas fa-history" aria-hidden="true"/> History</b-button>
+    <b-dropdown right no-caret variant="link" class="chat-info-menu" :toggle-attrs="{'aria-label':'About this channel'}">
      <template #button-content><i class="fas fa-info-circle" aria-hidden="true"/></template>
-     <b-dropdown-text><strong>{{ author || 'Подключение…' }}</strong><p>Ваше анонимное имя в этом браузере.</p><p>Общий канал для всех с доступом к gomate. История хранится 7 дней, до 10 000 сообщений.</p></b-dropdown-text>
+     <b-dropdown-text><strong>{{ author || 'Connecting…' }}</strong><p>Your anonymous name in this browser.</p><p>A shared channel for everyone with access to gomate. History is kept for 7 days, up to 10,000 messages.</p></b-dropdown-text>
     </b-dropdown>
    </div>
   </header>
   <b-alert :show="!!error" variant="danger" class="chat-error">{{ error }}</b-alert>
-  <div v-if="browsing" class="chat-history-banner" role="status"><span>{{ messages.length>=500?'Загружено 500 сообщений':'Просмотр истории' }}</span><b-button size="sm" variant="link" :disabled="loading" @click="latest">К новым сообщениям <i class="fas fa-arrow-down" aria-hidden="true"/></b-button></div>
+  <div v-if="browsing" class="chat-history-banner" role="status"><span>{{ messages.length>=500?'500 messages loaded':'Browsing history' }}</span><b-button size="sm" variant="link" :disabled="loading" @click="latest">Jump to new messages <i class="fas fa-arrow-down" aria-hidden="true"/></b-button></div>
   <div class="chat-timeline">
-   <VirtualList ref="list" :items="messages" class="chat-list" role="region" tabindex="0" aria-label="Сообщения команды" @scroll.native.passive="onScroll">
+   <VirtualList ref="list" :items="messages" class="chat-list" role="region" tabindex="0" aria-label="Team messages" @scroll.native.passive="onScroll">
     <template #default="{item}"><article class="chat-message" :class="{'chat-own':item.author===author}" :data-message-id="item.id">
      <span class="chat-avatar" aria-hidden="true">{{ item.author.slice(-2).toUpperCase() }}</span>
-     <div class="chat-message-body"><div class="chat-message-meta"><strong>{{ item.author }}<span v-if="item.author===author" class="chat-you">вы</span></strong><time :datetime="item.createdAt" :title="new Date(item.createdAt).toLocaleString()">{{ time(item.createdAt) }}</time></div><ChatMarkdown :text="item.text"/></div>
+     <div class="chat-message-body"><div class="chat-message-meta"><strong>{{ item.author }}<span v-if="item.author===author" class="chat-you">you</span></strong><time :datetime="item.createdAt" :title="new Date(item.createdAt).toLocaleString('en-US')">{{ time(item.createdAt) }}</time></div><ChatMarkdown :text="item.text"/></div>
     </article></template>
    </VirtualList>
-   <div v-if="!messages.length" class="chat-empty"><span class="chat-empty-mark" aria-hidden="true">#</span><strong>{{ loading?'Загружаем историю…':'Начало #общий' }}</strong></div>
-   <b-button v-if="!browsing&&!atBottom" class="chat-jump" size="sm" variant="primary" @click="bottom"><span role="status">{{ unseen?'Новых сообщений: '+unseen:'К последним сообщениям' }}</span> <i class="fas fa-arrow-down" aria-hidden="true"/></b-button>
+   <div v-if="!messages.length" class="chat-empty"><span class="chat-empty-mark" aria-hidden="true">#</span><strong>{{ loading?'Loading history…':'Start of #general' }}</strong></div>
+   <b-button v-if="!browsing&&!atBottom" class="chat-jump" size="sm" variant="primary" @click="bottom"><span role="status">{{ unseen?'New messages: '+unseen:'Jump to latest messages' }}</span> <i class="fas fa-arrow-down" aria-hidden="true"/></b-button>
   </div>
   <b-form @submit.prevent="send" class="chat-composer">
    <div class="chat-input-shell">
-    <b-dropdown dropup no-caret variant="link" class="chat-format-menu" :toggle-attrs="{'aria-label':'Форматирование сообщения'}">
+    <b-dropdown dropup no-caret variant="link" class="chat-format-menu" :toggle-attrs="{'aria-label':'Message formatting'}">
      <template #button-content><i class="fas fa-plus" aria-hidden="true"/></template>
      <b-dropdown-item-button v-for="format in formats" :key="format.kind" :disabled="sending||preview" @mousedown.native.prevent @click="formatDraft(format.kind)">{{ format.label }}</b-dropdown-item-button>
      <b-dropdown-divider/>
-     <b-dropdown-item-button @click="togglePreview">{{ preview?'Редактировать':'Предпросмотр' }}</b-dropdown-item-button>
+     <b-dropdown-item-button @click="togglePreview">{{ preview?'Edit':'Preview' }}</b-dropdown-item-button>
     </b-dropdown>
-    <label class="sr-only" for="chat-editor">Сообщение в чат</label>
-    <div v-if="preview" class="chat-preview" aria-label="Предпросмотр сообщения"><ChatMarkdown v-if="draft.trim()" :text="draft"/><span v-else class="text-muted">Пустое сообщение</span><b-button type="button" size="sm" variant="link" @click="togglePreview">Редактировать</b-button></div>
-    <textarea v-show="!preview" id="chat-editor" ref="editor" v-model="draft" :disabled="sending" rows="1" maxlength="2000" placeholder="Написать в #общий" aria-label="Сообщение в чат" @keydown="onKey"></textarea>
-    <b-button class="chat-send" type="submit" variant="link" :disabled="sending||!author||!draft.trim()" :aria-label="sending?'Отправка…':'Отправить'"><i :class="sending?'fas fa-circle-notch fa-spin':'fas fa-paper-plane'" aria-hidden="true"/></b-button>
+    <label class="sr-only" for="chat-editor">Chat message</label>
+    <div v-if="preview" class="chat-preview" aria-label="Message preview"><ChatMarkdown v-if="draft.trim()" :text="draft"/><span v-else class="text-muted">Empty message</span><b-button type="button" size="sm" variant="link" @click="togglePreview">Edit</b-button></div>
+    <textarea v-show="!preview" id="chat-editor" ref="editor" v-model="draft" :disabled="sending" rows="1" maxlength="2000" placeholder="Message #general" aria-label="Chat message" @keydown="onKey"></textarea>
+    <b-button class="chat-send" type="submit" variant="link" :disabled="sending||!author||!draft.trim()" :aria-label="sending?'Sending…':'Send'"><i :class="sending?'fas fa-circle-notch fa-spin':'fas fa-paper-plane'" aria-hidden="true"/></b-button>
    </div>
-   <p v-if="sendError" class="chat-send-error text-danger" role="alert">{{ sendError }} Текст сохранён, можно повторить отправку.</p>
+   <p v-if="sendError" class="chat-send-error text-danger" role="alert">{{ sendError }} Your text is saved. Try sending again.</p>
   </b-form>
   <ArenaGame v-if="arenaOpen" @close="arenaOpen=false"/>
  </section>
@@ -45,7 +45,7 @@
 import VirtualList from '@/components/VirtualList';
 import ChatMarkdown from '@/components/ChatMarkdown';
 import {insideCodeFence} from '../chatMarkdown.mjs';
-const formats=[{kind:'bold',label:'Жирный',hint:'**текст**'},{kind:'italic',label:'Курсив',hint:'*текст*'},{kind:'inline',label:'Код',hint:'Код внутри строки'},{kind:'block',label:'Блок кода',hint:'Блок с тройными обратными кавычками'},{kind:'quote',label:'Цитата',hint:'> текст'},{kind:'list',label:'Список',hint:'- пункт'}];
+const formats=[{kind:'bold',label:'Bold',hint:'**text**'},{kind:'italic',label:'Italic',hint:'*text*'},{kind:'inline',label:'Code',hint:'Inline code'},{kind:'block',label:'Code block',hint:'Block with triple backticks'},{kind:'quote',label:'Quote',hint:'> text'},{kind:'list',label:'List',hint:'- item'}];
 const message=e=>e.response?.data?.error||e.message;
 const key=()=>{const b=new Uint8Array(16);crypto.getRandomValues(b);return [...b].map(x=>x.toString(16).padStart(2,'0')).join('')};
 export default {
@@ -55,7 +55,7 @@ export default {
  beforeDestroy(){window.removeEventListener('resize',this.resizeEditor);this.destroyed=true;clearInterval(this.timer);this.controller?.abort();document.removeEventListener('visibilitychange',this.visibility)},
  methods:{
   resizeEditor(){const editor=this.$refs.editor;if(editor&&!this.preview){editor.style.height='auto';editor.style.height=editor.scrollHeight+'px'}},
-  time(t){const date=new Date(t);return date.toLocaleDateString()===new Date().toLocaleDateString()?date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):date.toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})},
+  time(t){const date=new Date(t);return date.toLocaleDateString('en-US')===new Date().toLocaleDateString('en-US')?date.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'}):date.toLocaleString('en-US', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})},
   togglePreview(){this.preview=!this.preview;if(!this.preview)this.$nextTick(()=>{this.resizeEditor();this.$refs.editor?.focus()})},visibility(){if(document.hidden)this.controller?.abort();else if(!this.browsing)this.fetch()},
   onScroll(){const el=this.$refs.list?.$el;if(el){this.atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<70;if(this.atBottom)this.unseen=0}},
   bottom(){this.$nextTick(()=>{this.$refs.list?.scrollToIndex(Math.max(0,this.messages.length-1));this.unseen=0;this.atBottom=true})},
@@ -71,14 +71,14 @@ export default {
   async latest(){if(this.loading)return;this.browsing=false;await this.fetch('latest')},async older(){if(this.loading)return;this.browsing=true;await this.fetch('older')},
   formatDraft(kind){
    const editor=this.$refs.editor,start=editor.selectionStart,end=editor.selectionEnd;
-   const selected=this.draft.slice(start,end),body=selected||(kind==='block'||kind==='inline'?'код':'текст');
+   const selected=this.draft.slice(start,end),body=selected||(kind==='block'||kind==='inline'?'code':'text');
    let before='',after='',content=body;
    if(kind==='bold'){before='**';after='**'}else if(kind==='italic'){before='*';after='*'}
    else if(kind==='inline'){const runs=body.match(/`+/g)||[];before=after='`'.repeat(Math.max(0,...runs.map(v=>v.length))+1);if(body.startsWith('`')||body.endsWith('`')){before+=' ';after=' '+after}}
    else if(kind==='block'){const runs=body.match(/`+/g)||[],fence='`'.repeat(Math.max(3,...runs.map(v=>v.length+1)));before=(start&&this.draft[start-1]!=='\n'?'\n':'')+fence+'\n';after='\n'+fence+(end<this.draft.length&&this.draft[end]!=='\n'?'\n':'')}
    else{before=start&&this.draft[start-1]!=='\n'?'\n':'';const prefix=kind==='quote'?'> ':'- ';content=body.split('\n').map(line=>prefix+line).join('\n');after=end<this.draft.length&&this.draft[end]!=='\n'?'\n':''}
    const next=this.draft.slice(0,start)+before+content+after+this.draft.slice(end);
-   if([...next].length>2000){this.sendError='Форматирование превышает лимит 2000 символов.';return}
+   if([...next].length>2000){this.sendError='Formatting exceeds the 2000-character limit.';return}
    this.draft=next;this.sendError='';this.$nextTick(()=>{editor.focus();editor.setSelectionRange(start+before.length,start+before.length+content.length)});
   },
   onKey(e){if(e.key!=='Enter'||e.isComposing||e.keyCode===229)return;

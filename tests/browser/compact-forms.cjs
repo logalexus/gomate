@@ -124,7 +124,7 @@ fs.mkdirSync(path.join(root, "reports"), { recursive: true });
     const close = async (id) => {
       await page
         .locator(id)
-        .getByRole("button", { name: /^(Close|Закрыть)$/ })
+        .getByRole("button", { name: /^Close$/ })
         .first()
         .click();
       await page.locator(id).waitFor({ state: "hidden" });
@@ -134,25 +134,25 @@ fs.mkdirSync(path.join(root, "reports"), { recursive: true });
         await page.setViewportSize({ width, height: 850 });
         await page.evaluate((t) => (document.body.dataset.theme = t), theme);
         await page
-          .getByRole("button", { name: "Настройки", exact: true })
+          .getByRole("button", { name: "Settings", exact: true })
           .click();
         await page.locator("#capture-interface").waitFor();
         for (const tab of [
-          "Захват трафика",
-          "Хранение и очистка",
-          "Приложение",
-          "Отображение",
+          "Traffic capture",
+          "Retention and cleanup",
+          "Application",
+          "Display",
         ]) {
           await page
             .locator("#settingsModal")
             .getByRole("tab", { name: tab, exact: true })
             .click();
           await fit("#settingsModal");
-          if (tab === "Хранение и очистка") {
+          if (tab === "Retention and cleanup") {
             assert(
               await page
                 .locator("#settingsModal")
-                .getByRole("button", { name: "Удалить…", exact: true })
+                .getByRole("button", { name: "Delete…", exact: true })
                 .isDisabled()
             );
             if (width === 1366 && theme === "dark")
@@ -163,7 +163,7 @@ fs.mkdirSync(path.join(root, "reports"), { recursive: true });
           }
         }
         await close("#settingsModal");
-        await page.getByRole("button", { name: /^Шаблоны/ }).click();
+        await page.getByRole("button", { name: /^Patterns/ }).click();
         const manager = page.locator("#patternsManager");
         await manager.locator("tbody tr").first().waitFor();
         await fit("#patternsManager");
@@ -173,43 +173,43 @@ fs.mkdirSync(path.join(root, "reports"), { recursive: true });
             quality: 85,
           });
         await manager
-          .getByRole("textbox", { name: "Поиск шаблонов" })
+          .getByRole("textbox", { name: "Search patterns" })
           .fill("absent");
         await manager.locator(".pattern-manager-empty").waitFor();
         await manager
           .getByRole("button", {
-            name: "Сбросить фильтры шаблонов",
+            name: "Reset pattern filters",
             exact: true,
           })
           .click();
         await manager.locator("tbody tr").first().waitFor();
         await manager
-          .getByRole("button", { name: "+ Новый шаблон", exact: true })
+          .getByRole("button", { name: "+ New pattern", exact: true })
           .click();
         const editor = page.locator("#patternModal");
         await editor.locator("#pattern-name").waitFor();
         await editor
-          .getByRole("button", { name: "Текст", exact: true })
+          .getByRole("button", { name: "Text", exact: true })
           .click();
         await editor
-          .getByRole("textbox", { name: "Тестовый фрагмент" })
+          .getByRole("textbox", { name: "Test fragment" })
           .fill("FLAG_a");
         await editor
-          .getByRole("button", { name: "Проверить", exact: true })
+          .getByRole("button", { name: "Test", exact: true })
           .click();
-        await editor.getByText("Совпадений: 1", { exact: true }).waitFor();
+        await editor.getByText("Matches: 1", { exact: true }).waitFor();
         await fit("#patternModal");
         await close("#patternModal");
         await manager
           .locator("tbody tr")
           .first()
-          .getByRole("button", { name: "Ещё", exact: true })
+          .getByRole("button", { name: "More", exact: true })
           .click();
         await page
-          .getByRole("menuitem", { name: "В прошлом", exact: true })
+          .getByRole("menuitem", { name: "Search history", exact: true })
           .click();
         await page.locator("#lookback-minutes").waitFor();
-        await page.getByRole("button", { name: "1 час", exact: true }).click();
+        await page.getByRole("button", { name: "1 hour", exact: true }).click();
         assert.equal(
           await page.locator("#lookback-minutes").inputValue(),
           "60"
@@ -217,7 +217,7 @@ fs.mkdirSync(path.join(root, "reports"), { recursive: true });
         await fit("#lookBackModal");
         await page
           .locator("#lookBackModal")
-          .getByRole("button", { name: "Отмена", exact: true })
+          .getByRole("button", { name: "Cancel", exact: true })
           .click();
         await page.locator("#lookBackModal").waitFor({ state: "hidden" });
         await close("#patternsManager");

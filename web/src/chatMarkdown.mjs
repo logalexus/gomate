@@ -14,7 +14,7 @@ markdown.renderer.rules.link_open = (tokens, index, options, env, renderer) => {
 markdown.renderer.rules.fence = (tokens, index) => {
  const token = tokens[index], escape = markdown.utils.escapeHtml;
  const language = token.info.trim().split(/\s+/)[0].slice(0, 40);
- return `<div class="chat-code"><div class="chat-code-toolbar"><span>${escape(language || 'Код')}</span><button type="button" class="chat-copy-code" aria-label="Копировать код">Копировать</button></div><pre><code>${escape(token.content)}</code></pre></div>\n`;
+ return `<div class="chat-code"><div class="chat-code-toolbar"><span>${escape(language || 'Code')}</span><button type="button" class="chat-copy-code" aria-label="Copy code">Copy</button></div><pre><code>${escape(token.content)}</code></pre></div>\n`;
 };
 
 export function renderChatMarkdown(text) {

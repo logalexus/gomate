@@ -1,13 +1,13 @@
 <template>
  <div class="anomaly-flow-host">
   <b-modal v-if="compact" id="anomaly-flow-modal" visible size="xl" scrollable hide-footer :title="title" @hidden="$emit('close')">
-   <template #modal-header><div><h2 id="anomaly-flow-modal___BV_modal_title_" class="flow-title">{{ title }}</h2><p class="flow-subtitle">{{ serviceName }}</p></div><b-button size="sm" variant="outline-secondary" aria-label="Закрыть поток" @click="$emit('close')">Закрыть</b-button></template>
-   <p class="flow-caption">Запросы и ответы · весь поток доступен постранично.</p>
+   <template #modal-header><div><h2 id="anomaly-flow-modal___BV_modal_title_" class="flow-title">{{ title }}</h2><p class="flow-subtitle">{{ serviceName }}</p></div><b-button size="sm" variant="outline-secondary" aria-label="Close stream" @click="$emit('close')">Close</b-button></template>
+   <p class="flow-caption">Requests and responses · browse the full stream page by page.</p>
    <ContentStream :key="session.streamId" :stream-id="session.streamId" :service-port="session.service" embedded/>
   </b-modal>
   <aside v-else id="anomaly-flow-panel" ref="panel" class="anomaly-flow-panel" :style="panelHeight ? {maxHeight:panelHeight+'px'} : null" aria-labelledby="anomaly-flow-title">
-   <header class="flow-heading"><div><h2 id="anomaly-flow-title" class="flow-title">{{ title }}</h2><p class="flow-subtitle">{{ serviceName }}</p></div><b-button size="sm" variant="outline-secondary" aria-label="Закрыть поток" @click="$emit('close')">Закрыть</b-button></header>
-   <div class="flow-body"><p class="flow-caption">Запросы и ответы · весь поток доступен постранично.</p><ContentStream :key="session.streamId" :stream-id="session.streamId" :service-port="session.service" embedded/></div>
+   <header class="flow-heading"><div><h2 id="anomaly-flow-title" class="flow-title">{{ title }}</h2><p class="flow-subtitle">{{ serviceName }}</p></div><b-button size="sm" variant="outline-secondary" aria-label="Close stream" @click="$emit('close')">Close</b-button></header>
+   <div class="flow-body"><p class="flow-caption">Requests and responses · browse the full stream page by page.</p><ContentStream :key="session.streamId" :stream-id="session.streamId" :service-port="session.service" embedded/></div>
   </aside>
  </div>
 </template>
@@ -16,7 +16,7 @@ import ContentStream from '../views/ContentStream.vue';
 export default {
  name:'AnomalyFlowPanel',components:{ContentStream},props:{session:{type:Object,required:true},serviceName:String},
  data:()=>({compact:window.innerWidth<1200,panelHeight:null}),
- computed:{title(){return `Поток сессии #${this.session.streamId}`}},
+ computed:{title(){return `Session stream #${this.session.streamId}`}},
  mounted(){window.addEventListener('resize',this.onResize);document.addEventListener('scroll',this.queueMeasure,true);this.queueMeasure()},
  updated(){this.queueMeasure()},
  beforeDestroy(){window.removeEventListener('resize',this.onResize);document.removeEventListener('scroll',this.queueMeasure,true);cancelAnimationFrame(this.measureFrame)},

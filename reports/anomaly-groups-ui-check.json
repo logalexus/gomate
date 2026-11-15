@@ -59,7 +59,7 @@
       "theme": "dark",
       "docWidth": 800,
       "mainWidth": 800,
-      "firstRowTop": 384.984375,
+      "firstRowTop": 341.484375,
       "rowHeight": 106.5
     },
     {
@@ -67,7 +67,7 @@
       "theme": "light",
       "docWidth": 800,
       "mainWidth": 800,
-      "firstRowTop": 384.984375,
+      "firstRowTop": 341.484375,
       "rowHeight": 106.5
     },
     {
@@ -75,7 +75,7 @@
       "theme": "dark",
       "docWidth": 375,
       "mainWidth": 375,
-      "firstRowTop": 574.296875,
+      "firstRowTop": 538.296875,
       "rowHeight": 150
     },
     {
@@ -83,7 +83,7 @@
       "theme": "light",
       "docWidth": 375,
       "mainWidth": 375,
-      "firstRowTop": 574.296875,
+      "firstRowTop": 538.296875,
       "rowHeight": 150
     },
     {

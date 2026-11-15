@@ -1,73 +1,73 @@
 <template>
  <section class="workspace-page gm-operations">
   <header class="operations-heading">
-   <div><h1>Контейнеры</h1><span class="operations-refresh">Сервисы и логи · автообновление 5 с</span></div>
-   <div class="container-overview" aria-label="Состояние окружения">
-    <button type="button" :class="{selected:state==='all'}" :aria-pressed="String(state==='all')" @click="state='all';tab=0">Все <strong>{{ containers.length }}</strong></button>
-    <button type="button" :class="{selected:state==='running'}" :aria-pressed="String(state==='running')" @click="state='running';tab=0"><span class="overview-running">Работают</span> <strong>{{ containers.filter(c=>c.state==='running').length }}</strong></button>
-    <span class="protected-count" title="Компоненты gomate доступны только для просмотра"><i class="fas fa-shield-alt" aria-hidden="true"/> gomate {{ containers.filter(c=>c.protected).length }}</span>
+   <div><h1>Containers</h1><span class="operations-refresh">Services and logs · refreshes every 5 s</span></div>
+   <div class="container-overview" aria-label="Environment status">
+    <button type="button" :class="{selected:state==='all'}" :aria-pressed="String(state==='all')" @click="state='all';tab=0">All <strong>{{ containers.length }}</strong></button>
+    <button type="button" :class="{selected:state==='running'}" :aria-pressed="String(state==='running')" @click="state='running';tab=0"><span class="overview-running">Running</span> <strong>{{ containers.filter(c=>c.state==='running').length }}</strong></button>
+    <span class="protected-count" title="gomate components are view-only"><i class="fas fa-shield-alt" aria-hidden="true"/> gomate {{ containers.filter(c=>c.protected).length }}</span>
    </div>
-   <b-button size="sm" variant="outline-primary" :disabled="loading" @click="load">{{ loading?'Обновление…':'Обновить' }}</b-button>
+   <b-button size="sm" variant="outline-primary" :disabled="loading" @click="load">{{ loading?'Refreshing…':'Refresh' }}</b-button>
   </header>
   <b-alert :show="!!error" variant="danger">{{ error }}</b-alert><b-alert :show="!!notice" variant="success" dismissible @dismissed="notice=''">{{ notice }}</b-alert>
   <div class="gm-panel operations-workspace">
    <b-tabs v-model="tab">
-    <b-tab title="Управление">
+    <b-tab title="Manage">
      <div class="container-filterbar">
-      <b-form-group label="Поиск контейнеров" label-for="containers-search"><b-form-input size="sm" id="containers-search" v-model="query" placeholder="Имя, образ, ID или порт" aria-label="Поиск контейнеров"/></b-form-group>
-      <b-form-group label="Состояние" label-for="containers-state"><b-form-select size="sm" id="containers-state" v-model="state" :options="states" aria-label="Состояние контейнеров"/></b-form-group>
-      <b-button v-if="query||state!=='all'" variant="outline-secondary" @click="query='';state='all'">Сбросить фильтры</b-button>
+      <b-form-group label="Search containers" label-for="containers-search"><b-form-input size="sm" id="containers-search" v-model="query" placeholder="Name, image, ID or port" aria-label="Search containers"/></b-form-group>
+      <b-form-group label="State" label-for="containers-state"><b-form-select size="sm" id="containers-state" v-model="state" :options="states" aria-label="Container states"/></b-form-group>
+      <b-button v-if="query||state!=='all'" variant="outline-secondary" @click="query='';state='all'">Reset filters</b-button>
      </div>
-     <div class="container-results-summary"><span>{{ filtered.length }} из {{ containers.length }} контейнеров</span><span>Компоненты gomate доступны только для просмотра</span></div>
+     <div class="container-results-summary"><span>{{ filtered.length }} of {{ containers.length }} containers</span><span>gomate components are view-only</span></div>
      <div class="container-list" :aria-busy="String(loading)"><table class="table container-table">
-      <caption class="sr-only">Контейнеры. Раскройте строку, чтобы увидеть все порты, образ и действия управления.</caption>
-      <thead><tr><th scope="col">Контейнер / образ</th><th scope="col">Состояние</th><th scope="col">Порты</th><th scope="col"><span class="sr-only">Просмотр</span></th></tr></thead>
+      <caption class="sr-only">Containers. Expand a row to see all ports, the image and management actions.</caption>
+      <thead><tr><th scope="col">Container / image</th><th scope="col">State</th><th scope="col">Ports</th><th scope="col"><span class="sr-only">View</span></th></tr></thead>
       <tbody v-for="c in pageItems" :key="c.id" :data-container="c.name" :class="{'is-expanded':expandedID===c.id}">
        <tr class="container-row">
         <td class="container-identity">
-         <button type="button" class="container-disclosure" :aria-expanded="String(expandedID===c.id)" :aria-controls="'container-detail-'+c.id" :aria-label="'Подробности контейнера '+c.name" @click="toggleDetails(c)">
+         <button type="button" class="container-disclosure" :aria-expanded="String(expandedID===c.id)" :aria-controls="'container-detail-'+c.id" :aria-label="'Container details '+c.name" @click="toggleDetails(c)">
           <i class="fas fa-chevron-right" :class="{'is-open':expandedID===c.id}" aria-hidden="true"/>
           <span class="container-preview"><span class="container-name"><strong :title="c.name">{{ c.name }}</strong><span v-if="c.protected" class="container-protected">gomate</span></span><span class="container-image" :title="c.image">{{ c.image }}</span></span>
          </button>
         </td>
         <td class="container-state-cell"><span class="container-state" :class="'state-'+c.state">{{ stateName(c.state) }}</span><div class="container-status" :title="c.status">{{ c.status }}</div></td>
-        <td class="container-ports-preview"><span class="container-port" :title="c.ports.join(', ')">{{ c.ports[0] || 'Не опубликованы' }}</span><button v-if="c.ports.length>1" type="button" class="more-ports" :aria-label="'Все порты контейнера '+c.name" :aria-expanded="String(expandedID===c.id)" :aria-controls="'container-detail-'+c.id" @click="expandedID=c.id">+{{ c.ports.length-1 }}</button></td>
-        <td class="container-quick-actions"><b-button size="sm" variant="outline-primary" :aria-label="'Логи контейнера '+c.name" @click="showLogs(c)">Логи</b-button></td>
+        <td class="container-ports-preview"><span class="container-port" :title="c.ports.join(', ')">{{ c.ports[0] || 'Not published' }}</span><button v-if="c.ports.length>1" type="button" class="more-ports" :aria-label="'All container ports '+c.name" :aria-expanded="String(expandedID===c.id)" :aria-controls="'container-detail-'+c.id" @click="expandedID=c.id">+{{ c.ports.length-1 }}</button></td>
+        <td class="container-quick-actions"><b-button size="sm" variant="outline-primary" :aria-label="'Container logs '+c.name" @click="showLogs(c)">Logs</b-button></td>
        </tr>
        <tr v-if="expandedID===c.id" :id="'container-detail-'+c.id" class="container-detail-row"><td colspan="4">
         <div class="container-detail">
-         <dl class="container-metadata"><div><dt>Образ</dt><dd>{{ c.image }}</dd></div><div><dt>ID контейнера</dt><dd>{{ c.id }}</dd></div><div><dt>Порты</dt><dd class="container-port-list"><span v-for="port in c.ports" :key="port">{{ port }}</span><span v-if="!c.ports.length">Не опубликованы</span></dd></div></dl>
-         <div class="container-management"><span v-if="c.protected" class="container-protection-note"><i class="fas fa-shield-alt" aria-hidden="true"/> Компонент gomate · только просмотр</span><template v-else><span class="container-management-label">Управление</span><div class="container-action-buttons"><b-button v-if="['exited','created'].includes(c.state)" size="sm" variant="outline-success" :disabled="!!busy" @click="act(c,'start')">Запустить</b-button><b-button v-if="c.state==='running'" size="sm" variant="outline-secondary" :disabled="!!busy" @click="act(c,'restart')">Перезапустить</b-button><b-button v-if="c.state==='running'" size="sm" variant="outline-secondary" :disabled="!!busy" @click="act(c,'pause')">Пауза</b-button><b-button v-if="c.state==='paused'" size="sm" variant="outline-success" :disabled="!!busy" @click="act(c,'unpause')">Продолжить</b-button><b-button v-if="['running','paused','restarting'].includes(c.state)" size="sm" variant="outline-danger" :disabled="!!busy" @click="act(c,'stop')">Остановить</b-button><span v-if="!['exited','created','running','paused','restarting'].includes(c.state)" class="container-protection-note">Нет доступных действий</span></div></template><span v-if="busy===c.id" class="container-busy" role="status">Выполняется…</span></div>
+         <dl class="container-metadata"><div><dt>Image</dt><dd>{{ c.image }}</dd></div><div><dt>Container ID</dt><dd>{{ c.id }}</dd></div><div><dt>Ports</dt><dd class="container-port-list"><span v-for="port in c.ports" :key="port">{{ port }}</span><span v-if="!c.ports.length">Not published</span></dd></div></dl>
+         <div class="container-management"><span v-if="c.protected" class="container-protection-note"><i class="fas fa-shield-alt" aria-hidden="true"/> gomate component · view only</span><template v-else><span class="container-management-label">Manage</span><div class="container-action-buttons"><b-button v-if="['exited','created'].includes(c.state)" size="sm" variant="outline-success" :disabled="!!busy" @click="act(c,'start')">Run</b-button><b-button v-if="c.state==='running'" size="sm" variant="outline-secondary" :disabled="!!busy" @click="act(c,'restart')">Restart</b-button><b-button v-if="c.state==='running'" size="sm" variant="outline-secondary" :disabled="!!busy" @click="act(c,'pause')">Pause</b-button><b-button v-if="c.state==='paused'" size="sm" variant="outline-success" :disabled="!!busy" @click="act(c,'unpause')">Resume</b-button><b-button v-if="['running','paused','restarting'].includes(c.state)" size="sm" variant="outline-danger" :disabled="!!busy" @click="act(c,'stop')">Stop</b-button><span v-if="!['exited','created','running','paused','restarting'].includes(c.state)" class="container-protection-note">No available actions</span></div></template><span v-if="busy===c.id" class="container-busy" role="status">Running…</span></div>
         </div>
        </td></tr>
       </tbody>
      </table></div>
-     <div v-if="loading&&!containers.length" class="operations-empty" role="status">Загрузка контейнеров…</div>
-     <div v-if="!filtered.length&&!loading" class="operations-empty"><strong>{{ containers.length?'Ничего не найдено':'Контейнеров пока нет' }}</strong><p>{{ containers.length?'Измените запрос или сбросьте фильтры.':'Запустите Docker-сервисы на хосте — они появятся здесь автоматически.' }}</p><b-button v-if="containers.length" size="sm" variant="outline-primary" @click="query='';state='all'">Показать все контейнеры</b-button></div>
-     <div v-if="filtered.length>25" class="container-pagination"><span class="small text-muted">По 25 контейнеров на странице</span><b-pagination v-model="page" :total-rows="filtered.length" :per-page="25" aria-label="Страницы контейнеров"/></div>
+     <div v-if="loading&&!containers.length" class="operations-empty" role="status">Loading containers…</div>
+     <div v-if="!filtered.length&&!loading" class="operations-empty"><strong>{{ containers.length?'Nothing found':'No containers yet' }}</strong><p>{{ containers.length?'Change your search or reset the filters.':'Start Docker services on the host and they will appear here automatically.' }}</p><b-button v-if="containers.length" size="sm" variant="outline-primary" @click="query='';state='all'">Show all containers</b-button></div>
+     <div v-if="filtered.length>25" class="container-pagination"><span class="small text-muted">25 containers per page</span><b-pagination v-model="page" :total-rows="filtered.length" :per-page="25" aria-label="Container pages"/></div>
     </b-tab>
-    <b-tab title="Логи">
+    <b-tab title="Logs">
      <div class="logs-source-controls">
-      <b-form-group label="Контейнер" label-for="logs-container"><b-form-select size="sm" id="logs-container" v-model="selectedID" :options="[{value:'',text:'Выберите контейнер'},...containers.map(c=>({value:c.id,text:c.name+' · '+stateName(c.state)}))]"/></b-form-group>
-      <b-form-group label="Период" label-for="logs-period"><b-form-select size="sm" id="logs-period" v-model="period" :options="[{value:300,text:'Последние 5 минут'},{value:3600,text:'Последний час'},{value:86400,text:'Последние сутки'},{value:0,text:'Вся доступная история'}]"/></b-form-group>
-      <b-form-group label="Последних строк" label-for="logs-tail"><b-form-select size="sm" id="logs-tail" v-model="tail" :options="[100,500,1000,2000]"/></b-form-group>
-      <b-button size="sm" variant="outline-primary" :disabled="logLoading||!selectedID" @click="fetchLogs">Обновить</b-button>
+      <b-form-group label="Container" label-for="logs-container"><b-form-select size="sm" id="logs-container" v-model="selectedID" :options="[{value:'',text:'Select a container'},...containers.map(c=>({value:c.id,text:c.name+' · '+stateName(c.state)}))]"/></b-form-group>
+      <b-form-group label="Period" label-for="logs-period"><b-form-select size="sm" id="logs-period" v-model="period" :options="[{value:300,text:'Last 5 minutes'},{value:3600,text:'Last hour'},{value:86400,text:'Last 24 hours'},{value:0,text:'All available history'}]"/></b-form-group>
+      <b-form-group label="Last lines" label-for="logs-tail"><b-form-select size="sm" id="logs-tail" v-model="tail" :options="[100,500,1000,2000]"/></b-form-group>
+      <b-button size="sm" variant="outline-primary" :disabled="logLoading||!selectedID" @click="fetchLogs">Refresh</b-button>
      </div>
      <div class="logs-filter-controls">
-      <b-form-group label="Поиск в логах" label-for="logs-search"><b-form-input size="sm" id="logs-search" v-model="searchInput" placeholder="Текст в загруженном фрагменте" aria-label="Поиск в логах"/></b-form-group>
-      <b-form-group label="Поток" label-for="logs-channel"><b-form-select size="sm" id="logs-channel" v-model="channel" :options="[{value:'all',text:'stdout + stderr'},{value:'stdout',text:'Только stdout'},{value:'stderr',text:'Только stderr'}]" aria-label="Поток логов" :disabled="snapshot.tty"/></b-form-group>
-      <div class="logs-follow-controls"><b-form-checkbox v-model="live" switch>LIVE · 2 с</b-form-checkbox><b-form-checkbox v-model="follow">В конец</b-form-checkbox></div>
+      <b-form-group label="Search logs" label-for="logs-search"><b-form-input size="sm" id="logs-search" v-model="searchInput" placeholder="Text in loaded fragment" aria-label="Search logs"/></b-form-group>
+      <b-form-group label="Stream" label-for="logs-channel"><b-form-select size="sm" id="logs-channel" v-model="channel" :options="[{value:'all',text:'stdout + stderr'},{value:'stdout',text:'stdout only'},{value:'stderr',text:'stderr only'}]" aria-label="Log stream" :disabled="snapshot.tty"/></b-form-group>
+      <div class="logs-follow-controls"><b-form-checkbox v-model="live" switch>LIVE · 2 s</b-form-checkbox><b-form-checkbox v-model="follow">Jump to end</b-form-checkbox></div>
      </div>
      <b-alert :show="!!logError" variant="danger">{{ logError }}</b-alert>
-     <b-alert :show="snapshot.truncated" variant="warning">Вывод сокращён по лимиту объёма или длины строки. Уменьшите период/число строк. При интенсивном выводе LIVE показывает снимки и может пропускать промежуточные строки.</b-alert>
+     <b-alert :show="snapshot.truncated" variant="warning">Output was truncated by the size or line length limit. Reduce the period or line count. Under heavy output, LIVE shows snapshots and may skip intermediate lines.</b-alert>
      <div class="log-viewer-shell">
-      <div class="log-viewer-header"><span class="log-viewer-title"><span class="log-indicator" :class="{live:live&&selectedID&&!logError}" aria-hidden="true"/>{{ containers.find(c=>c.id===selectedID)?.name || 'Выберите источник логов' }}</span><span>{{ visibleLogs.length }} из {{ snapshot.lines.length }} строк · {{ fetchedLabel }}</span></div>
+      <div class="log-viewer-header"><span class="log-viewer-title"><span class="log-indicator" :class="{live:live&&selectedID&&!logError}" aria-hidden="true"/>{{ containers.find(c=>c.id===selectedID)?.name || 'Select a log source' }}</span><span>{{ visibleLogs.length }} of {{ snapshot.lines.length }} lines · {{ fetchedLabel }}</span></div>
       <LogList v-if="selectedID" ref="logs" :items="visibleLogs" @select="openLine"/>
-      <div v-if="!selectedID" class="operations-empty logs-empty"><strong>Логи сервиса без переключения окон</strong><p>Выберите контейнер выше или откройте «Логи» в его строке.</p></div>
+      <div v-if="!selectedID" class="operations-empty logs-empty"><strong>Service logs in one place</strong><p>Select a container above or open Logs in its row.</p></div>
      </div>
-     <p v-if="selectedID&&!visibleLogs.length&&!logLoading" class="text-muted small mt-2">Нет строк для выбранных условий. Измените период или фильтр текста.</p>
-     <div class="logs-caption"><span>Поиск действует на загруженный фрагмент. Нажмите строку, чтобы прочитать её целиком.</span><span v-if="snapshot.tty">TTY: stdout и stderr объединены.</span></div>
-     <b-modal id="logLine" title="Строка лога" size="lg" ok-only ok-title="Закрыть"><p class="text-muted">{{ selectedLine.time }} · {{ selectedLine.stream }}</p><pre class="full-log">{{ selectedLine.text }}</pre><b-button size="sm" @click="copyLine">Копировать</b-button><span class="ml-2" role="status">{{ copyState }}</span></b-modal>
+     <p v-if="selectedID&&!visibleLogs.length&&!logLoading" class="text-muted small mt-2">No lines match these conditions. Change the period or text filter.</p>
+     <div class="logs-caption"><span>Search applies to the loaded fragment. Click a line to read it in full.</span><span v-if="snapshot.tty">TTY: stdout and stderr are merged.</span></div>
+     <b-modal id="logLine" title="Log line" size="lg" ok-only ok-title="Close"><p class="text-muted">{{ selectedLine.time }} · {{ selectedLine.stream }}</p><pre class="full-log">{{ selectedLine.text }}</pre><b-button size="sm" @click="copyLine">Copy</b-button><span class="ml-2" role="status">{{ copyState }}</span></b-modal>
     </b-tab>
    </b-tabs>
   </div>
@@ -78,20 +78,20 @@ import LogList from '@/components/LogList';
 const message=e=>e.response?.data?.error||e.message;
 export default {
  components:{LogList},data:()=>({containers:[],loading:false,error:'',notice:'',busy:'',expandedID:'',query:'',state:'all',page:1,tab:0,selectedID:'',period:3600,tail:500,searchInput:'',search:'',channel:'all',live:true,follow:true,logLoading:false,logError:'',snapshot:{lines:[],tty:false,truncated:false},selectedLine:{},copyState:'',timer:null,searchTimer:null,listAt:0,logAt:0,controller:null,generation:0,destroyed:false}),
- computed:{states(){return [{value:'all',text:'Все состояния'},...['running','exited','paused','restarting','created','dead'].map(s=>({value:s,text:this.stateName(s)}))]},filtered(){const q=this.query.toLowerCase();return this.containers.filter(c=>(this.state==='all'||c.state===this.state)&&`${c.name} ${c.image} ${c.id} ${c.ports.join(' ')}`.toLowerCase().includes(q))},pageItems(){return this.filtered.slice((this.page-1)*25,this.page*25)},visibleLogs(){const q=this.search.toLowerCase();return this.snapshot.lines.filter(l=>(this.snapshot.tty||this.channel==='all'||l.stream===this.channel)&&l.text.toLowerCase().includes(q))},fetchedLabel(){return this.snapshot.fetchedAt?'Обновлено '+new Date(this.snapshot.fetchedAt).toLocaleTimeString():'Ещё не загружено'}},
+ computed:{states(){return [{value:'all',text:'All states'},...['running','exited','paused','restarting','created','dead'].map(s=>({value:s,text:this.stateName(s)}))]},filtered(){const q=this.query.toLowerCase();return this.containers.filter(c=>(this.state==='all'||c.state===this.state)&&`${c.name} ${c.image} ${c.id} ${c.ports.join(' ')}`.toLowerCase().includes(q))},pageItems(){return this.filtered.slice((this.page-1)*25,this.page*25)},visibleLogs(){const q=this.search.toLowerCase();return this.snapshot.lines.filter(l=>(this.snapshot.tty||this.channel==='all'||l.stream===this.channel)&&l.text.toLowerCase().includes(q))},fetchedLabel(){return this.snapshot.fetchedAt?'Updated '+new Date(this.snapshot.fetchedAt).toLocaleTimeString('en-US'):'Not loaded yet'}},
  watch:{query(){this.page=1;this.expandedID=''},state(){this.page=1;this.expandedID=''},page(){this.expandedID=''},selectedID:'resetLogs',period:'resetLogs',tail:'resetLogs',tab(v){window.scrollTo(0,0);if(v===1)this.fetchLogs();else{this.controller?.abort();this.generation++;this.logLoading=false}},searchInput(v){clearTimeout(this.searchTimer);this.searchTimer=setTimeout(()=>{this.search=v;this.$refs.logs?.home()},200)},channel(){this.$refs.logs?.home()},live(v){if(v)this.fetchLogs()},follow(v){if(v)this.$nextTick(()=>this.$refs.logs?.bottom())}},
  mounted(){this.load();this.timer=setInterval(this.tick,1000);document.addEventListener('visibilitychange',this.visibility)},beforeDestroy(){this.destroyed=true;clearInterval(this.timer);clearTimeout(this.searchTimer);this.controller?.abort();document.removeEventListener('visibilitychange',this.visibility)},
  methods:{
   toggleDetails(c){this.expandedID=this.expandedID===c.id?'':c.id},
-  stateName(s){return {running:'Работает',exited:'Остановлен',created:'Создан',paused:'На паузе',restarting:'Перезапускается',dead:'Ошибка',removing:'Удаляется'}[s]||s},
+  stateName(s){return {running:'Running',exited:'Stopped',created:'Created',paused:'Paused',restarting:'Restarting',dead:'Error',removing:'Removing'}[s]||s},
   async load(){if(this.loading)return;this.loading=true;try{const {data}=await this.$http.get('/v2/containers');if(this.destroyed)return;this.containers=data;this.error='';this.page=Math.min(this.page,Math.max(1,Math.ceil(this.filtered.length/25)));this.listAt=Date.now()}catch(e){this.error=message(e)}finally{this.loading=false}},
   tick(){if(document.hidden)return;if(Date.now()-this.listAt>=5000)this.load();if(this.tab===1&&this.live&&Date.now()-this.logAt>=2000)this.fetchLogs()},visibility(){if(document.hidden){this.controller?.abort()}else{this.listAt=0;this.logAt=0;this.tick()}},
-  async act(c,action){const verb={start:'Запустить',stop:'Остановить',restart:'Перезапустить',pause:'Приостановить',unpause:'Продолжить'}[action];if(['stop','restart','pause'].includes(action)&&!await this.$bvModal.msgBoxConfirm(`${verb} контейнер «${c.name}»? Это прервёт работу сервиса.`,{title:verb+' контейнер',okTitle:verb,cancelTitle:'Отмена',okVariant:'danger'}))return;this.busy=c.id;this.error='';this.notice='';try{await this.$http.post(`/v2/containers/${c.id}/${action}`,{confirm:true});this.notice=`${c.name}: действие выполнено.`;await this.load();if(this.tab===1)this.fetchLogs()}catch(e){await this.load();this.error=message(e)}finally{this.busy=''}},
+  async act(c,action){const verb={start:'Run',stop:'Stop',restart:'Restart',pause:'Pause',unpause:'Resume'}[action];if(['stop','restart','pause'].includes(action)&&!await this.$bvModal.msgBoxConfirm(`${verb} container “${c.name}”? This will interrupt the service.`,{title:verb+' container',okTitle:verb,cancelTitle:'Cancel',okVariant:'danger'}))return;this.busy=c.id;this.error='';this.notice='';try{await this.$http.post(`/v2/containers/${c.id}/${action}`,{confirm:true});this.notice=`${c.name}: action completed.`;await this.load();if(this.tab===1)this.fetchLogs()}catch(e){await this.load();this.error=message(e)}finally{this.busy=''}},
   showLogs(c){this.selectedID=c.id;this.tab=1;this.$nextTick(this.fetchLogs)},
   resetLogs(){this.generation++;this.controller?.abort();this.controller=null;this.logLoading=false;this.snapshot={lines:[],tty:false,truncated:false};this.channel='all';this.fetchLogs()},
   async fetchLogs(){if(this.destroyed||this.tab!==1||!this.selectedID||this.logLoading||document.hidden)return;this.logLoading=true;const generation=++this.generation;const controller=new AbortController();this.controller=controller;try{const {data}=await this.$http.get(`/v2/containers/${this.selectedID}/logs`,{params:{tail:this.tail,since:this.period?Math.floor(Date.now()/1000)-this.period:0},signal:controller.signal});if(generation!==this.generation||this.destroyed)return;this.snapshot=data;this.logError='';if(this.follow)this.$nextTick(()=>this.$refs.logs?.bottom())}catch(e){if(!controller.signal.aborted&&generation===this.generation)this.logError=message(e)}finally{if(generation===this.generation){this.logLoading=false;this.logAt=Date.now()}}},
   openLine(line){this.selectedLine=line;this.copyState='';this.$bvModal.show('logLine')},
-  async copyLine(){try{if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(this.selectedLine.text);else{const el=document.createElement('textarea');el.value=this.selectedLine.text;document.body.appendChild(el);el.select();const ok=document.execCommand('copy');el.remove();if(!ok)throw Error('copy')}this.copyState='Скопировано'}catch{this.copyState='Выделите и скопируйте текст вручную'}},
+  async copyLine(){try{if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(this.selectedLine.text);else{const el=document.createElement('textarea');el.value=this.selectedLine.text;document.body.appendChild(el);el.select();const ok=document.execCommand('copy');el.remove();if(!ok)throw Error('copy')}this.copyState='Copied'}catch{this.copyState='Select the text and copy it manually'}},
  }
 }
 </script>

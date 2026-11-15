@@ -35,7 +35,7 @@ func readHost(proc, root string, now time.Time) (Host, hostCounters, error) {
 	var c hostCounters
 	b, err := os.ReadFile(filepath.Join(proc, "stat"))
 	if err != nil {
-		return h, c, fmt.Errorf("Метрики хоста недоступны: проверьте монтирование /host/proc")
+		return h, c, fmt.Errorf("Host metrics unavailable: check the /host/proc mount")
 	}
 	for _, line := range strings.Split(string(b), "\n") {
 		f := strings.Fields(line)
@@ -45,7 +45,7 @@ func readHost(proc, root string, now time.Time) (Host, hostCounters, error) {
 		if f[0] == "cpu" {
 			// guest/guest_nice are already included in user/nice.
 			if len(f) < 9 {
-				return h, c, fmt.Errorf("Некорректные счётчики CPU хоста")
+				return h, c, fmt.Errorf("Invalid host CPU counters")
 			}
 			for i, s := range f[1:9] {
 				v, e := strconv.ParseUint(s, 10, 64)
@@ -62,7 +62,7 @@ func readHost(proc, root string, now time.Time) (Host, hostCounters, error) {
 		}
 	}
 	if c.total == 0 || h.CPUs == 0 {
-		return h, c, fmt.Errorf("Нет счётчиков CPU хоста")
+		return h, c, fmt.Errorf("Host CPU counters unavailable")
 	}
 	b, err = os.ReadFile(filepath.Join(proc, "meminfo"))
 	if err != nil {
@@ -79,7 +79,7 @@ func readHost(proc, root string, now time.Time) (Host, hostCounters, error) {
 	}
 	available, ok := mem["MemAvailable"]
 	if !ok || mem["MemTotal"] == 0 || available > mem["MemTotal"] {
-		return h, c, fmt.Errorf("Нет счётчиков памяти хоста")
+		return h, c, fmt.Errorf("Host memory counters unavailable")
 	}
 	h.MemoryUsed, h.MemoryLimit = ptr(float64(mem["MemTotal"]-available)), ptr(float64(mem["MemTotal"]))
 	if b, err = os.ReadFile(filepath.Join(proc, "loadavg")); err == nil {
@@ -112,14 +112,14 @@ func readHost(proc, root string, now time.Time) (Host, hostCounters, error) {
 		}
 		h.Interfaces = c.networks
 		if len(c.networks) == 0 {
-			h.NetworkError = "Нет сетевых счётчиков выбранных интерфейсов"
+			h.NetworkError = "No network counters for the selected interfaces"
 		}
 	} else {
-		h.NetworkError = "Счётчики сети хоста недоступны"
+		h.NetworkError = "Host network counters unavailable"
 	}
 	var fs unix.Statfs_t
 	if root == "" || unix.Statfs(root, &fs) != nil || fs.Blocks == 0 {
-		h.DiskError = "Диск хоста недоступен: проверьте монтирование /host/root"
+		h.DiskError = "Host disk unavailable: check the /host/root mount"
 	} else {
 		h.DiskUsed = ptr(float64(fs.Blocks-fs.Bfree) * float64(fs.Bsize))
 		h.DiskTotal = ptr(float64(fs.Blocks) * float64(fs.Bsize))

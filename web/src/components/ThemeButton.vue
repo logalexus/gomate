@@ -1,5 +1,5 @@
 <template>
- <button type="button" class="btn btn-outline-secondary gm-theme-button" aria-label="Переключить тему" :aria-pressed="String(theme==='dark')" :title="theme==='dark'?'Включить светлую тему':'Включить тёмную тему'" @click="toggle"><i :class="theme==='dark'?'far fa-sun':'far fa-moon'" aria-hidden="true"/></button>
+ <button type="button" class="btn btn-outline-secondary gm-theme-button" aria-label="Toggle theme" :aria-pressed="String(theme==='dark')" :title="theme==='dark'?'Switch to light theme':'Switch to dark theme'" @click="toggle"><i :class="theme==='dark'?'far fa-sun':'far fa-moon'" aria-hidden="true"/></button>
 </template>
 <script>
 export default {

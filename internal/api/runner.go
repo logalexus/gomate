@@ -22,17 +22,17 @@ func (s *Server) runner(w http.ResponseWriter, r *http.Request) error {
 	}
 	if s.Config.DiscoveryURL == "" {
 		if r.Method == "GET" && path == "/api/v2/runner" {
-			respond(w, 200, map[string]any{"available": false, "error": "Docker-шлюз не настроен"})
+			respond(w, 200, map[string]any{"available": false, "error": "Docker gateway is not configured"})
 			return nil
 		}
-		return &httpError{503, "Docker-шлюз не настроен"}
+		return &httpError{503, "Docker gateway is not configured"}
 	}
 	var body []byte
 	var e error
 	if r.Method == "POST" {
 		body, e = io.ReadAll(io.LimitReader(r.Body, 2<<20+1))
 		if e != nil || len(body) > 2<<20 {
-			return bad("Слишком большой запрос запуска")
+			return bad("Run request too large")
 		}
 	}
 	req, e := http.NewRequestWithContext(r.Context(), r.Method, strings.TrimRight(s.Config.DiscoveryURL, "/")+strings.TrimPrefix(path, "/api/v2"), bytes.NewReader(body))
@@ -44,12 +44,12 @@ func (s *Server) runner(w http.ResponseWriter, r *http.Request) error {
 	req.Header.Set("Content-Type", "application/json")
 	resp, e := http.DefaultClient.Do(req)
 	if e != nil {
-		return &httpError{503, "Шлюз запуска недоступен"}
+		return &httpError{503, "Runner gateway is unavailable"}
 	}
 	defer resp.Body.Close()
 	data, e := io.ReadAll(io.LimitReader(resp.Body, 4<<20+1))
 	if e != nil || len(data) > 4<<20 || !json.Valid(data) {
-		return &httpError{502, "Некорректный ответ шлюза запуска"}
+		return &httpError{502, "Invalid runner gateway response"}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")

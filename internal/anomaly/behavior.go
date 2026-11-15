@@ -107,10 +107,10 @@ func BehaviorPacket(p model.Packet) (BehaviorMessage, bool) {
 		v := hex.EncodeToString(sum[:16]) + ":" + strconv.Itoa(f.size)
 		display := preview(f.value, 80)
 		if f.key == "json.structure" {
-			display = "структура JSON"
+			display = "JSON structure"
 		}
 		if f.link == linkStrong {
-			display = "[значение скрыто]"
+			display = "[value hidden]"
 		}
 		if f.size > valueLimit {
 			out.Limited = true

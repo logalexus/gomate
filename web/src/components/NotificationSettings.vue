@@ -1,13 +1,13 @@
 <template>
  <section class="notification-settings">
-  <h6>Аномалии с высоким скором</h6>
-  <p>Уведомления появляются во всех разделах, пока gomate открыт. Настройки применяются сразу и сохраняются в этом браузере.</p>
-  <b-form-checkbox v-model="enabled" switch>Уведомлять о новых аномалиях</b-form-checkbox>
-  <b-form-group label="Минимальный скор" label-for="notification-score" class="mt-3" description="Целое число от 1 до 1000. Уведомление появляется, когда скор достигает порога или превышает его.">
+  <h6>High-score anomalies</h6>
+  <p>Notifications appear on every page while gomate is open. Settings apply immediately and are saved in this browser.</p>
+  <b-form-checkbox v-model="enabled" switch>Notify me about new anomalies</b-form-checkbox>
+  <b-form-group label="Minimum score" label-for="notification-score" class="mt-3" description="An integer from 1 to 1000. Notifications appear when the score reaches or exceeds this threshold.">
    <b-form-input id="notification-score" v-model="draft" type="number" min="1" max="1000" step="1" :disabled="!enabled" :state="valid ? null : false" @input="apply"/>
-   <b-form-invalid-feedback>Введите целое число от 1 до 1000. Пока действует порог {{ score }}.</b-form-invalid-feedback>
+   <b-form-invalid-feedback>Enter an integer from 1 to 1000. Current threshold: {{ score }}.</b-form-invalid-feedback>
   </b-form-group>
-  <p class="mb-0">Текущий порог: <strong>скор ≥ {{ score }}</strong>. Старые срабатывания при открытии не показываются. Повторные обновления сессии объединяются; из уведомления можно перейти к её потоку.</p>
+  <p class="mb-0">Current threshold: <strong>score ≥ {{ score }}</strong>. Existing alerts are not shown on startup. Repeated session updates are grouped; open the session stream from its notification.</p>
  </section>
 </template>
 <script>

@@ -3,12 +3,12 @@
   <router-link class="stream-link" :to="location" :aria-current="selected?'true':null">
    <div class="stream-topline"><span class="stream-id">#{{ stream.id }}</span><span class="stream-protocol">{{ stream.protocol }}</span><time :datetime="new Date(stream.startTimestamp).toISOString()">{{ dateToText(stream.startTimestamp) }}</time></div>
    <div class="stream-service">{{ serviceName }} <span>:{{ stream.service }}</span></div>
-   <div v-if="stream.firstRequestPath" class="stream-path" :title="stream.firstRequestPath+(stream.firstRequestTruncated?'… (путь сокращён)':'')">{{ stream.firstRequestPath }}{{ stream.firstRequestTruncated?'…':'' }}</div>
-   <div class="stream-stats"><span>{{ sizeText }} · {{ stream.packetsCount }} блоков</span><span v-if="stream.incomplete" class="stream-warning">Неполная</span><span v-else-if="stream.payloadPurged" class="stream-muted">Очищено</span></div>
+   <div v-if="stream.firstRequestPath" class="stream-path" :title="stream.firstRequestPath+(stream.firstRequestTruncated?'… (path truncated)':'')">{{ stream.firstRequestPath }}{{ stream.firstRequestTruncated?'…':'' }}</div>
+   <div class="stream-stats"><span>{{ sizeText }} · {{ stream.packetsCount }} blocks</span><span v-if="stream.incomplete" class="stream-warning">Incomplete</span><span v-else-if="stream.payloadPurged" class="stream-muted">Purged</span></div>
    <div v-if="notDeletedFoundPatterns.length" class="stream-matches"><span v-for="pattern in notDeletedFoundPatterns" :key="pattern.id"><i :style="patternColor(pattern)"/>{{ pattern.name }}</span></div>
    <div v-if="stream.userAgentHash" class="stream-fingerprint" :title="stream.userAgentHash">UA {{ stream.userAgentHash }}</div>
   </router-link>
-  <button type="button" class="stream-favorite" :class="{'is-active':favorite0}" :disabled="saving" :aria-label="favorite0?'Убрать сессию '+stream.id+' из избранного':'Добавить сессию '+stream.id+' в избранное'" :aria-pressed="String(favorite0)" @click="toggleFavorite"><i :class="favorite0?'fas fa-star':'far fa-star'" aria-hidden="true"/></button>
+  <button type="button" class="stream-favorite" :class="{'is-active':favorite0}" :disabled="saving" :aria-label="favorite0?'Remove session '+stream.id+' from favorites':'Add session '+stream.id+' to favorites'" :aria-pressed="String(favorite0)" @click="toggleFavorite"><i :class="favorite0?'fas fa-star':'far fa-star'" aria-hidden="true"/></button>
  </article>
 </template>
 <script>
@@ -18,15 +18,15 @@ export default {
  data(){return {favorite0:this.stream.favorite,saving:false}},
  computed:{
   selected(){return Number(this.$route.params.streamId)===this.stream.id},location(){return streamLocation(this.$route,this.stream)},
-  serviceName(){return this.$store.state.services.find(s=>s.port===this.stream.service)?.name||'Сервис'},
-  sizeText(){const size=Number(this.stream.sizeBytes)||0;return size<1024?size+' Б':size<1048576?(size/1024).toFixed(1)+' KiB':(size/1048576).toFixed(1)+' MiB'},
+  serviceName(){return this.$store.state.services.find(s=>s.port===this.stream.service)?.name||'Service'},
+  sizeText(){const size=Number(this.stream.sizeBytes)||0;return size<1024?size+' B':size<1048576?(size/1024).toFixed(1)+' KiB':(size/1048576).toFixed(1)+' MiB'},
   notDeletedFoundPatterns(){const ids=this.stream.foundPatternsIds||[];return this.$store.state.patterns.filter(p=>!p.deleted&&ids.includes(p.id))},
  },
  watch:{'stream.favorite'(value){this.favorite0=value}},
  methods:{
-  dateToText(timestamp){const date=new Date(timestamp),today=new Date();return date.toLocaleString('ru-RU',{...(date.toDateString()===today.toDateString()?{}:{day:'2-digit',month:'2-digit'}),hour:'2-digit',minute:'2-digit',second:'2-digit'})},
+  dateToText(timestamp){const date=new Date(timestamp),today=new Date();return date.toLocaleString('en-US',{...(date.toDateString()===today.toDateString()?{}:{day:'2-digit',month:'2-digit'}),hour:'2-digit',minute:'2-digit',second:'2-digit'})},
   patternColor(pattern){return /^#[0-9a-f]{6}$/i.test(pattern.color)?{backgroundColor:pattern.color}:{}},
-  async toggleFavorite(){if(this.saving)return;this.saving=true;try{await this.$http.post(`stream/${this.stream.id}/${this.favorite0?'unfavorite':'favorite'}`);this.favorite0=!this.favorite0;this.$emit('favorite-changed')}catch(e){this.$bvToast.toast('Не удалось изменить избранное. Повторите попытку.',{title:'Избранное',variant:'danger'})}finally{this.saving=false}},
+  async toggleFavorite(){if(this.saving)return;this.saving=true;try{await this.$http.post(`stream/${this.stream.id}/${this.favorite0?'unfavorite':'favorite'}`);this.favorite0=!this.favorite0;this.$emit('favorite-changed')}catch(e){this.$bvToast.toast('Could not update favorites. Please try again.',{title:'Favorites',variant:'danger'})}finally{this.saving=false}},
  },
 };
 </script>

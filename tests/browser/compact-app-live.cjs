@@ -9,20 +9,20 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
   page.on('pageerror',e=>report.errors.push(e.message));
   await page.route('**/api/**',r=>{const p=new URL(r.request().url()).pathname,m=r.request().method();if(m!=='GET'&&!(m==='POST'&&/^\/api\/(stream|packet)\//.test(p))){report.blockedWrites.push(m+' '+p);return r.abort()}return r.continue()});
   const before=await(await page.request.get(base+'/api/v2/snapshot')).json();
-  const close=async id=>{await page.locator(id).getByRole('button',{name:/^(Close|Закрыть)$/}).first().click();await page.locator(id).waitFor({state:'hidden'})};
+  const close=async id=>{await page.locator(id).getByRole('button',{name:/^Close$/}).first().click();await page.locator(id).waitFor({state:'hidden'})};
   const fits=async(selector='main')=>{assert(!(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)));assert(await page.locator(selector).evaluate(el=>el.scrollWidth<=el.clientWidth+1),selector+' overflow')};
   for(const width of [1366,800,375])for(const theme of ['dark','light']){
    await page.setViewportSize({width,height:900});await page.goto(base+'/#/');await page.locator('#traffic-service').waitFor();await page.evaluate(t=>document.body.dataset.theme=t,theme);
-   await page.getByRole('button',{name:'Добавить сервис',exact:true}).click();const service=page.locator('#serviceModal');await service.locator('#docker-service-search').waitFor();await service.locator('.candidate,.service-empty').first().waitFor();await fits('#serviceModal .modal-body');
+   await page.getByRole('button',{name:'Add service',exact:true}).click();const service=page.locator('#serviceModal');await service.locator('#docker-service-search').waitFor();await service.locator('.candidate,.service-empty').first().waitFor();await fits('#serviceModal .modal-body');
    const candidate=service.locator('.candidate').filter({has:page.locator('button:not([disabled])')}).first();
    if(await candidate.count()){
     const expectedName=await candidate.locator('.candidate-name strong').textContent();await candidate.getByRole('button').click();await page.locator('#service-name').waitFor();assert.equal(await page.locator('#service-name').inputValue(),expectedName);assert(await page.locator('#service-port').isDisabled());await fits('#serviceModal .modal-body');report.dockerDraftChecked=true;
-   }else{await service.getByRole('tab',{name:'Вручную',exact:true}).click();await page.locator('#service-name').waitFor()}
-   await service.getByRole('button',{name:'Отмена',exact:true}).click();await service.waitFor({state:'hidden'});
-   await page.getByRole('button',{name:'Настройки',exact:true}).click();await page.locator('#capture-interface').waitFor();
-   for(const tab of ['Захват трафика','Хранение и очистка','Приложение','Отображение']){await page.locator('#settingsModal').getByRole('tab',{name:tab,exact:true}).click();await fits('#settingsModal .modal-body')}
-   await close('#settingsModal');await page.getByRole('button',{name:/^Шаблоны/}).click();await page.locator('#patterns-search').waitFor();await fits('#patternsManager .modal-body');await close('#patternsManager');
-   await page.goto(base+'/#/chat');await page.getByRole('textbox',{name:'Сообщение в чат'}).waitFor();await fits();
+   }else{await service.getByRole('tab',{name:'Manual',exact:true}).click();await page.locator('#service-name').waitFor()}
+   await service.getByRole('button',{name:'Cancel',exact:true}).click();await service.waitFor({state:'hidden'});
+   await page.getByRole('button',{name:'Settings',exact:true}).click();await page.locator('#capture-interface').waitFor();
+   for(const tab of ['Traffic capture','Retention and cleanup','Application','Display']){await page.locator('#settingsModal').getByRole('tab',{name:tab,exact:true}).click();await fits('#settingsModal .modal-body')}
+   await close('#settingsModal');await page.getByRole('button',{name:/^Patterns/}).click();await page.locator('#patterns-search').waitFor();await fits('#patternsManager .modal-body');await close('#patternsManager');
+   await page.goto(base+'/#/chat');await page.getByRole('textbox',{name:'Chat message'}).waitFor();await fits();
    const geometry=await page.evaluate(()=>{const bar=document.querySelector('.gm-topbar').getBoundingClientRect(),main=document.querySelector('main'),composer=document.querySelector('.chat-composer').getBoundingClientRect();return{topbarHeight:bar.height,composerBottom:composer.bottom,mainBottom:main.getBoundingClientRect().bottom,mainHeight:main.clientHeight,mainScrollHeight:main.scrollHeight}});
    assert(geometry.composerBottom<=geometry.mainBottom+1);assert(geometry.mainScrollHeight<=geometry.mainHeight+1);if(width===1366)assert(geometry.topbarHeight<=50);report.layouts.push({width,theme,...geometry});
   }

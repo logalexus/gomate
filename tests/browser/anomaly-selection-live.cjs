@@ -22,12 +22,12 @@ process.chdir(require('node:path').resolve(__dirname,'../..'));
    return r.continue();
   });
   await page.goto(base+'/#/anomalies');
-  await page.getByRole('button',{name:'Пауза',exact:true}).click();
-  await page.getByLabel('Показать',{exact:true}).selectOption('alerts');
+  await page.getByRole('button',{name:'Pause',exact:true}).click();
+  await page.getByLabel('Show',{exact:true}).selectOption('alerts');
   await page.locator('.anomaly-row').first().waitFor();
   report.alertRows=await page.locator('.anomaly-row').count();
   delayGroups=true;const t=Date.now();
-  await page.getByLabel('Показать',{exact:true}).selectOption('all');
+  await page.getByLabel('Show',{exact:true}).selectOption('all');
   if(before){
    await page.locator('.anomaly-notice.error').waitFor();
    report.errorText=await page.locator('.anomaly-notice.error').innerText();
@@ -40,17 +40,17 @@ process.chdir(require('node:path').resolve(__dirname,'../..'));
   }
   report.switchLatencyMs=Date.now()-t;delayGroups=false;
   if(!before){
-   await page.locator('.anomaly-row').first().click();await page.getByRole('link',{name:'Открыть сессию',exact:true}).waitFor();
-   report.sessionLink=await page.getByRole('link',{name:'Открыть сессию',exact:true}).getAttribute('href');
-   await page.getByRole('button',{name:'Настройки',exact:true}).click();
+   await page.locator('.anomaly-row').first().click();await page.getByRole('link',{name:'Open session',exact:true}).waitFor();
+   report.sessionLink=await page.getByRole('link',{name:'Open session',exact:true}).getAttribute('href');
+   await page.getByRole('button',{name:'Settings',exact:true}).click();
    await page.locator('#capture-interface').waitFor();
-   await page.getByRole('tab',{name:'Хранение и очистка',exact:true}).click();
-   await page.getByText('Удалится только содержимое пакетов. Сессии, аномалии и фингерпринты останутся.',{exact:true}).waitFor();
+   await page.getByRole('tab',{name:'Retention and cleanup',exact:true}).click();
+   await page.getByText('Only packet content will be deleted. Sessions, anomalies and fingerprints will remain.',{exact:true}).waitFor();
    report.cleanupJobs=await page.locator('.settings-job').allTextContents();
-   assert(report.cleanupJobs.some(s=>s.includes('содержимое пакетов')&&s.includes('фингерпринты сохранены')));
+   assert(report.cleanupJobs.some(s=>s.includes('packet content')&&s.includes('fingerprints are preserved')));
    await page.locator('#cleanup-mode').selectOption('sessions');
-   await page.getByText('Удалятся сессии, их содержимое и связанные срабатывания.',{exact:false}).waitFor();
-   assert(await page.getByRole('button',{name:'Удалить…',exact:true}).isDisabled());
+   await page.getByText('Sessions, their content and associated alerts will be deleted.',{exact:false}).waitFor();
+   assert(await page.getByRole('button',{name:'Delete…',exact:true}).isDisabled());
    for(const width of [1366,375]){
     await page.setViewportSize({width,height:768});
     assert(await page.locator('#settingsModal .modal-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1));

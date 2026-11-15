@@ -1,14 +1,14 @@
 <template>
- <aside class="gm-session-sidebar" aria-label="Сессии трафика">
-  <header class="session-heading"><h2>Сессии <span class="session-total">{{ streams.length }}</span></h2><span class="session-mode" :class="{'is-live':live}"><span/>{{ live?'LIVE':cursor!==null?'История':'Пауза' }}</span><button type="button" class="btn btn-sm btn-outline-secondary" :aria-pressed="String($store.state.pause)" :aria-label="$store.state.pause?'Продолжить обновление':'Пауза'" :title="$store.state.pause?'Продолжить обновление':'Пауза'" @click="togglePause"><i :class="$store.state.pause?'fas fa-play':'fas fa-pause'" aria-hidden="true"/></button></header>
+ <aside class="gm-session-sidebar" aria-label="Traffic sessions">
+  <header class="session-heading"><h2>Sessions <span class="session-total">{{ streams.length }}</span></h2><span class="session-mode" :class="{'is-live':live}"><span/>{{ live?'LIVE':cursor!==null?'History':'Pause' }}</span><button type="button" class="btn btn-sm btn-outline-secondary" :aria-pressed="String($store.state.pause)" :aria-label="$store.state.pause?'Resume updates':'Pause'" :title="$store.state.pause?'Resume updates':'Pause'" @click="togglePause"><i :class="$store.state.pause?'fas fa-play':'fas fa-pause'" aria-hidden="true"/></button></header>
   <TrafficFilters/>
-  <p v-if="cursor!==null" class="session-notice">Вы просматриваете историю. <button @click="latest">К новым сессиям</button></p>
-  <p v-if="error" class="session-error" role="alert">{{ error }} <button class="btn btn-sm btn-outline-secondary" @click="load">Повторить</button></p>
+  <p v-if="cursor!==null" class="session-notice">You are browsing history. <button @click="latest">Jump to new sessions</button></p>
+  <p v-if="error" class="session-error" role="alert">{{ error }} <button class="btn btn-sm btn-outline-secondary" @click="load">Retry</button></p>
   <div class="session-list-area" :aria-busy="String(loading)">
    <VirtualList v-if="streams.length" :items="streams" ref="list" class="session-list"><template #default="{item}"><SidebarStream :stream="item" @favorite-changed="favoriteChanged"/></template></VirtualList>
-   <div v-else class="session-empty"><i :class="loading?'fas fa-circle-notch fa-spin':'fas fa-inbox'" aria-hidden="true"/><strong>{{ loading?'Загрузка сессий…':'Сессий не найдено' }}</strong><p>{{ loading?'Получаем данные выбранных сервисов.':'Проверьте фильтры и состояние захвата. Новые сессии появятся здесь автоматически.' }}</p></div>
+   <div v-else class="session-empty"><i :class="loading?'fas fa-circle-notch fa-spin':'fas fa-inbox'" aria-hidden="true"/><strong>{{ loading?'Loading sessions…':'No sessions found' }}</strong><p>{{ loading?'Loading data for the selected services.':'Check your filters and capture status. New sessions will appear here automatically.' }}</p></div>
   </div>
-  <footer class="session-pagination" title="Ctrl + ↑ / ↓ — переключить сессию"><div><button type="button" class="btn btn-sm btn-outline-secondary" :disabled="!history.length||loading" @click="newer" aria-label="Более новые сессии"><i class="fas fa-arrow-left" aria-hidden="true"/> Новее</button><button type="button" class="btn btn-sm btn-outline-secondary" :disabled="!hasMore||loading" @click="older">Старее <i class="fas fa-arrow-right" aria-hidden="true"/></button><button type="button" class="btn btn-sm btn-outline-primary" :disabled="loading" @click="latest">К новым</button></div></footer>
+  <footer class="session-pagination" title="Ctrl + ↑ / ↓ to switch sessions"><div><button type="button" class="btn btn-sm btn-outline-secondary" :disabled="!history.length||loading" @click="newer" aria-label="Newer sessions"><i class="fas fa-arrow-left" aria-hidden="true"/> Newer</button><button type="button" class="btn btn-sm btn-outline-secondary" :disabled="!hasMore||loading" @click="older">Older <i class="fas fa-arrow-right" aria-hidden="true"/></button><button type="button" class="btn btn-sm btn-outline-primary" :disabled="loading" @click="latest">Latest</button></div></footer>
  </aside>
 </template>
 <script>
@@ -24,7 +24,7 @@ export default {
  beforeDestroy(){document.removeEventListener('keydown',this.navigate);this.generation++},
  watch:{'$route.params.servicePort':'reset','$route.query.pattern':'reset','$route.query.patterns':'reset','$store.state.displayFavoritesOnly':'reset'},
  methods:{
-  async load(){const generation=++this.generation;this.loading=true;const pageSize=Math.max(1,Math.min(100,Number(this.$store.state.pageSize)||25));try{const {data}=await this.$http.post(`/stream/${this.$route.params.servicePort||'all'}`,{startingFrom:this.cursor,pageSize,patternIds:patternSelection(this.$route.query),favorites:this.$store.state.displayFavoritesOnly});if(generation!==this.generation)return;this.streams=data;this.hasMore=data.length===pageSize;this.error=''}catch(e){if(generation===this.generation)this.error='Не удалось загрузить сессии.'}finally{if(generation===this.generation)this.loading=false}},
+  async load(){const generation=++this.generation;this.loading=true;const pageSize=Math.max(1,Math.min(100,Number(this.$store.state.pageSize)||25));try{const {data}=await this.$http.post(`/stream/${this.$route.params.servicePort||'all'}`,{startingFrom:this.cursor,pageSize,patternIds:patternSelection(this.$route.query),favorites:this.$store.state.displayFavoritesOnly});if(generation!==this.generation)return;this.streams=data;this.hasMore=data.length===pageSize;this.error=''}catch(e){if(generation===this.generation)this.error='Could not load sessions.'}finally{if(generation===this.generation)this.loading=false}},
   refreshLive(){if(!this.loading&&this.live)return this.load()},
   reset(){this.$refs.list?.scrollToIndex(0);this.cursor=null;this.history=[];return this.load()},
   older(){if(!this.streams.length)return;this.history.push(this.cursor);if(this.history.length>1000)this.history.shift();this.cursor=this.streams[this.streams.length-1].id;this.$refs.list?.scrollToIndex(0);this.load()},

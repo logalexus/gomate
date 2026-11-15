@@ -1,23 +1,23 @@
 <template>
  <article class="gm-packet" :class="{'packet-incoming':packet.incoming,'packet-outgoing':!packet.incoming}" :data-packet-id="packet.id">
   <header class="packet-heading">
-   <div class="packet-identity"><span class="packet-direction"><i :class="packet.incoming?'fas fa-arrow-down':'fas fa-arrow-up'" aria-hidden="true"/>{{ packet.incoming?'Запрос':'Ответ' }}</span><span class="packet-number">#{{ packet.id }}</span><span class="packet-kind">{{ packet.kind||'raw' }}</span><span v-if="printPacketFlags(packet)" class="packet-flags">{{ printPacketFlags(packet) }}</span></div>
-   <div class="packet-timing"><time>{{ dateToText(packet.timestamp) }}</time><span v-if="offset!==null">+{{ offset }} мс</span></div>
+   <div class="packet-identity"><span class="packet-direction"><i :class="packet.incoming?'fas fa-arrow-down':'fas fa-arrow-up'" aria-hidden="true"/>{{ packet.incoming?'Request':'Response' }}</span><span class="packet-number">#{{ packet.id }}</span><span class="packet-kind">{{ packet.kind||'raw' }}</span><span v-if="printPacketFlags(packet)" class="packet-flags">{{ printPacketFlags(packet) }}</span></div>
+   <div class="packet-timing"><time>{{ dateToText(packet.timestamp) }}</time><span v-if="offset!==null">+{{ offset }} ms</span></div>
   </header>
-  <div v-if="packet.metadata?.path||packet.metadata?.streamId||(packet.matches||[]).some(m=>m.crossBoundary)" class="packet-metadata"><span v-if="packet.metadata?.path">{{ packet.metadata.path }}</span><span v-if="packet.metadata?.streamId">RPC stream {{ packet.metadata.streamId }}</span><span v-if="(packet.matches||[]).some(m=>m.crossBoundary)" class="packet-cross-boundary">Совпадение продолжается из предыдущего блока</span></div>
-  <section v-if="packet.attachments?.length" class="packet-attachments" aria-label="Файлы в сообщении">
+  <div v-if="packet.metadata?.path||packet.metadata?.streamId||(packet.matches||[]).some(m=>m.crossBoundary)" class="packet-metadata"><span v-if="packet.metadata?.path">{{ packet.metadata.path }}</span><span v-if="packet.metadata?.streamId">RPC stream {{ packet.metadata.streamId }}</span><span v-if="(packet.matches||[]).some(m=>m.crossBoundary)" class="packet-cross-boundary">Match continues from the previous block</span></div>
+  <section v-if="packet.attachments?.length" class="packet-attachments" aria-label="Files in message">
    <div v-for="(file,index) in packet.attachments" :key="index" class="packet-attachment">
-    <div class="attachment-heading"><strong>{{ file.name }}</strong><span>{{ file.type }} · {{ file.size.toLocaleString('ru-RU') }} Б<span v-if="file.field"> · поле {{ file.field }}</span></span><button type="button" class="btn btn-sm btn-outline-primary" @click="downloadAttachment(file)">Скачать {{ file.downloadName }}</button></div>
+    <div class="attachment-heading"><strong>{{ file.name }}</strong><span>{{ file.type }} · {{ file.size.toLocaleString('en-US') }} B<span v-if="file.field"> · field {{ file.field }}</span></span><button type="button" class="btn btn-sm btn-outline-primary" @click="downloadAttachment(file)">Download {{ file.downloadName }}</button></div>
    </div>
-   <button v-if="!$store.state.hexdumpMode" type="button" class="btn btn-sm btn-outline-secondary" :aria-pressed="String(showOriginal)" @click="showOriginal=!showOriginal">{{ showOriginal?'Показать поля формы':'Показать исходный текст' }}</button>
+   <button v-if="!$store.state.hexdumpMode" type="button" class="btn btn-sm btn-outline-secondary" :aria-pressed="String(showOriginal)" @click="showOriginal=!showOriginal">{{ showOriginal?'Show form fields':'Show raw text' }}</button>
   </section>
   <p v-if="!$store.state.hexdumpMode" ref="payload" class="packet-content" v-html="stringdata"/>
   <p v-else class="packet-content packet-hex" v-html="hexdata"/>
   <footer class="packet-footer">
-   <span class="packet-footnote">{{ atobLength<1024?atobLength+' Б':(atobLength/1024).toFixed(1)+' KiB' }}<span v-if="packet.incomplete"> · есть пропуски в захвате</span></span>
+   <span class="packet-footnote">{{ atobLength<1024?atobLength+' B':(atobLength/1024).toFixed(1)+' KiB' }}<span v-if="packet.incomplete"> · capture gaps</span></span>
    <span v-if="copyState" class="packet-copy-status" role="status">{{ copyState }}</span>
-   <b-dropdown :id="'packet-copy-'+packet.id" text="Копировать" size="sm" variant="outline-secondary" right><b-dropdown-item @click="copyText">Исходный текст</b-dropdown-item><b-dropdown-item @click="copyRaw">HEX</b-dropdown-item><b-dropdown-item @click="copyPythonBytes">Python bytes</b-dropdown-item><template v-if="packet.incoming"><b-dropdown-divider/><b-dropdown-item-button @click="exportPacket('requests')">Python requests…</b-dropdown-item-button><b-dropdown-item-button @click="exportPacket('curl')">curl…</b-dropdown-item-button><b-dropdown-item-button @click="exportPacket('pwntools')">pwntools…</b-dropdown-item-button></template></b-dropdown>
-   <button type="button" @mousedown.prevent @click="decodePacket" class="btn btn-sm btn-outline-primary"><i class="fas fa-code" aria-hidden="true"/> Декодировать</button>
+   <b-dropdown :id="'packet-copy-'+packet.id" text="Copy" size="sm" variant="outline-secondary" right><b-dropdown-item @click="copyText">Raw text</b-dropdown-item><b-dropdown-item @click="copyRaw">HEX</b-dropdown-item><b-dropdown-item @click="copyPythonBytes">Python bytes</b-dropdown-item><template v-if="packet.incoming"><b-dropdown-divider/><b-dropdown-item-button @click="exportPacket('requests')">Python requests…</b-dropdown-item-button><b-dropdown-item-button @click="exportPacket('curl')">curl…</b-dropdown-item-button><b-dropdown-item-button @click="exportPacket('pwntools')">pwntools…</b-dropdown-item-button></template></b-dropdown>
+   <button type="button" @mousedown.prevent @click="decodePacket" class="btn btn-sm btn-outline-primary"><i class="fas fa-code" aria-hidden="true"/> Decode</button>
   </footer>
  </article>
 </template>
@@ -62,7 +62,7 @@
 				const selected=selection&&!selection.isCollapsed&&this.$refs.payload?.contains(selection.anchorNode)&&this.$refs.payload?.contains(selection.focusNode)?selection.toString():'';
 				const hex=this.$store.state.hexdumpMode&&!selected;
 				const text=selected||(hex?Array.from(atob(this.packet.content),c=>c.charCodeAt(0).toString(16).padStart(2,'0')).join(''):this.atou(this.packet.content));
-				this.$emit('decode',{text,source:`Блок #${this.packet.id} · ${selected?'выделение':hex?'исходные байты HEX':'полный текст'}`,operation:hex?'hex':null,returnFocus:event.currentTarget});
+				this.$emit('decode',{text,source:`Block #${this.packet.id} · ${selected?'selection':hex?'raw HEX bytes':'full text'}`,operation:hex?'hex':null,returnFocus:event.currentTarget});
 			},
 			atou(b64) {
 				const text = atob(b64);
@@ -76,7 +76,7 @@
 			},
 			printPacketFlags(packet) {
 				let flags = [];
-                if (packet.incomplete) flags.push('Неполный');
+                if (packet.incomplete) flags.push('Incomplete');
 
 				if (packet.ungzipped) {
 					flags.push('GZIP');
@@ -137,7 +137,7 @@
 				return lines.join('\n');
 			},
 			dateToText(unixTimestamp) {
-				return new Date(unixTimestamp).toLocaleDateString('ru-RU', {
+				return new Date(unixTimestamp).toLocaleDateString('en-US', {
 					month: '2-digit',
 					day: '2-digit',
 					hour: '2-digit',
@@ -185,7 +185,7 @@
 				tempEl.textContent = data; // Firefox
                 const active=document.activeElement;tempEl.style.cssText='position:fixed;left:-9999px;top:0';
                 document.body.appendChild(tempEl);
-                try{tempEl.select();this.copyState=document.execCommand('copy')?'Скопировано':'Выделите текст и скопируйте вручную'}catch{this.copyState='Выделите текст и скопируйте вручную'}finally{tempEl.remove();active?.focus({preventScroll:true})}
+                try{tempEl.select();this.copyState=document.execCommand('copy')?'Copied':'Select the text and copy it manually'}catch{this.copyState='Select the text and copy it manually'}finally{tempEl.remove();active?.focus({preventScroll:true})}
 			},
 		},
 	};

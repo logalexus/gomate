@@ -13,7 +13,7 @@ export default {
    const catalog = new Map(this.$store.state.patterns.map(p => [p.id, p]));
    return [...new Set(this.ids || [])].map(id => {
     const p = catalog.get(id);
-    return {id, color: p?.color, label: (p?.name || `Шаблон #${id}`) + (p?.deleted ? ' (удалён)' : '')};
+    return {id, color: p?.color, label: (p?.name || `Pattern #${id}`) + (p?.deleted ? ' (deleted)' : '')};
    });
   },
   visible() { return this.compact ? this.patterns.slice(0, 3) : this.patterns; },

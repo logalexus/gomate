@@ -88,7 +88,7 @@ func (s *serviceModel) templatize(m *message) {
 	root := s.roots[m.method]
 	if root == nil {
 		if len(s.roots) >= 32 {
-			m.tpl = m.method + " (другой метод)"
+			m.tpl = m.method + " (other method)"
 			return
 		}
 		root = &pathNode{children: map[string]*pathNode{}}
@@ -238,11 +238,11 @@ func (s *serviceModel) score(m *message) []Reason {
 	out := []Reason{}
 	t := s.templates[m.tpl]
 	if s.n >= warmService && (t == nil || uint64(t.n)*rareShare < s.n) {
-		text := fmt.Sprintf("новый эндпоинт: за %d сообщений сервиса такого не было", s.n)
+		text := fmt.Sprintf("new endpoint: not seen in %d service messages", s.n)
 		var seen uint32
 		if t != nil && t.n > 0 {
 			seen = t.n
-			text = fmt.Sprintf("редкий эндпоинт: %d из %d сообщений сервиса", t.n, s.n)
+			text = fmt.Sprintf("rare endpoint: %d of %d service messages", t.n, s.n)
 		}
 		out = append(out, Reason{Bits: capBits(surprise(float64(seen)+3, float64(s.n)), 10), Detector: "template", Template: m.tpl, Text: text})
 	}
@@ -263,10 +263,10 @@ func (s *serviceModel) score(m *message) []Reason {
 					limit = 3
 				}
 				var seen uint32
-				text := fmt.Sprintf("новое поле (за %d сообщений эндпоинта его не было)", t.n)
+				text := fmt.Sprintf("new field (not seen in %d endpoint messages)", t.n)
 				if fm != nil {
 					seen = fm.n
-					text = fmt.Sprintf("редкое поле: было в %d из %d сообщений эндпоинта", fm.n, t.n)
+					text = fmt.Sprintf("rare field: seen in %d of %d endpoint messages", fm.n, t.n)
 				}
 				out = append(out, Reason{Bits: capBits(surprise(float64(seen)+3, float64(t.n)), limit), Detector: "field", Template: m.tpl, Field: f.key, Text: text})
 			}
@@ -296,9 +296,9 @@ func (s *serviceModel) score(m *message) []Reason {
 	}
 	if len(missing) > 0 {
 		sort.Strings(missing)
-		text := fmt.Sprintf("нет поля, которое обычно есть (%d сообщений эндпоинта)", t.n)
+		text := fmt.Sprintf("missing field that is usually present (%d endpoint messages)", t.n)
 		if len(missing) > 1 {
-			text = fmt.Sprintf("нет полей, которые обычно есть: %s", strings.Join(missing, ", "))
+			text = fmt.Sprintf("missing fields that are usually present: %s", strings.Join(missing, ", "))
 		}
 		out = append(out, Reason{Bits: capBits(worst+math.Log2(float64(len(missing))), 8), Detector: "missing", Template: m.tpl, Field: missing[0], Text: text})
 	}
@@ -316,9 +316,9 @@ func (f *fieldModel) score(tpl string, x field) []Reason {
 		}
 		if f.values != nil {
 			ex := preview(x.value, 48)
-			text := fmt.Sprintf("новое значение «%s»; обычно: %s", ex, f.commonExamples())
+			text := fmt.Sprintf("new value “%s”; usually: %s", ex, f.commonExamples())
 			if ok {
-				text = fmt.Sprintf("редкое значение «%s»: %d из %d; обычно: %s", ex, c, f.n, f.commonExamples())
+				text = fmt.Sprintf("rare value “%s”: %d of %d; usually: %s", ex, c, f.n, f.commonExamples())
 			}
 			out = append(out, Reason{Bits: capBits(surprise(float64(c)+1, n), 12), Detector: "enum", Template: tpl, Field: x.key, Text: text, Hash: strconv.FormatUint(h, 16), Example: ex})
 		}
@@ -341,18 +341,18 @@ func (f *fieldModel) score(tpl string, x field) []Reason {
 			}
 			parts := []string{}
 			if fresh != 0 {
-				parts = append(parts, "впервые "+describeMask(fresh))
+				parts = append(parts, "first seen "+describeMask(fresh))
 			}
 			if seldom := extra &^ fresh; seldom != 0 {
-				parts = append(parts, "редкие "+describeMask(seldom))
+				parts = append(parts, "rare "+describeMask(seldom))
 			}
-			text := fmt.Sprintf("символы: %s в «%s» (обычно: %s; значений: %d)", strings.Join(parts, "; "), preview(x.value, 60), describeMask(common), f.n)
+			text := fmt.Sprintf("characters: %s in “%s” (usually: %s; values: %d)", strings.Join(parts, "; "), preview(x.value, 60), describeMask(common), f.n)
 			out = append(out, Reason{Bits: capBits(surprise(float64(least)+3, n)+float64(bits.OnesCount32(extra)-1), 14), Detector: "chars", Template: tpl, Field: x.key, Text: text, Mask: extra})
 		}
 		if f.values == nil && len(f.shapes) > 0 && f.shapeOther*10 < f.n {
 			sh := shapeOf(x.value)
 			if c := f.shapes[sh]; rare(c, f.n) {
-				out = append(out, Reason{Bits: capBits(surprise(float64(c)+1, n), 8), Detector: "shape", Template: tpl, Field: x.key, Text: fmt.Sprintf("необычная форма значения «%s»; обычно %s", sh, f.topShapes()), Shape: sh})
+				out = append(out, Reason{Bits: capBits(surprise(float64(c)+1, n), 8), Detector: "shape", Template: tpl, Field: x.key, Text: fmt.Sprintf("unusual value shape “%s”; usually %s", sh, f.topShapes()), Shape: sh})
 			}
 		}
 	}
@@ -366,7 +366,7 @@ func (f *fieldModel) score(tpl string, x field) []Reason {
 	}
 	if bitsLen := surprise(near+0.1, n+1); bitsLen > 6 {
 		lo, hi := f.lenRange()
-		out = append(out, Reason{Bits: capBits(bitsLen, 10), Detector: "length", Template: tpl, Field: x.key, Text: fmt.Sprintf("необычная длина %d байт (обычно %d–%d)", x.size, lo, hi), Length: x.size})
+		out = append(out, Reason{Bits: capBits(bitsLen, 10), Detector: "length", Template: tpl, Field: x.key, Text: fmt.Sprintf("unusual length: %d bytes (usually %d–%d)", x.size, lo, hi), Length: x.size})
 	}
 	return out
 }

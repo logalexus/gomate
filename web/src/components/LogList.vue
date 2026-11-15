@@ -1,5 +1,5 @@
 <template>
- <div ref="viewport" class="log-viewport" @scroll.passive="scroll" role="region" tabindex="0" aria-label="Строки логов">
+ <div ref="viewport" class="log-viewport" @scroll.passive="scroll" role="region" tabindex="0" aria-label="Log lines">
   <div :style="{height:items.length*26+'px',position:'relative',minWidth:'100%'}">
    <div :style="{transform:`translateY(${start*26}px)`}">
     <button v-for="line in visible" :key="line.id" type="button" class="log-row" :class="{'log-stderr':line.stream==='stderr'}" @click="$emit('select',line)" :title="line.text"><span class="log-time">{{ time(line.time) }}</span><span class="log-channel">{{ line.stream }}</span><span>{{ line.text || ' ' }}</span></button>
@@ -13,7 +13,7 @@ export default {
  computed:{start(){return Math.max(0,Math.floor(this.top/26)-5)},visible(){return this.items.slice(this.start,this.start+Math.ceil(this.height/26)+10)}},
  mounted(){this.observer=new ResizeObserver(()=>this.height=this.$el.clientHeight);this.observer.observe(this.$el)},beforeDestroy(){this.observer?.disconnect()},
  watch:{items(){this.$nextTick(()=>{this.top=this.$el.scrollTop})}},
- methods:{scroll(){this.top=this.$el.scrollTop},bottom(){this.$el.scrollTop=this.$el.scrollHeight;this.scroll()},home(){this.$el.scrollTop=0;this.scroll()},time(v){return v?new Date(v).toLocaleTimeString():'—'}},
+ methods:{scroll(){this.top=this.$el.scrollTop},bottom(){this.$el.scrollTop=this.$el.scrollHeight;this.scroll()},home(){this.$el.scrollTop=0;this.scroll()},time(v){return v?new Date(v).toLocaleTimeString('en-US'):'—'}},
 }
 </script>
 <style scoped>

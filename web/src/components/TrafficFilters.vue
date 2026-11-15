@@ -1,15 +1,15 @@
 <template>
- <section class="gm-traffic-filters" aria-label="Фильтры сессий">
+ <section class="gm-traffic-filters" aria-label="Session filters">
   <div class="service-picker">
-   <label class="sr-only" for="traffic-service">Сервис</label><select id="traffic-service" class="custom-select custom-select-sm" :value="service" @change="setService($event.target.value)"><option value="">Все сервисы</option><option v-for="item in services" :key="item.port" :value="String(item.port)">{{ item.name }} · {{ item.port }}</option><option v-if="service&&!currentService" :value="service">Порт {{ service }}</option></select>
-   <button type="button" class="filter-icon" aria-label="Добавить сервис" title="Добавить сервис" @click="$root.$emit('gm:add-service')"><i class="fas fa-plus" aria-hidden="true"/></button><button v-if="currentService" type="button" class="filter-icon" aria-label="Настроить выбранный сервис" title="Настроить сервис" @click="$root.$emit('gm:edit-service',currentService)"><i class="fas fa-cog" aria-hidden="true"/></button>
-   <button v-if="activeCount" type="button" class="filter-icon" aria-label="Сбросить все фильтры" title="Сбросить все фильтры" @click="clear"><i class="fas fa-times" aria-hidden="true"/></button>
+   <label class="sr-only" for="traffic-service">Service</label><select id="traffic-service" class="custom-select custom-select-sm" :value="service" @change="setService($event.target.value)"><option value="">All services</option><option v-for="item in services" :key="item.port" :value="String(item.port)">{{ item.name }} · {{ item.port }}</option><option v-if="service&&!currentService" :value="service">Port {{ service }}</option></select>
+   <button type="button" class="filter-icon" aria-label="Add service" title="Add service" @click="$root.$emit('gm:add-service')"><i class="fas fa-plus" aria-hidden="true"/></button><button v-if="currentService" type="button" class="filter-icon" aria-label="Configure selected service" title="Configure service" @click="$root.$emit('gm:edit-service',currentService)"><i class="fas fa-cog" aria-hidden="true"/></button>
+   <button v-if="activeCount" type="button" class="filter-icon" aria-label="Reset all filters" title="Reset all filters" @click="clear"><i class="fas fa-times" aria-hidden="true"/></button>
   </div>
-  <div class="filter-labels" role="group" aria-label="Метки: должны совпасть все выбранные">
-   <button type="button" class="filter-chip" :class="{'is-active':favorites}" :aria-pressed="String(favorites)" @click="toggleFavorites"><i :class="favorites?'fas fa-star':'far fa-star'" aria-hidden="true"/> Избранное</button>
-   <button v-for="item in availablePatterns" :key="item.id" type="button" class="filter-chip" :class="{'is-active':selected.includes(item.id)}" :aria-pressed="String(selected.includes(item.id))" :disabled="selected.length>=100&&!selected.includes(item.id)" :title="item.name+(item.missing?' · недоступен':'')" @click="togglePattern(item.id)"><i :class="selected.includes(item.id)?'fas fa-check':'fas fa-hashtag'" aria-hidden="true"/><span>{{ item.name }}</span></button>
+  <div class="filter-labels" role="group" aria-label="Labels: all selected must match">
+   <button type="button" class="filter-chip" :class="{'is-active':favorites}" :aria-pressed="String(favorites)" @click="toggleFavorites"><i :class="favorites?'fas fa-star':'far fa-star'" aria-hidden="true"/> Favorites</button>
+   <button v-for="item in availablePatterns" :key="item.id" type="button" class="filter-chip" :class="{'is-active':selected.includes(item.id)}" :aria-pressed="String(selected.includes(item.id))" :disabled="selected.length>=100&&!selected.includes(item.id)" :title="item.name+(item.missing?' · unavailable':'')" @click="togglePattern(item.id)"><i :class="selected.includes(item.id)?'fas fa-check':'fas fa-hashtag'" aria-hidden="true"/><span>{{ item.name }}</span></button>
   </div>
-  <span v-if="selected.length>1" class="filter-match-mode">Совпадают все {{ selected.length }} метки</span>
+  <span v-if="selected.length>1" class="filter-match-mode">Match all {{ selected.length }} labels</span>
  </section>
 </template>
 <script>
@@ -18,7 +18,7 @@ export default {
  computed:{
   service(){return serviceScope(this.$route.params.servicePort)},selected(){return patternSelection(this.$route.query)},
   services(){return this.$store.state.services},patterns(){return this.$store.state.patterns.filter(p=>!p.deleted&&p.actionType==='FIND')},favorites(){return this.$store.state.displayFavoritesOnly},
-  availablePatterns(){return [...this.patterns,...this.selected.filter(id=>!this.patterns.some(p=>p.id===id)).map(id=>({id,name:'Шаблон #'+id,missing:true}))]},
+  availablePatterns(){return [...this.patterns,...this.selected.filter(id=>!this.patterns.some(p=>p.id===id)).map(id=>({id,name:'Pattern #'+id,missing:true}))]},
   currentService(){return this.services.find(s=>String(s.port)===this.service)},activeCount(){return Number(!!this.service)+this.selected.length+Number(this.favorites)},
  },
  methods:{

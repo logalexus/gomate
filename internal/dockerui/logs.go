@@ -36,7 +36,7 @@ type LogSnapshot struct {
 func ReadLogs(r io.Reader, tty bool, tail int) (LogSnapshot, error) {
 	out := LogSnapshot{Lines: []LogLine{}, TTY: tty, FetchedAt: time.Now()}
 	if tail < 1 || tail > 2000 {
-		return out, &Error{400, "tail должен быть от 1 до 2000"}
+		return out, &Error{400, "tail must be between 1 and 2000"}
 	}
 	b, err := io.ReadAll(io.LimitReader(r, maxLogRead+1))
 	if err != nil {
@@ -60,7 +60,7 @@ func ReadLogs(r io.Reader, tty bool, tail int) (LogSnapshot, error) {
 			return r
 		}, line)
 		if clipped[stream] {
-			line += " … [строка сокращена]"
+			line += " … [line truncated]"
 			out.Truncated = true
 		}
 		stamp := ""
@@ -110,7 +110,7 @@ func ReadLogs(r io.Reader, tty bool, tail int) (LogSnapshot, error) {
 				break
 			}
 			if (b[0] != 1 && b[0] != 2) || b[1] != 0 || b[2] != 0 || b[3] != 0 {
-				return out, &Error{502, "Неизвестный формат логов Docker"}
+				return out, &Error{502, "Unknown Docker log format"}
 			}
 			size := int64(binary.BigEndian.Uint32(b[4:8]))
 			stream := "stdout"
