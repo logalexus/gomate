@@ -68,7 +68,7 @@
        <span v-else-if="scope==='all'">{{ g.anomalyCount }} со срабатыванием · {{ g.count-g.anomalyCount-g.dismissedCount }} без срабатывания</span>
        <template v-else><span v-if="g.top.reasons[0]" class="detector-tag" :class="detectorTone(g.top.reasons[0].detector)">{{ detectors[g.top.reasons[0].detector] || g.top.reasons[0].detector }}</span><span>{{ g.top.reasons[0]?.field }}{{ g.top.reasons[0]?.field ? ' · ' : '' }}{{ g.top.reasons[0]?.text || 'Раскройте для просмотра сессии' }}</span></template>
       </span>
-      <span v-if="g.fingerprint && !g.missing && g.variableFields?.length" class="anomaly-variable-preview"><span class="variable-preview-label">Меняются:</span><span v-for="f in g.variableFields" :key="f" class="variable-preview-tag" :title="variableTitle(g, f)"><span class="variable-preview-key">{{ shortField(f) }}:</span> <code>{{ variablePreview(g, f) }}</code></span></span>
+      <span v-if="g.fingerprint && !g.missing && g.variableFields?.length" class="anomaly-variable-preview">Меняется полей: {{ g.variableFields.length }}</span>
       <PatternLabels v-if="scope==='all'" :ids="g.foundPatternsIds" compact title="Шаблоны, найденные хотя бы в одной сессии группы"/>
      </span>
      <span class="anomaly-meta"><span>{{ serviceName(g.top.service) }}</span><span>{{ time(g.top.startTimestamp) }} · {{ scope==='all' ? g.count+' сессий' : g.items.length>1 ? g.items.length+' сессий' : '#'+g.top.streamId }}</span></span>
@@ -196,10 +196,6 @@ export default {
   closeFlow() { this.flowOpen=false; this.$nextTick(()=>{ const target=this.flowReturnFocus?.isConnected ? this.flowReturnFocus : this.$el.querySelector('.anomaly.expanded .open-session-flow'); target?.focus(); this.flowReturnFocus=null; }); },
   detectorTone(detector) { return ['field','missing','enum','chars'].includes(detector) ? 'tone-warning' : 'tone-info'; },
   previewFields(g) { const fields=(g.fields||[]).filter(f=>/\/(json\.|form\.|query\.|token\.|body)/.test(f) && !f.includes('/json.structure')); return fields.slice(0,2); },
-  shortField(field) { return this.shortValue(field.replace(/^\d+:[^/]+\//, ''), 36); },
-  shortValue(value, limit = 32) { const chars=Array.from(value.replace(/\s+/g, ' ').trim()); return chars.length>limit ? chars.slice(0, limit).join('')+'…' : chars.join('') || '(пусто)'; },
-  variablePreview(g, field) { return g.variableExamples?.[field]?.map(value=>this.shortValue(value)).join(' · ') || 'нет примера'; },
-  variableTitle(g, field) { return field+'\n'+(g.variableExamples?.[field] || []).map(value=>value === '' ? '(пусто)' : value).join('\n'); },
   resetFilters() { this.service=0; this.period=3600; this.level=6; this.showDismissed=false; this.sort='score'; },
   reloadFilters() { this.items = []; this.trafficPage = {groups: [], totalGroups: 0, totalSessions: 0, totalAnomalies: 0}; this.groupOffset=0; return this.load(); },
   changePage(delta) { this.groupOffset=Math.max(0,this.groupOffset+delta); return this.load(); },
@@ -331,10 +327,7 @@ export default {
 .tone-warning{color:var(--gm-warning);background:var(--gm-warning-soft)}
 .tone-info,.preview-structure{color:var(--gm-info);background:var(--gm-info-soft)}
 .preview-structure{font-size:11px;border-radius:4px;padding:1px 5px;flex-shrink:0}
-.anomaly-variable-preview{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px;margin-top:5px;min-width:0;font-size:11px}
-.variable-preview-label{color:var(--gm-muted)}
-.variable-preview-tag{display:inline-block;max-width:100%;min-width:0;padding:1px 5px;border-radius:4px;font-size:11px;line-height:1.5;background:var(--gm-warning-soft);white-space:normal;overflow-wrap:anywhere}
-.variable-preview-key{color:var(--gm-muted)}.variable-preview-tag code{font-size:inherit;color:var(--gm-warning)}
+.anomaly-variable-preview{display:inline-block;margin-top:5px;padding:1px 5px;border-radius:4px;font-size:11px;line-height:1.5;color:var(--gm-warning);background:var(--gm-warning-soft)}
 
 .anomalies{max-width:1500px;margin:auto;padding-bottom:16px}
 .anomaly-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
