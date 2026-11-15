@@ -20,7 +20,7 @@ func serveDynamic(parent context.Context, cfg config.Config, app *api.Server) er
 	work, abort := context.WithCancel(context.Background())
 	defer abort()
 	writer := pipeline.New(work, cfg, app.Metrics, app.Catalog, app.Store, app.Hub.Notify)
-	detector := anomaly.New(app.Catalog, app.Store, cfg.DBTimeout)
+	detector := anomaly.New(app.Catalog, app.Store, cfg.DBTimeout, app.Hub.PublishAnomalies)
 	writer.Observe(detector.Submit)
 	app.Anomaly = detector
 	manager := control.New(ctx, cfg, app.Catalog, app.Metrics, writer.Submit, app.Hub.Notify)

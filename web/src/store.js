@@ -13,6 +13,8 @@ export default new Vuex.Store({
 		hexdumpBlockSize: 16,
 		hexdumpLineNumberBase: 10,
 		pageSize: 25,
+		anomalyNotificationsEnabled: true,
+		anomalyNotificationScore: 40,
 		displayFavoritesOnly: false,
 		pause: false,
 		pcapStarted: true,
@@ -35,6 +37,8 @@ export default new Vuex.Store({
 		setHexdumpBlockSize: (s, p) => s.hexdumpBlockSize = p,
 		setHexdumpLineNumberBase: (s, p) => s.hexdumpLineNumberBase = p,
 		setPageSize: (s, p) => s.pageSize = p,
+        setAnomalyNotificationsEnabled: (s, p) => s.anomalyNotificationsEnabled = Boolean(p),
+        setAnomalyNotificationScore: (s, p) => {if (Number.isInteger(p) && p >= 1 && p <= 1000) s.anomalyNotificationScore = p;},
 		// eslint-disable-next-line no-unused-vars
 		toggleDisplayFavoritesOnly: (s, p) => s.displayFavoritesOnly = !s.displayFavoritesOnly,
 		// eslint-disable-next-line no-unused-vars
@@ -60,7 +64,7 @@ export default new Vuex.Store({
 	},
 	actions: {},
 	plugins: [
-		createPersistedState({paths: ['theme', 'hexdumpBlockSize', 'hexdumpLineNumberBase', 'pageSize', 'hexdumpMode']}),
+		createPersistedState({paths: ['theme', 'hexdumpBlockSize', 'hexdumpLineNumberBase', 'pageSize', 'hexdumpMode', 'anomalyNotificationsEnabled', 'anomalyNotificationScore']}),
 		createMutationsSharer({
 			// eslint-disable-next-line no-unused-vars
 			predicate: (mutation, state) => {

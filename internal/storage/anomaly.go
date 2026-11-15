@@ -84,3 +84,24 @@ func (s *Store) DismissAnomaly(ctx context.Context, id int64, dismissed bool) (a
 	}
 	return v, nil
 }
+
+// VisibleAnomalyIDs excludes removed, ignored and manually dismissed sessions
+// from pending notifications. The event feed bounds the number of IDs.
+func (s *Store) VisibleAnomalyIDs(ctx context.Context, ids []int64) (map[int64]bool, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT a.stream_id FROM gomate_anomalies a
+        JOIN gomate_streams s ON s.id=a.stream_id
+        WHERE a.stream_id=ANY($1::bigint[]) AND NOT a.dismissed AND NOT s.ignored`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	visible := make(map[int64]bool)
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		visible[id] = true
+	}
+	return visible, rows.Err()
+}

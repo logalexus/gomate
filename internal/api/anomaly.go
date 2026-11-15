@@ -14,6 +14,28 @@ import (
 // POST /api/v2/anomalies/{streamId}/normal   learn the reasons and hide the row
 // POST /api/v2/anomalies/{streamId}/restore  show the row again
 func (s *Server) anomalies(w http.ResponseWriter, r *http.Request, p []string) error {
+	if len(p) == 4 && p[3] == "notifications" && r.Method == "GET" {
+		feed := s.Hub.AnomalyNotifications(r.URL.Query().Get("cursor"))
+		if len(feed.Items) > 0 {
+			ids := make([]int64, 0, len(feed.Items))
+			for _, item := range feed.Items {
+				ids = append(ids, item.StreamID)
+			}
+			visible, err := s.Store.VisibleAnomalyIDs(r.Context(), ids)
+			if err != nil {
+				return err
+			}
+			items := feed.Items[:0]
+			for _, item := range feed.Items {
+				if visible[item.StreamID] {
+					items = append(items, item)
+				}
+			}
+			feed.Items = items
+		}
+		respond(w, 200, feed)
+		return nil
+	}
 	if len(p) == 4 && (p[3] == "groups" || p[3] == "sessions") && r.Method == "GET" {
 		return s.trafficGroups(w, r, p[3] == "sessions")
 	}

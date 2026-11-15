@@ -13,8 +13,9 @@ import (
 // Events invalidate snapshots, rather than enqueueing every traffic record.
 // A slow client consumes at most one pending notification.
 type Hub struct {
-	mu      sync.Mutex
-	clients map[chan struct{}]struct{}
+	mu        sync.Mutex
+	clients   map[chan struct{}]struct{}
+	anomalies anomalyFeed
 }
 
 func New() *Hub { return &Hub{clients: map[chan struct{}]struct{}{}} }

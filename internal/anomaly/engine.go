@@ -75,6 +75,7 @@ type feedback struct {
 type Engine struct {
 	catalog *analyze.Catalog
 	sink    Sink
+	onSaved func([]Result)
 	timeout time.Duration
 	queue   chan []*model.Chunk
 	accept  chan feedback
@@ -90,8 +91,11 @@ type Engine struct {
 	pending  map[int64]Result
 }
 
-func New(c *analyze.Catalog, sink Sink, timeout time.Duration) *Engine {
+func New(c *analyze.Catalog, sink Sink, timeout time.Duration, onSaved ...func([]Result)) *Engine {
 	e := newEngine(c, sink, timeout)
+	if len(onSaved) > 0 {
+		e.onSaved = onSaved[0]
+	}
 	go e.run()
 	return e
 }
@@ -187,6 +191,9 @@ func (e *Engine) flush() {
 			clear(e.pending)
 		}
 		return
+	}
+	if e.onSaved != nil {
+		e.onSaved(out)
 	}
 	clear(e.pending)
 }

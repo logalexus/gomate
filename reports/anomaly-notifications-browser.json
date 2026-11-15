@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "checks": [
+    "No historical notifications",
+    "Inclusive threshold; old session crossing threshold; duplicate suppression",
+    "Settings persist; invalid threshold rejected; disabled polling; no disabled backlog",
+    "Retry preserves cursor and event",
+    "Burst coalescing; three links maximum; notifications survive route changes; compact light/dark layouts",
+    "Reload preserves settings and deduplication; overflow warning",
+    "Auto-hide after 12 seconds; hover pauses dismissal"
+  ],
+  "layouts": [
+    {
+      "width": 1366,
+      "theme": "dark"
+    },
+    {
+      "width": 1366,
+      "theme": "light"
+    },
+    {
+      "width": 375,
+      "theme": "dark"
+    },
+    {
+      "width": 375,
+      "theme": "light"
+    }
+  ]
+}

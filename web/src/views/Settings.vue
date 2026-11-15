@@ -40,6 +40,7 @@
      <b-form-group label="Время ожидания ответа, секунд" label-for="request-timeout" description="От 5 до 300 секунд. По умолчанию 10; на медленной машине можно поставить 30–60. Браузер подождёт ещё 5 секунд на передачу ответа."><b-form-input id="request-timeout" type="number" min="5" max="300" step="1" v-model.number="form.requestTimeoutSeconds" class="settings-short-input"/></b-form-group>
      <p class="settings-note">Увеличение ожидания не ускоряет обработку. Чтобы снизить нагрузку, поставьте автообновление на паузу или выберите один сервис. Действует во всех разделах: трафик, аномалии, чат, настройки и Docker. Время выполнения скрипта задаётся отдельно в окне запуска.</p>
     </section></div></b-tab>
+    <b-tab title="Уведомления"><NotificationSettings/></b-tab>
     <b-tab title="Отображение"><div class="settings-section"><section class="settings-card"><div class="settings-card-title"><div><h6>Плотность и формат данных</h6><p>Эти настройки применяются сразу и сохраняются только в вашем браузере.</p></div><span class="settings-local-label">Локально</span></div><div class="row"><b-form-group class="col-md-4" label="Сессий на странице" label-for="settings-pageSize"><b-form-input id="settings-pageSize" type="number" min="1" max="100" v-model.number="pageSize"/></b-form-group><b-form-group class="col-md-4" label="Байтов в строке HEX" label-for="settings-hexdumpBlockSize"><b-form-input id="settings-hexdumpBlockSize" type="number" min="1" max="64" v-model.number="hexdumpBlockSize"/></b-form-group><b-form-group class="col-md-4" label="Нумерация HEX-строк" label-for="settings-hex-base"><b-form-select id="settings-hex-base" v-model="hexdumpLineNumberBase" :options="[{value:10,text:'Десятичная'},{value:16,text:'Шестнадцатеричная'}]"/></b-form-group></div></section></div></b-tab>
    </b-tabs>
    <div class="settings-footer"><span class="small" :class="saved?'text-success':'text-muted'" role="status">{{ saved ? 'Настройки сохранены' : 'Серверные настройки изменятся после сохранения' }}</span><div class="settings-control-row"><b-button variant="outline-secondary" @click="$bvModal.hide('settingsModal')">Закрыть</b-button><b-button variant="primary" :disabled="saving" @click="save">{{ saving ? 'Применение…' : 'Сохранить и применить' }}</b-button></div></div>
@@ -50,8 +51,10 @@
  </b-modal>
 </template>
 <script>
+import NotificationSettings from '../components/NotificationSettings.vue';
 const message=e=>e.response?.data?.error || e.message || 'Не удалось выполнить запрос';
 export default {
+ components: {NotificationSettings},
  data:()=>({form:null,interfaces:[],capture:{},loading:false,saving:false,saved:false,error:'',ipText:'',packetMinutes:0,sessionMinutes:60,jobs:[],timer:null,polling:false,cleanupMode:'packets',cleanupService:0,cleanupKeep:true,preview:null,busyPreview:false,confirmDelete:false,deleting:false}),
  computed:{
   selectedAddresses(){return this.interfaces.find(x=>x.name===this.form?.interface)?.addresses.join(', ');},

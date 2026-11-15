@@ -7,6 +7,7 @@
    <main id="workspace-main" ref="main" class="gm-main" tabindex="-1" :class="{'gm-main-traffic':$route.name==='stream','gm-main-chat':$route.name==='chat','gm-main-anomalies':$route.name==='anomalies'}"><router-view name="content" ref="content"/></main>
   </div>
   <Settings/>
+  <AnomalyNotifications/>
   <footer class="capture-status gm-statusbar" aria-label="Состояние захвата">
    <span class="gm-capture-state" :class="{'gm-capture-warning':!captureState.startsWith('LIVE')}"><span class="gm-status-dot" aria-hidden="true"/>{{ captureState }}</span>
    <div class="gm-status-metrics"><span>Пакеты <strong>{{ $store.state.currentPacketsCount.toLocaleString() }}</strong></span><span>Блоки <strong>{{ $store.state.currentStreamsCount.toLocaleString() }}</strong></span><span :class="{'text-danger':drops}">Потери <strong>{{ drops }}</strong></span><span :class="{'text-warning':decodeErrors}">Ошибки разбора <strong>{{ decodeErrors }}</strong></span><span v-if="evictions" class="text-warning">Вытеснения {{ evictions }}</span></div>
@@ -17,8 +18,9 @@
 <script>
 import Navbar from './components/Navbar';
 import Settings from './views/Settings';
+import AnomalyNotifications from './components/AnomalyNotifications.vue';
 export default {
-  components: {Navbar, Settings},
+  components: {Navbar, Settings, AnomalyNotifications},
   data: () => ({socket: null, retry: null, timer: null, stopped: false, dirty: true, refreshing: false, lastRefresh: 0, captureState: 'Подключение…', drops: 0, decodeErrors: 0, evictions: 0, job: null, jobsAt: 0}),
   mounted() {
     this.connect();
