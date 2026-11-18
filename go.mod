@@ -7,8 +7,9 @@ require (
 	github.com/gopacket/gopacket v1.7.7
 	github.com/jackc/pgx/v5 v5.13.0
 	golang.org/x/net v0.62.0
-	google.golang.org/grpc v1.76.0
-	google.golang.org/protobuf v1.36.6
+	golang.org/x/sys v0.49.0
+	google.golang.org/grpc v1.83.2
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
@@ -16,7 +17,6 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.3 // indirect
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 )

@@ -28,7 +28,7 @@ services:
       DATABASE_URL: postgres://gomate:${DB_PASSWORD}@127.0.0.1:${DB_PORT:-65432}/gomate?sslmode=disable
       WEB_LOGIN: ${WEB_LOGIN:-packmate}
       WEB_PASSWORD: ${WEB_PASSWORD:?set WEB_PASSWORD in .env}
-      LISTEN: ${LISTEN:-127.0.0.1:65000}
+      LISTEN: ${LISTEN:-0.0.0.0:65000}
       INTERFACE: ${INTERFACE:-}
       LOCAL_IPS: ${LOCAL_IPS:-}
       WEB_DIR: /web

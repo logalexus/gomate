@@ -59,25 +59,30 @@ func (s *Server) Reload(ctx context.Context) error {
 	return s.Catalog.Replace(ss, ps)
 }
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/health/live" {
-		respond(w, 200, map[string]bool{"alive": true})
-		return
-	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.Header().Set("Referrer-Policy", "no-referrer")
 	user, pass, ok := r.BasicAuth()
 	u, p := sha256.Sum256([]byte(user)), sha256.Sum256([]byte(pass))
 	wantU, wantP := sha256.Sum256([]byte(s.Config.Login)), sha256.Sum256([]byte(s.Config.Password))
-	if !ok || subtle.ConstantTimeCompare(u[:], wantU[:])&subtle.ConstantTimeCompare(p[:], wantP[:]) != 1 {
+	if s.Config.Login == "" || s.Config.Password == "" || !ok || subtle.ConstantTimeCompare(u[:], wantU[:])&subtle.ConstantTimeCompare(p[:], wantP[:]) != 1 {
 		w.Header().Set("WWW-Authenticate", `Basic realm="gomate"`)
 		http.Error(w, "authentication required", 401)
 		return
 	}
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-	if r.Method != "GET" && r.Method != "HEAD" {
-		if origin := r.Header.Get("Origin"); origin != "" && origin != "http://"+r.Host && origin != "https://"+r.Host {
-			http.Error(w, "invalid origin", 403)
-			return
-		}
+	// Browsers may send cached Basic credentials with cross-site requests.
+	if origin := r.Header.Get("Origin"); origin != "" && origin != "http://"+r.Host && origin != "https://"+r.Host {
+		http.Error(w, "invalid origin", http.StatusForbidden)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Header.Get("Sec-Fetch-Site") == "cross-site" {
+		http.Error(w, "cross-site request forbidden", http.StatusForbidden)
+		return
+	}
+	if r.URL.Path == "/health/live" {
+		respond(w, 200, map[string]bool{"alive": true})
+		return
 	}
 	if r.URL.Path == "/api/v2/chat/arena" {
 		s.arenaGame.Serve(w, r, s.chatAuthor(w, r))

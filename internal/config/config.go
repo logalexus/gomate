@@ -19,7 +19,7 @@ type Config struct {
 }
 
 func Load() (Config, error) {
-	c := Config{DiscoveryURL: os.Getenv("DOCKER_DISCOVERY_URL"), DiscoveryToken: os.Getenv("DOCKER_DISCOVERY_TOKEN"), Listen: env("LISTEN", "127.0.0.1:65000"), DatabaseURL: os.Getenv("DATABASE_URL"), Login: env("WEB_LOGIN", "packmate"), Password: os.Getenv("WEB_PASSWORD"), Interface: os.Getenv("INTERFACE"), PCAP: os.Getenv("PCAP_FILE"), WebDir: env("WEB_DIR", "web/dist"), Shards: 2, QueuePackets: 2048, MaxFlows: 4096, MaxFlowBytes: 256 << 10, ActiveBytes: 64 << 20, QueueBytes: 32 << 20, WriteBytes: 64 << 20, FlushInterval: time.Second, IdleTimeout: 40 * time.Second, DBTimeout: 3 * time.Second, Retention: time.Hour}
+	c := Config{DiscoveryURL: os.Getenv("DOCKER_DISCOVERY_URL"), DiscoveryToken: os.Getenv("DOCKER_DISCOVERY_TOKEN"), Listen: env("LISTEN", "0.0.0.0:65000"), DatabaseURL: os.Getenv("DATABASE_URL"), Login: env("WEB_LOGIN", "packmate"), Password: os.Getenv("WEB_PASSWORD"), Interface: os.Getenv("INTERFACE"), PCAP: os.Getenv("PCAP_FILE"), WebDir: env("WEB_DIR", "web/dist"), Shards: 2, QueuePackets: 2048, MaxFlows: 4096, MaxFlowBytes: 256 << 10, ActiveBytes: 64 << 20, QueueBytes: 32 << 20, WriteBytes: 64 << 20, FlushInterval: time.Second, IdleTimeout: 40 * time.Second, DBTimeout: 3 * time.Second, Retention: time.Hour}
 	for name, dst := range map[string]*int{"SHARDS": &c.Shards, "QUEUE_PACKETS": &c.QueuePackets, "MAX_FLOWS": &c.MaxFlows, "MAX_FLOW_BYTES": &c.MaxFlowBytes} {
 		if v := os.Getenv(name); v != "" {
 			n, e := strconv.Atoi(v)
@@ -58,6 +58,9 @@ func Load() (Config, error) {
 	}
 	if c.DatabaseURL == "" || c.Password == "" {
 		return c, fmt.Errorf("DATABASE_URL and WEB_PASSWORD are required")
+	}
+	if c.Password == "replace-with-a-different-random-password" {
+		return c, fmt.Errorf("replace the example WEB_PASSWORD with a random password")
 	}
 	if c.Interface != "" && c.PCAP != "" {
 		return c, fmt.Errorf("choose INTERFACE or PCAP_FILE, not both")

@@ -17,8 +17,8 @@ import (
 
 func main() {
 	token := os.Getenv("DOCKER_DISCOVERY_TOKEN")
-	if len(token) < 24 {
-		log.Fatal("DOCKER_DISCOVERY_TOKEN must contain at least 24 characters")
+	if len(token) < 24 || token == "replace-with-another-random-secret-at-least-24-characters" {
+		log.Fatal("DOCKER_DISCOVERY_TOKEN must be random, contain at least 24 characters, and differ from the example")
 	}
 	socket := os.Getenv("DOCKER_SOCKET")
 	if socket == "" {

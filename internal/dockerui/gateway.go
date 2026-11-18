@@ -58,7 +58,7 @@ func Gateway(engine *Engine, token string, services http.Handler) http.Handler {
 	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got := sha256.Sum256([]byte(r.Header.Get("Authorization")))
-		if subtle.ConstantTimeCompare(got[:], want[:]) != 1 {
+		if len(token) < 24 || token == "replace-with-another-random-secret-at-least-24-characters" || subtle.ConstantTimeCompare(got[:], want[:]) != 1 {
 			write(w, nil, &Error{401, "unauthorized"})
 			return
 		}

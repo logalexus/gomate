@@ -31,7 +31,7 @@ if [ ! -f .env ]; then
     printf 'WEB_LOGIN=packmate\n'
     printf 'WEB_PASSWORD=%s\n' "$WEB_PASSWORD"
     printf 'DB_PORT=65432\n'
-    printf 'LISTEN=127.0.0.1:65000\n'
+    printf 'LISTEN=0.0.0.0:65000\n'
     printf 'INTERFACE=\nLOCAL_IPS=\nRETENTION=1h\n'
     printf 'DOCKER_DISCOVERY_TOKEN=%s\n' "$DOCKER_DISCOVERY_TOKEN"
   } > .env
