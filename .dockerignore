@@ -7,3 +7,12 @@ data
 web/node_modules
 web/dist
 reports
+
+.agents
+.env.*
+!.env.example
+deploy/ad-lab
+deploy/kali/gomate-traffic.service
+scripts/ad-*
+scripts/ad_lab_common.py
+scripts/continuous-traffic.*

@@ -81,9 +81,9 @@ Go: формулы CPU/RAM/скоростей, cgroup v1/v2, первые зам
 18–71 мс, среднее 38 мс. Это smoke-проверка API, не стресс-тест и не оценка предела
 нагрузки. Захват работал весь период проверки без перезапуска.
 
-Артефакты: [UI](monitoring-ui-check.json), [живой стенд](monitoring-live-check.json),
-[развёртывание и предыдущие образы](monitoring-deployment.json),
-[скриншот стенда](monitoring-live.jpg).
+Артефакты: UI (`monitoring-ui-check.json`, локальный артефакт), живой стенд (`monitoring-live-check.json`, локальный артефакт),
+развёртывание и предыдущие образы (`monitoring-deployment.json`, локальный артефакт),
+скриншот стенда (`monitoring-live.jpg`, локальный артефакт).
 
 При развёртывании пересозданы только app и discovery. Остальные 17 запущенных
 контейнеров сохранили image ID и StartedAt. Предыдущие образы и Compose-файл оставлены

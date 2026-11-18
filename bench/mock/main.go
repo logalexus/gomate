@@ -221,6 +221,7 @@ func run() error {
 	address := flag.String("address", ":8080", "listen address or client host:port")
 	count := flag.Int("count", 100, "scheduled calls")
 	rps := flag.Int("rps", 100, "scheduled calls per second")
+	maxLag := flag.Duration("max-schedule-lag", 100*time.Millisecond, "skip calls delayed beyond this interval")
 	workers := flag.Int("concurrency", 200, "concurrent call limit")
 	prefix := flag.String("run", fmt.Sprintf("r%d", time.Now().UnixNano()), "unique alphanumeric run marker")
 	flag.Parse()
@@ -229,7 +230,7 @@ func run() error {
 	if *mode == "server" {
 		return serve(ctx, *protocol, *address)
 	}
-	if *mode != "client" || *count < 1 || *count > 10000000 || *rps < 1 || *rps > 100000 || *workers < 1 || *workers > 4096 || !safe.MatchString(*prefix) {
+	if *mode != "client" || *count < 1 || *count > 10000000 || *rps < 1 || *rps > 100000 || *workers < 1 || *workers > 4096 || *maxLag <= 0 || !safe.MatchString(*prefix) {
 		return fmt.Errorf("invalid client arguments")
 	}
 	call, closeClient, e := client(*protocol, *address)
@@ -253,7 +254,7 @@ func run() error {
 			case <-time.After(wait):
 			}
 		}
-		if time.Since(at) > 100*time.Millisecond {
+		if time.Since(at) > *maxLag {
 			missed.Add(1)
 			continue
 		}
@@ -322,8 +323,8 @@ func client(protocol, address string) (func(context.Context, string) (int, error
 			}
 			return 1, nil
 		}, func() {}, nil
-	case "http", "http-gzip":
-		tr := &http.Transport{DisableKeepAlives: true, MaxConnsPerHost: 512}
+	case "http", "http-gzip", "http-keepalive":
+		tr := &http.Transport{DisableKeepAlives: protocol != "http-keepalive", MaxConnsPerHost: 1024, MaxIdleConns: 512, MaxIdleConnsPerHost: 512, IdleConnTimeout: 10 * time.Second}
 		c := &http.Client{Transport: tr, Timeout: 5 * time.Second}
 		return func(ctx context.Context, marker string) (int, error) {
 			path := "/"

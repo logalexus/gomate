@@ -8,7 +8,7 @@ import (
 )
 
 func TestProtocols(t *testing.T) {
-	for _, protocol := range []string{"http", "tcp", "grpc", "grpc-stream"} {
+	for _, protocol := range []string{"http", "http-keepalive", "tcp", "grpc", "grpc-stream"} {
 		t.Run(protocol, func(t *testing.T) {
 			l, err := net.Listen("tcp", "127.0.0.1:0")
 			if err != nil {
@@ -17,6 +17,9 @@ func TestProtocols(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			done := make(chan error, 1)
 			serverProtocol := protocol
+			if protocol == "http-keepalive" {
+				serverProtocol = "http"
+			}
 			if protocol == "grpc-stream" {
 				serverProtocol = "grpc"
 			}

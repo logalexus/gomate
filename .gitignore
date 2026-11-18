@@ -9,3 +9,22 @@ web/dist/
 coverage.out
 __pycache__/
 *.pyc
+
+# Local AD lab and traffic generators; not part of the Gomate application.
+deploy/ad-lab/
+deploy/kali/gomate-traffic.service
+scripts/ad-checker-action.py
+scripts/ad-checker-traffic.py
+scripts/ad-lab-deploy.sh
+scripts/ad-sploit-team.py
+scripts/ad-suspicious-traffic.py
+scripts/ad_lab_common.py
+scripts/continuous-traffic.md
+scripts/continuous-traffic.py
+
+# Local agent tooling and generated reports.
+/.agents/
+/reports/*
+!/reports/*.md
+.env.*
+!.env.example
